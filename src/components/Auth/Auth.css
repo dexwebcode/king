@@ -1,0 +1,514 @@
+/* ------ Глобальный селектор: применяется ко всем элементам страницы ------ */
+* {
+    font-family: "Montserrat", sans-serif;
+    /* Устанавливаем шрифт Montserrat для всего интерфейса */
+}
+
+/* ------ Базовые настройки body ------ */
+body {
+    margin: 0;
+    /* Убираем стандартные внешние отступы браузера */
+    padding: 0;
+    /* Убираем стандартные внутренние отступы браузера */
+    overflow: hidden;
+    /* Запрещаем прокрутку страницы, чтобы фон не выходил за экран */
+}
+
+/* ------ Главный контейнер экрана авторизации ------ */
+.Auth {
+    position: relative;
+    /* Создаем основу для absolute-элементов внутри Auth */
+
+    display: flex;
+    /* Включаем flexbox */
+    justify-content: center;
+    /* Центрируем форму по горизонтали */
+    align-items: center;
+    /* Центрируем форму по вертикали */
+
+    width: 100%;
+    /* Контейнер занимает всю ширину экрана */
+    height: 100vh;
+    /* Контейнер занимает всю высоту экрана */
+
+    background-color: #ffffff;
+    /* Темный фон страницы */
+
+    overflow: hidden;
+    /* Скрываем части фоновых SVG, которые выходят за границы экрана */
+}
+
+/* ---------- REGISTRATION CARD ---------- */
+
+/* ------ Карточка формы авторизации/регистрации ------ */
+.Registration {
+    position: relative;
+    /* Нужен для позиционирования Info-button внутри карточки */
+
+    z-index: 10;
+    /* Форма находится выше фоновых SVG */
+
+    min-width: 1060px;
+    /* Минимальная ширина карточки */
+    min-height: 810px;
+    /* Минимальная высота карточки */
+    left: -285px;
+    padding: 25px 30px 15px;
+    /* Внутренние отступы: верх, стороны, низ */
+
+    display: flex;
+    /* Включаем flexbox */
+    flex-direction: column;
+    /* Располагаем элементы сверху вниз */
+    align-items: center;
+    /* Центрируем элементы по горизонтали */
+    justify-content: center;
+    /* Центрируем элементы по вертикали */
+
+    /* Скрываем всё, что выходит за границы карточки */
+
+    background: #000000ea;
+    /* Внешняя глубокая тень */
+}
+
+/* ------ Заголовок AIONIQ внутри карточки ------ */
+.Registration-heading {
+    position: absolute;
+
+    /* Размещаем заголовок независимо от формы */
+
+    top: 175px;
+    /* Отступ от верхней части карточки */
+
+    color: white;
+    /* Белый цвет текста */
+    font-size: 45px;
+    /* Размер заголовка */
+
+    z-index: 3;
+    /* Заголовок выше внутреннего фона карточки */
+}
+
+/* ------ Контейнер содержимого формы ------ */
+.Registration-content {
+    width: 50%;
+    /* Контент занимает всю доступную ширину карточки */
+
+    margin-top: 60px;
+    /* Отступ сверху, чтобы не налезать на заголовок */
+    margin-bottom: 20px;
+    /* Отступ снизу */
+
+    display: flex;
+    /* Включаем flexbox */
+    flex-direction: column;
+    /* Поля идут вертикально */
+    align-items: center;
+    /* Центрируем поля и кнопки */
+
+    z-index: 3;
+    /* Контент выше фона карточки */
+}
+
+/* ------ Общие стили input логина и пароля ------ */
+.Username-input,
+.Password-input {
+    width: 70%;
+    /* Поля занимают 70% ширины карточки */
+    height: 40px;
+    /* Фиксированная высота полей */
+    display: block;
+    /* Input ведет себя как блочный элемент */
+
+    margin-bottom: 10px;
+    /* Отступ между полями */
+    padding: 15px;
+    /* Внутренний отступ текста внутри input */
+
+    box-sizing: border-box;
+    /* Padding и border входят в общую ширину input */
+
+    border: 0px solid rgba(255, 255, 255, 0.35);
+    /* Полупрозрачная белая рамка */
+    border-radius: 12px;
+    /* Скругление углов input */
+
+    background: rgba(66, 66, 66, 0.5);
+    /* Полупрозрачный светлый фон input */
+
+    color: white;
+    /* Белый цвет вводимого текста */
+
+    position: relative;
+    /* Создаем локальный слой для input */
+
+    z-index: 3;
+    /* Input выше фона карточки */
+
+    backdrop-filter: blur(5px);
+    /* Легкое размытие фона за input */
+    -webkit-backdrop-filter: blur(5px);
+    /* Поддержка blur для WebKit-браузеров */
+
+    mix-blend-mode: difference;
+    /* Инвертирует/смешивает цвета input с фоном */
+}
+
+/* ------ Цвет placeholder внутри input ------ */
+.Username-input::placeholder,
+.Password-input::placeholder {
+    color: rgba(255, 255, 255, 0.8);
+    /* Полупрозрачный белый placeholder */
+}
+
+/* ---------- PASSWORD HINT ---------- */
+
+/* ------ Подсказка под паролем ------ */
+.Password-hint {
+    width: 70%;
+    /* Ширина подсказки */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0px auto 0px auto;
+    /* центрирование по горизонтали */
+
+    text-indent: 5px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    padding: 5px;
+}
+
+/* ---------- BUTTONS ---------- */
+
+/* ------ Контейнер кнопок ------ */
+.Buttons-container {
+    display: flex;
+    /* Кнопки располагаются в ряд */
+
+    justify-content: center;
+    /* Центрируем кнопки по горизонтали */
+    align-items: center;
+    /* Центрируем кнопки по вертикали */
+
+    margin-top: 15px;
+    /* Отступ сверху от input */
+
+    gap: 10px;
+    /* Расстояние между кнопками */
+}
+
+/* ------ Общие стили кнопок входа и регистрации ------ */
+.Login-button,
+.Register-button {
+    padding: 10px 20px;
+    /* Внутренние отступы кнопок */
+
+    border: none;
+    /* Убираем стандартную рамку */
+    border-radius: 12px;
+    /* Скругляем углы кнопки */
+
+    background: white;
+    /* Белый фон кнопки */
+    color: black;
+    /* Черный текст кнопки */
+
+    cursor: pointer;
+    /* Курсор руки при наведении */
+
+    transition: 0.2s;
+    /* Плавность hover-эффекта */
+}
+
+/* ------ Hover-эффект кнопок ------ */
+.Login-button:hover,
+.Register-button:hover {
+    background: rgba(66, 66, 66, 0.5);
+    /* При наведении делаем фон темным */
+    color: white;
+    /* При наведении делаем текст белым */
+}
+
+.Auth-header {
+    position: absolute;
+    /* Свободное позиционирование заголовка */
+
+    top: 20px;
+    /* Отступ от верхней части экрана */
+    left: 20px;
+    /* Отступ от левой части экрана */
+
+    color: white;
+    /* Белый цвет текста */
+    font-size: 28px;
+    /* Размер заголовка */
+
+    z-index: 3;
+    /* Заголовок выше фоновых SVG */
+}
+
+.QR-button {
+    /* Внутренние отступы кнопки */
+
+    border: none;
+    /* Убираем стандартную рамку */
+    border-radius: 12px;
+    /* Скругляем углы кнопки */
+
+    background: rgba(255, 255, 255, 0);
+    /* Белый фон кнопки */
+    color: white;
+    /* Черный текст кнопки */
+
+    cursor: pointer;
+    /* Курсор руки при наведении */
+
+    transition: 0.2s;
+    /* Плавность hover-эффекта */
+}
+
+.novigation-button {
+    position: absolute;
+    /* Свободное позиционирование кнопки */
+
+    top: 20px;
+    /* Отступ от верхней части экрана */
+    left: 20px;
+    /* Отступ от левой части экрана */
+
+    background: transparent;
+    /* Прозрачный фон кнопки */
+    border: none;
+    /* Убираем стандартную рамку */
+
+    cursor: pointer;
+    /* Курсор руки при наведении */
+
+    z-index: 3;
+    /* Кнопка выше фоновых SVG */
+}
+
+/* ---------- LOGO ---------- */
+.Logo_2 {
+    position: absolute;
+    width: 350px;
+    height: 350px;
+    top: 240px;
+    left: 1675px;
+    border-radius: 15px;
+    transform: translateX(-50%);
+
+    background:
+        url('hero.png') no-repeat center/cover,
+        /* ← PNG сверху */
+        linear-gradient(rgba(22, 22, 22, 0.6), rgba(22, 22, 22, 0.6));
+    /* ← затемнение, чтобы PNG не слишком бросалось в глаза */
+
+    filter: blur(4px);
+    /* ← РАЗМЫТИЕ САМОЙ КАРТИНКИ */
+    -webkit-filter: blur(7px);
+    border-radius: 15px;
+}
+
+.Logo {
+    position: absolute;
+
+    width: 350px;
+    height: 350px;
+    top: 240px;
+    left: 1120px;
+    border-radius: 15px;
+}
+
+.Logo_3 {
+    position: absolute;
+    width: 550px;
+    height: 550px;
+    top: -340px;
+    left: 1390px;
+    transform: translateX(-50%);
+
+    background:
+        url('hero.png') no-repeat center/cover,
+        /* ← PNG сверху */
+        linear-gradient(rgba(22, 22, 22, 0.6), rgba(22, 22, 22, 0.6));
+    /* ← затемнение, чтобы PNG не слишком бросалось в глаза */
+
+    filter: blur(4px);
+    /* ← РАЗМЫТИЕ САМОЙ КАРТИНКИ */
+    -webkit-filter: blur(7px);
+    border-radius: 15px;
+}
+
+.Logo_4 {
+    position: absolute;
+    width: 550px;
+    height: 550px;
+    top: 620px;
+    left: 1390px;
+    transform: translateX(-50%);
+
+    background:
+        url('hero.png') no-repeat center/cover,
+        /* ← PNG сверху */
+        linear-gradient(rgba(22, 22, 22, 0.6), rgba(22, 22, 22, 0.6));
+    /* ← затемнение, чтобы PNG не слишком бросалось в глаза */
+
+    filter: blur(4px);
+    /* ← РАЗМЫТИЕ САМОЙ КАРТИНКИ */
+    -webkit-filter: blur(7px);
+    border-radius: 15px;
+}
+
+.Logo_5 {
+    position: absolute;
+    width: 460px;
+    height: 460px;
+    top: 242px;
+    left: 860px;
+    transform: translateX(-50%);
+
+    background:
+        url('hero.png') no-repeat center/cover,
+        /* ← PNG сверху */
+        linear-gradient(rgba(22, 22, 22, 0.6), rgba(22, 22, 22, 0.6));
+    /* ← затемнение, чтобы PNG не слишком бросалось в глаза */
+
+    filter: blur(4px);
+    /* ← РАЗМЫТИЕ САМОЙ КАРТИНКИ */
+    -webkit-filter: blur(15px);
+    border-radius: 15px;
+}
+
+.Logo_6 {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    top: 570px;
+    left: 120px;
+    transform: translateX(-50%);
+
+    background:
+        url('hero.png') no-repeat center/cover,
+        /* ← PNG сверху */
+        linear-gradient(rgba(22, 22, 22, 0.6), rgba(22, 22, 22, 0.6));
+    /* ← затемнение, чтобы PNG не слишком бросалось в глаза */
+
+    filter: blur(4px);
+    /* ← РАЗМЫТИЕ САМОЙ КАРТИНКИ */
+    -webkit-filter: blur(15px);
+    border-radius: 15px;
+}
+
+.Logo_7 {
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    top: -110px;
+    left: 930px;
+    transform: translateX(-50%);
+
+    background:
+        url('hero.png') no-repeat center/cover,
+        /* ← PNG сверху */
+        linear-gradient(rgba(22, 22, 22, 0.6), rgba(22, 22, 22, 0.6));
+    /* ← затемнение, чтобы PNG не слишком бросалось в глаза */
+
+    filter: blur(4px);
+    /* ← РАЗМЫТИЕ САМОЙ КАРТИНКИ */
+    -webkit-filter: blur(15px);
+    border-radius: 15px;
+}
+
+
+
+
+/* ---------- Navigation Menu ---------- */
+
+.Navigation {
+    position: fixed;
+
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 220px;
+    /* расстояние между кнопками */
+
+    z-index: 99;
+}
+
+.Navigation-button {
+    padding: 0;
+    margin: 0;
+
+    border: none;
+    background: transparent;
+
+    color: white;
+    font-size: 18px;
+
+    cursor: pointer;
+
+    transition: color 0.2s ease;
+}
+
+.Navigation-button:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ---------- Information Panel ---------- */
+
+.Info-panel {
+    position: fixed;
+
+    top: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    width: 400px;
+
+    padding: 20px;
+
+    background: #161616;
+    color: white;
+    font-size: 18px;
+
+    border-radius: 12px;
+
+    z-index: 98;
+}
+
+/* ------ Кнопка информации внутри карточки ------ */
+.Info-button {
+    position: absolute;
+    /* Размещаем кнопку внутри Registration независимо */
+
+    top: 18px;
+    /* Отступ сверху */
+    right: 18px;
+    /* Отступ справа */
+
+    width: 25px;
+    /* Ширина круглой кнопки */
+    height: 25px;
+    /* Высота круглой кнопки */
+
+    border: 1px solid white;
+    /* Белая рамка */
+    border-radius: 50%;
+    /* Делаем кнопку круглой */
+
+    background: transparent;
+    /* Прозрачный фон */
+    color: white;
+    /* Белый символ ! */
+
+    cursor: pointer;
+    /* Курсор руки при наведении */
+}
