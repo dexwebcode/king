@@ -2,31 +2,28 @@
 
 ## Логика
 
-Так как проект буджт мигрироваться из MariaDB в PostgreeSQL для него нужно написать отдельный модуль для конвертации базы данных с расширением .sql в в PostgreSQL. На вход будет подаваться дамп MariaDB, сначала базы импортируется в настоящую MariaDB, после чего с помощью `pgloader` переносит структуру и данные в PostgreSQL и схораняет данные внутри папки `backend/`.
+Так как проект будeт мигрировать из MariaDB в PostgreeSQL для него нужно написать отдельный модуль для конвертации базы данных в PostgreSQL. На вход будет подаваться дамп MariaDB, сначала базы импортируется в настоящую MariaDB, после чего с помощью `pgloader` переносит структуру и данные в PostgreSQL и схораняет данные внутри папки `backend/`.
+
+У дамп файлов изначлаьно расширение `.sql` под `MariaDB`
 
 ## 1. Архитектура
-
-``asdasdasd``
 
 ```
 db_converter/
   │
-  ├── dumps/
-  │     └── .gitkeep
+  ├── dumps/ ---------------------> Хранит дамп файлы для миграции
+  │     ├── дамп_файл_1.sql
+  │     ├── дамп_файл_2.sql
+  │     └── дамп_файл_3.sql
   │
-  ├── backups/
-  │     └── .gitkeep
-  │
-  ├── config/
+  ├── config/ ---------------------> Хранит конфигурации программы
   │     └── config.yaml
   │
-  ├── logs/
-  │     └── converter.log
+  ├── logs/ -----------------------> Хранит логи
+  │     ├── error.log
+  │     └── info.log
   │
-  ├── temp/
-  │     └── .gitkeep
-  │
-  ├── converter/
+  ├── converter/ ------------------> Основная папка кода конвертёра
   │     ├── __init__.pyr
   │     ├── config.py
   │     ├── maria.py
@@ -38,12 +35,9 @@ db_converter/
   │     ├── logger.py
   │     └── utils.py
   │
-  ├── main.py
-  ├── requirements.txt
-  ├── README.md
-  └── .gitignore
+  └── main.py ---------------------> Файл запуска
 ```
-Но физические файлы активной PostgreSQL-базы будут находиться в локальном каталоге PostgreSQL.
+Физические файлы активной PostgreSQL-базы будут находиться в локальном каталоге PostgreSQL.
 
 
 ## 1. Проверка данных
@@ -69,51 +63,6 @@ PostgreSQL: количество строк
     "status": "success",
 }
 ```
-
-## Итоговая структура проекта
-
-```
-db_converter/
-    │
-    ├── dumps/
-    │    └── .gitkeep
-    │
-    ├── backups/
-    │    └── .gitkeep
-    │
-    ├── config/
-    │    └── config.yaml
-    │
-    ├── logs/
-    │    └── converter.log
-    │
-    ├── temp/
-    │    └── .gitkeep
-    │
-    ├── converter/
-    │    ├── __init__.py
-    │    ├── config.py
-    │    ├── maria.py
-    │    ├── postgres.py
-    │    ├── pgloader.py
-    │    ├── validator.py
-    │    ├── models.py
-    │    ├── exceptions.py
-    │    ├── logger.py
-    │    └── utils.py
-    │
-    ├── main.py
-    ├── requirements.txt
-    ├── README.md
-    └── .gitignore
-```
-
-Я добавил несколько необходимых модулей:
-
-* `config.py` — загрузка и проверка YAML;
-* `models.py` — модели результатов конвертации;
-* `exceptions.py` — собственные исключения;
-* `logger.py` — единая настройка логирования.
 
 ## Команды запуска
 
