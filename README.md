@@ -15,6 +15,7 @@ docs/
 - Добавлены папки `db_converter/`, `backend/`, `frontend/`, `docs/`
 - В `db_converter/` создана структура для конвертера из MariaDB в PostgreeSQL
 - В `docs/` добавлена документация `db_converter.md`
+- Добвлен `requirements.txt`
 
 ## Обновление 16.07.2026
 - Переработана страница регистрации
