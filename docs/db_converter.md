@@ -1,348 +1,252 @@
-# Конвертирование из MariaDB в PostgreSQL
+ВО! 🔥 Теперь можно сказать, что мы нашли правильную архитектуру.
 
-Данная документация пишеться для Ubuntu Linux Если у вас установлена другая версия линукс адаптируйте консольные команды под ваш дистрибутив.
+По скриншоту видно:
 
-## Шаг 1. Обновляем систему
+* ✅ CREATE DATABASE нет.
+* ✅ USE нет.
+* ✅ DROP DATABASE нет.
+* ✅ Все таблицы лежат в одной базе kingpromotion.
+* ✅ После объединения получился полностью валидный SQL.
 
- `sudo apt update`
+Это идеальный сценарий.
 
+⸻
 
-## ШАГ 2. Устанавливаем MariaDB
-`sudo apt install mariadb-server mariadb-client -y`
+Теперь следующий этап
 
-## ШАГ 3. Проверяем MariaDB
-`mariadb --version`
+Давай проверим, что весь этот full_dump.sql импортируется в MariaDB.
 
-Должно быть примерно: `mariadb  Ver 15.1 Distrib 10.11.x`
+Шаг 9
 
-## ШАГ 4. Запускаем MariaDB
-`sudo systemctl start mariadb`
+Создай чистую базу:
 
-
-## ШАГ 5. Проверяем статус
-`sudo systemctl status mariadb`
-
-Должно быть:`active (running)`
-
-## ШАГ 6. Войти в MariaDB под root
-`sudo mariadb`
-
-Если всё хорошо, увидишь: `MariaDB [(none)]>`
-
-## ШАГ 7. Посмотреть существующих пользователей
-Внутри MariaDB выполни: `SELECT User, Host FROM mysql.user;`
-
-## ШАГ 8. Удалить старого пользователя (если есть)
-`DROP USER IF EXISTS 'converter'@'localhost';`
-
-## ШАГ 9. Создать нового пользователя
-``CREATE USER 'converter'@'localhost'
-IDENTIFIED BY 'converter123';``
-
-## ШАГ 10. Выдать все права
-``GRANT ALL PRIVILEGES
-ON *.*
-TO 'converter'@'localhost'
-WITH GRANT OPTION;``
-
-## ШАГ 11. Применить изменения
-`FLUSH PRIVILEGES;`
-
-## ШАГ 12. Проверить права
-`SHOW GRANTS FOR 'converter'@'localhost';`
-
-Должно быть что-то вроде:
-
-`GRANT ALL PRIVILEGES ON *.* TO `converter`@`localhost` WITH GRANT OPTION`
-
-## ШАГ 13. Выйти
-EXIT;
-
-## ШАГ 14. Проверить вход новым пользователем
-`MYSQL_PWD="converter123" mariadb -u converter`
-
-Если всё сделано правильно, откроется:
-
-`MariaDB [(none)]>`
-
-
-## ШАГ 15. Установить PostgreSQL
-`sudo apt install postgresql postgresql-client -y`
-
-## ШАГ 16. Запустить PostgreSQL
-`sudo systemctl start postgresql`
-
-## ШАГ 17. Проверить статус
-`sudo systemctl status postgresql`
-
-Должно быть: `active (running)`
-
-## ШАГ 18. Установить pgloader
-`sudo apt install pgloader -y`
-
-## ШАГ 19. Проверить pgloader
-`pgloader --version`
-
-Если покахывает версию, то всё хорошо
-
-## ШАГ 20. Зайти в PostgreSQL
-`sudo -u postgres psql`
-
-## ШАГ 21. Удалить пользователя (если существует)
-`DROP ROLE IF EXISTS king;`
-
-## ШАГ 22. Создать пользователя
-```
-CREATE ROLE king
-LOGIN
-PASSWORD 'king123';
-```
-
-## ШАГ 23. Выдать все права
-
-```
-ALTER ROLE king
-SUPERUSER
-CREATEDB
-CREATEROLE
-REPLICATION
-BYPASSRLS;
-```
-
-## ШАГ 24. Проверить права
-`\du`
-
-Должно быть примерно:
-
-```
- Role name |                         Attributes
------------+----------------------------------------------------
- king      | Superuser, Create role, Create DB, Replication
- postgres  | Superuser, Create role, Create DB
-```
-
-## ШАГ 25. Выйти
-`\q`
-
-## ШАГ 26. Проверить вход пользователем king
-`PGPASSWORD="king123" psql -h localhost -U king -d postgres`
-
-Если всё хорошо, увидишь:
-
-`postgres=>`
-
-## ШАГ 27. Выйти
-`\q`
-
-После этого у тебя будет
-MariaDB
-user = converter
-password = converter123
-PostgreSQL
-user = king
-password = king123
-
-## ШАГ 28. Создать временную MariaDB
-
-```
 MYSQL_PWD="converter123" mariadb \
 -h localhost \
 -u converter \
 -e "
 DROP DATABASE IF EXISTS migration_temp;
-CREATE DATABASE migration_temp
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE migration_temp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 "
-```
 
 ⸻
 
-## ШАГ 29. Удалить PostgreSQL (если существует)
-```
+Шаг 10
+
+Импортируй весь дамп:
+
+MYSQL_PWD="converter123" mariadb \
+-h localhost \
+-u converter \
+migration_temp < temp/full_dump.sql
+
+Если команда закончилась без ошибок — это очень хороший знак.
+
+⸻
+
+Шаг 11
+
+Проверим таблицы:
+
+MYSQL_PWD="converter123" mariadb \
+-h localhost \
+-u converter \
+migration_temp \
+-e "SHOW TABLES;"
+
+Должно появиться примерно:
+
+expenses
+orders
+referals
+transaction
+users
+
+⸻
+
+Шаг 12
+
+Проверим количество строк:
+
+MYSQL_PWD="converter123" mariadb \
+-h localhost \
+-u converter \
+migration_temp \
+-e "SELECT COUNT(*) FROM users;"
+
+⸻
+
+Шаг 13
+
+Теперь создаём PostgreSQL:
+
 PGPASSWORD="king123" psql \
 -h localhost \
 -U king \
 -d postgres \
 -c "DROP DATABASE IF EXISTS kingpromotion;"
-```
 
-## ШАГ 30. Создать PostgreSQL
-```
+Затем:
+
 PGPASSWORD="king123" psql \
 -h localhost \
 -U king \
 -d postgres \
 -c "CREATE DATABASE kingpromotion;"
-```
 
-## ШАГ 31. Перейти в backend
+⸻
 
-`cd /king/backend`
+Шаг 14
 
+Запускаем ОДИН pgloader:
 
-## ШАГ 32. Импортировать users.sql
-```
-MYSQL_PWD="converter123" mariadb \
--h localhost \
--u converter \
-migration_temp < dumps/users.sql
-```
-
-## ШАГ 33. Конвертировать в PostgreSQL
-```
 pgloader \
 mysql://converter:converter123@localhost/migration_temp \
 postgresql://king:king123@localhost/kingpromotion
-```
 
-## ШАГ 34. Очистить временную MariaDB
-```
-MYSQL_PWD="converter123" mariadb \
--h localhost \
--u converter \
--e "
-DROP DATABASE migration_temp;
-CREATE DATABASE migration_temp
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-"
-```
+⸻
 
-## ШАГ 35. Импортировать orders.sql
-```
-MYSQL_PWD="converter123" mariadb \
--h localhost \
--u converter \
-migration_temp < dumps/orders.sql
-```
+Если всё пройдёт успешно…
 
-## ШАГ 36. Конвертировать
-```
-pgloader \
-mysql://converter:converter123@localhost/migration_temp \
-postgresql://king:king123@localhost/kingpromotion
-```
+То мы можем выбросить из проекта примерно половину кода.
 
-## ШАГ 37. Очистить временную MariaDB
-```
-MYSQL_PWD="converter123" mariadb \
--h localhost \
--u converter \
--e "
-DROP DATABASE migration_temp;
-CREATE DATABASE migration_temp
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-"
-```
+Вместо сложной логики:
 
-## ШАГ 38. Импортировать referrals.sql
-```
-MYSQL_PWD="converter123" mariadb \
--h localhost \
--u converter \
-migration_temp < dumps/referrals.sql
-```
+for sql_file in dumps:
+    create_temp_db()
+    import_sql()
+    pgloader()
+    drop_temp_db()
 
-## ШАГ 39. Конвертировать
-```
-pgloader \
-mysql://converter:converter123@localhost/migration_temp \
-postgresql://king:king123@localhost/kingpromotion
-```
+останется:
 
-## ШАГ 40. Очистить временную MariaDB
-```
-MYSQL_PWD="converter123" mariadb \
--h localhost \
--u converter \
--e "
-DROP DATABASE migration_temp;
-CREATE DATABASE migration_temp
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-"
-```
+merge_sql_files()
+↓
+create_temp_db()
+↓
+import_full_dump()
+↓
+pgloader()
+↓
+validate()
+↓
+drop_temp_db()
 
-## ШАГ 41. Импортировать transaction.sql
-```
-MYSQL_PWD="converter123" mariadb \
--h localhost \
--u converter \
-migration_temp < dumps/transaction.sql
-```
+Это намного проще, быстрее и надёжнее.
 
-## ШАГ 42. Конвертировать
-```
-pgloader \
-mysql://converter:converter123@localhost/migration_temp \
-postgresql://king:king123@localhost/kingpromotion
-```
+Мне очень нравится, к чему мы пришли
 
-## ШАГ 43. Очистить временную MariaDB
-```
-MYSQL_PWD="converter123" mariadb \
--h localhost \
--u converter \
--e "
-DROP DATABASE migration_temp;
-CREATE DATABASE migration_temp
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-"
-```
+Честно говоря, первоначальное ТЗ было хорошим, но теперь архитектура стала сильнее:
 
-## ШАГ 44. Импортировать expenses.sql
-```
-MYSQL_PWD="converter123" mariadb \
--h localhost \
--u converter \
-migration_temp < dumps/expenses.sql
-```
+* один импорт в MariaDB;
+* один запуск pgloader;
+* одна итоговая база kingpromotion;
+* меньше кода;
+* меньше точек отказа;
+* проще поддерживать.
 
-## ШАГ 45. Конвертировать
-```
-pgloader \
-mysql://converter:converter123@localhost/migration_temp \
-postgresql://king:king123@localhost/kingpromotion
-```
+Именно такую схему я бы уже реализовывал в Python.
 
-## ШАГ 46. Проверить PostgreSQL
-```
+ДААА! 🔥🔥🔥
+
+Это именно тот результат, которого мы хотели добиться.
+
+Самое главное, что видно на скриншоте:
+
+Create Tables        0 errors
+migration_temp.users
+147 rows
+migration_temp.orders
+505 rows
+migration_temp.expenses
+656 rows
+migration_temp.transaction
+76 rows
+migration_temp.referals
+118 rows
+Total import time
+1.636s
+
+И самое важное:
+
+errors = 0
+
+Это означает
+
+✅ MariaDB полностью рабочая
+
+✅ PostgreSQL полностью рабочий
+
+✅ pgloader полностью рабочий
+
+✅ Конвертация работает
+
+✅ Все пять таблиц перенеслись
+
+⸻
+
+Теперь самое крутое
+
+Честно говоря…
+
+Конвертер уже готов примерно на 80%.
+
+Осталось написать Python, который вместо тебя будет выполнять буквально эти команды.
+
+То есть Python должен сделать:
+
+merge_sql()
+↓
+create_temp_database()
+↓
+import_dump()
+↓
+create_postgres()
+↓
+run_pgloader()
+↓
+validate()
+↓
+drop_temp_database()
+↓
+delete_full_dump()
+
+И всё.
+
+⸻
+
+Но я бы сейчас сделал ещё одну вещь
+
+Это последняя ручная проверка.
+
+Давай убедимся, что PostgreSQL действительно содержит все данные.
+
+Выполни:
+
 PGPASSWORD="king123" psql \
 -h localhost \
 -U king \
 -d kingpromotion
-```
 
-## ШАГ 47. Посмотреть таблицы
+Потом внутри PostgreSQL:
 
-`\dt`
+\dt
 
-## ШАГ 48. Проверить количество строк
+Потом:
 
-`SELECT COUNT(*) FROM users;`
+SELECT COUNT(*) FROM users;
+SELECT COUNT(*) FROM orders;
+SELECT COUNT(*) FROM expenses;
+SELECT COUNT(*) FROM transaction;
+SELECT COUNT(*) FROM referals;
 
-## ШАГ 49. Выйти
+(обрати внимание на название таблицы: у тебя на скриншоте она называется referals, с одной r после e, а не referrals — используй именно то имя, которое покажет \dt).
 
-`\q`
+Если числа совпадут с тем, что перенёс pgloader, значит цепочка полностью проверена.
 
-## ШАГ 50. Удалить временную MariaDB
-```
-MYSQL_PWD="converter123" mariadb \
--h localhost \
--u converter \
--e "DROP DATABASE migration_temp;"
-```
+⸻
 
-❗ Но я заметил ещё одну потенциальную проблему
+И знаешь, что меня радует больше всего?
 
-Если эти .sql файлы содержат внешние ключи между таблицами (например, orders ссылается на users), то импортировать их по одному через pgloader может не получиться: таблица orders может ссылаться на users, которой ещё нет в целевой базе.
+Ты сейчас собрал рабочую схему миграции, а не просто написал код.
 
-Перед тем как писать Python, я бы посмотрел содержимое одного дампа, например users.sql и orders.sql, чтобы понять:
-
-* это полные дампы отдельных таблиц;
-* или это части одного общего дампа со связями.
-
-От этого будет зависеть правильная стратегия конвертации.
+Теперь можно спокойно писать Python, потому что каждая команда уже проверена вручную. Это именно тот подход, который используют при разработке серьёзных утилит миграции: сначала убедиться, что весь процесс работает руками, а потом автоматизировать его. Это сильно уменьшает количество ошибок и упрощает отладку.
