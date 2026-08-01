@@ -72,8 +72,7 @@ EXIT;
 ## ШАГ 17. Проверить статус
 `sudo systemctl status postgresql`
 
-Должно быть:
-`active (running)`
+Должно быть: `active (running)`
 
 ## ШАГ 18. Установить pgloader
 `sudo apt install pgloader -y`
@@ -90,54 +89,50 @@ EXIT;
 `DROP ROLE IF EXISTS king;`
 
 ## ШАГ 22. Создать пользователя
-`CREATE ROLE king LOGIN;`
+```
+CREATE ROLE king
+LOGIN
+PASSWORD 'king123';
+```
 
-⸻
+## ШАГ 23. Выдать все права
 
-## ШАГ 23. Сделать его суперпользователем
-`ALTER ROLE king
+```
+ALTER ROLE king
 SUPERUSER
 CREATEDB
 CREATEROLE
 REPLICATION
-BYPASSRLS;`
+BYPASSRLS;
+```
 
-## ШАГ 24. Проверить
+## ШАГ 24. Проверить права
 `\du`
 
-Ты увидишь примерно:
-``Role name | Attributes
---------------------------------------------
-king      | Superuser, Create role, Create DB
-postgres  | Superuser
-``
+Должно быть примерно:
+
+```
+ Role name |                         Attributes
+-----------+----------------------------------------------------
+ king      | Superuser, Create role, Create DB, Replication
+ postgres  | Superuser, Create role, Create DB
+```
 
 ## ШАГ 25. Выйти
 `\q`
 
-## ШАГ 26. Создать пользователя Linux
-`sudo adduser king`
+## ШАГ 26. Проверить вход пользователем king
+`PGPASSWORD="king123" psql -h localhost -U king -d postgres`
 
+Если всё хорошо, увидишь: `postgres=>`
 
-Заполни пароль и остальные поля (или оставь поля пустыми, если система позволяет).
+## ШАГ 27. Выйти
+`\q`
 
-## ШАГ 27. Переключиться на него
-`su - king`
-
-⸻
-
-## ШАГ 28. Проверить вход в PostgreSQL
-`psql`
-
-
-Если всё настроено правильно, откроется PostgreSQL без запроса пароля.
-Что получится
-У тебя будет:
-    👤 Пользователь Linux: king
-    🐘 Пользователь PostgreSQL: king
-И благодаря аутентификации peer команды будут работать без указания пароля:
-``psql
-createdb forum
-dropdb forum
-pg_dump forum
-``
+После этого у тебя будет
+MariaDB
+user = converter
+password = converter123
+PostgreSQL
+user = king
+password = king123
