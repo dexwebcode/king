@@ -143,29 +143,45 @@ user = king
 password = king123
 
 ## ШАГ 28. Создать временную MariaDB
+
 ```
 MYSQL_PWD="converter123" mariadb \
 -h localhost \
 -u converter \
 -e "
 DROP DATABASE IF EXISTS migration_temp;
-
 CREATE DATABASE migration_temp
 CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 "
 ```
 
-## ШАГ 29. Создать PostgreSQL
-`dropdb --if-exists -U king kingpromotion`
+⸻
 
-## ШАГ 30.
-`createdb -U king kingpromotion`
+## ШАГ 29. Удалить PostgreSQL (если существует)
+```
+PGPASSWORD="king123" psql \
+-h localhost \
+-U king \
+-d postgres \
+-c "DROP DATABASE IF EXISTS kingpromotion;"
+```
 
-## ШАГ 31. Импортировать users.sql
+## ШАГ 30. Создать PostgreSQL
+```
+PGPASSWORD="king123" psql \
+-h localhost \
+-U king \
+-d postgres \
+-c "CREATE DATABASE kingpromotion;"
+```
+
+## ШАГ 31. Перейти в backend
+
 `cd /king/backend`
-После
 
+
+## ШАГ 32. Импортировать users.sql
 ```
 MYSQL_PWD="converter123" mariadb \
 -h localhost \
@@ -173,15 +189,27 @@ MYSQL_PWD="converter123" mariadb \
 migration_temp < dumps/users.sql
 ```
 
-## ШАГ 32. Перенести в PostgreSQL
+## ШАГ 33. Конвертировать в PostgreSQL
 ```
 pgloader \
 mysql://converter:converter123@localhost/migration_temp \
 postgresql://king:king123@localhost/kingpromotion
 ```
 
-## ШАГ 33. Импортировать orders.sql
+## ШАГ 34. Очистить временную MariaDB
+```
+MYSQL_PWD="converter123" mariadb \
+-h localhost \
+-u converter \
+-e "
+DROP DATABASE migration_temp;
+CREATE DATABASE migration_temp
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+"
+```
 
+## ШАГ 35. Импортировать orders.sql
 ```
 MYSQL_PWD="converter123" mariadb \
 -h localhost \
@@ -189,14 +217,27 @@ MYSQL_PWD="converter123" mariadb \
 migration_temp < dumps/orders.sql
 ```
 
-## ШАГ 34.
+## ШАГ 36. Конвертировать
 ```
 pgloader \
 mysql://converter:converter123@localhost/migration_temp \
 postgresql://king:king123@localhost/kingpromotion
 ```
 
-## ШАГ 35. Импортировать referrals.sql
+## ШАГ 37. Очистить временную MariaDB
+```
+MYSQL_PWD="converter123" mariadb \
+-h localhost \
+-u converter \
+-e "
+DROP DATABASE migration_temp;
+CREATE DATABASE migration_temp
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+"
+```
+
+## ШАГ 38. Импортировать referrals.sql
 ```
 MYSQL_PWD="converter123" mariadb \
 -h localhost \
@@ -204,14 +245,27 @@ MYSQL_PWD="converter123" mariadb \
 migration_temp < dumps/referrals.sql
 ```
 
-## ШАГ 36.
+## ШАГ 39. Конвертировать
 ```
 pgloader \
 mysql://converter:converter123@localhost/migration_temp \
 postgresql://king:king123@localhost/kingpromotion
 ```
 
-## ШАГ 37. Импортировать transaction.sql
+## ШАГ 40. Очистить временную MariaDB
+```
+MYSQL_PWD="converter123" mariadb \
+-h localhost \
+-u converter \
+-e "
+DROP DATABASE migration_temp;
+CREATE DATABASE migration_temp
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+"
+```
+
+## ШАГ 41. Импортировать transaction.sql
 ```
 MYSQL_PWD="converter123" mariadb \
 -h localhost \
@@ -219,16 +273,27 @@ MYSQL_PWD="converter123" mariadb \
 migration_temp < dumps/transaction.sql
 ```
 
-⸻
-
-## ШАГ 38.
+## ШАГ 42. Конвертировать
 ```
 pgloader \
 mysql://converter:converter123@localhost/migration_temp \
 postgresql://king:king123@localhost/kingpromotion
 ```
 
-## ШАГ 39. Импортировать expenses.sql
+## ШАГ 43. Очистить временную MariaDB
+```
+MYSQL_PWD="converter123" mariadb \
+-h localhost \
+-u converter \
+-e "
+DROP DATABASE migration_temp;
+CREATE DATABASE migration_temp
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+"
+```
+
+## ШАГ 44. Импортировать expenses.sql
 ```
 MYSQL_PWD="converter123" mariadb \
 -h localhost \
@@ -236,39 +301,34 @@ MYSQL_PWD="converter123" mariadb \
 migration_temp < dumps/expenses.sql
 ```
 
-## ШАГ 40.
+## ШАГ 45. Конвертировать
 ```
 pgloader \
 mysql://converter:converter123@localhost/migration_temp \
 postgresql://king:king123@localhost/kingpromotion
 ```
 
-## ШАГ 41. Проверить PostgreSQL
-`psql -U king -d kingpromotion`
+## ШАГ 46. Проверить PostgreSQL
+```
+PGPASSWORD="king123" psql \
+-h localhost \
+-U king \
+-d kingpromotion
+```
 
-⸻
+## ШАГ 47. Посмотреть таблицы
 
-## ШАГ 42.
 `\dt`
 
-Ты увидишь все таблицы:
-```
-users
-orders
-expenses
-transaction
-referrals
-...
-```
+## ШАГ 48. Проверить количество строк
 
-## ШАГ 43.
 `SELECT COUNT(*) FROM users;`
 
-## ШАГ 44.
+## ШАГ 49. Выйти
+
 `\q`
 
-## ШАГ 45. Удалить временную MariaDB
-
+## ШАГ 50. Удалить временную MariaDB
 ```
 MYSQL_PWD="converter123" mariadb \
 -h localhost \
@@ -276,53 +336,13 @@ MYSQL_PWD="converter123" mariadb \
 -e "DROP DATABASE migration_temp;"
 ```
 
+❗ Но я заметил ещё одну потенциальную проблему
 
-❗ Но я бы изменил ещё одну вещь в алгоритме
-Есть важный нюанс.
-Если ты просто сделаешь:
-users.sql
-↓
+Если эти .sql файлы содержат внешние ключи между таблицами (например, orders ссылается на users), то импортировать их по одному через pgloader может не получиться: таблица orders может ссылаться на users, которой ещё нет в целевой базе.
 
-orders.sql
-↓
+Перед тем как писать Python, я бы посмотрел содержимое одного дампа, например users.sql и orders.sql, чтобы понять:
 
-orders.sql
-в одну и ту же временную базу migration_temp, то таблицы из предыдущего дампа останутся. Если следующий дамп содержит команды CREATE TABLE, они могут завершиться ошибкой “Table already exists”.
-Поэтому перед импортом каждого следующего .sql лучше заново создавать временную базу:
-users.sql
-↓
+* это полные дампы отдельных таблиц;
+* или это части одного общего дампа со связями.
 
-migration_temp
-
-↓
-
-pgloader
-
-↓
-
-DROP migration_temp
-
-↓
-
-CREATE migration_temp
-
-↓
-
-orders.sql
-
-↓
-
-pgloader
-
-↓
-
-DROP migration_temp
-
-↓
-
-CREATE migration_temp
-
-↓
-
-...
-Так каждый дамп импортируется в “чистую” MariaDB, а в PostgreSQL постепенно собирается итоговая база kingpromotion. Это более надёжный и предсказуемый процесс, особенно если дампы содержат команды создания таблиц.
+От этого будет зависеть правильная стратегия конвертации.
