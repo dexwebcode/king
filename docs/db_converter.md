@@ -32,44 +32,32 @@
 ## ШАГ 7. Посмотреть существующих пользователей
 Внутри MariaDB выполни: `SELECT User, Host FROM mysql.user;`
 
-⸻
-
 ## ШАГ 8. Удалить старого пользователя (если есть)
 `DROP USER IF EXISTS 'converter'@'localhost';`
 
-⸻
-
 ## ШАГ 9. Создать нового пользователя
-`CREATE USER 'converter'@'localhost'
-IDENTIFIED BY 'converter123';`
-
-⸻
+``CREATE USER 'converter'@'localhost'
+IDENTIFIED BY 'converter123';``
 
 ## ШАГ 10. Выдать все права
-`GRANT ALL PRIVILEGES
+``GRANT ALL PRIVILEGES
 ON *.*
 TO 'converter'@'localhost'
-WITH GRANT OPTION;`
-
-⸻
+WITH GRANT OPTION;``
 
 ## ШАГ 11. Применить изменения
 `FLUSH PRIVILEGES;`
 
-⸻
-
 ## ШАГ 12. Проверить права
 `SHOW GRANTS FOR 'converter'@'localhost';`
-Должно быть что-то вроде: `GRANT ALL PRIVILEGES ON *.* TO `converter`@`localhost` WITH GRANT OPTION`
 
-⸻
+Должно быть что-то вроде: ``GRANT ALL PRIVILEGES ON *.* TO `converter`@`localhost` WITH GRANT OPTION``
 
 ## ШАГ 13. Выйти
 EXIT;
 
-⸻
-
 ## ШАГ 14. Проверить вход новым пользователем
-MYSQL_PWD="converter123" mariadb -u converter
+`MYSQL_PWD="converter123" mariadb -u converter`
+
 Если всё сделано правильно, откроется:
 `MariaDB [(none)]>`
