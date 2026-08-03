@@ -29,7 +29,7 @@ async function sendRequest(endpoint, method = 'GET', body = null) {
 
 export async function loginUser(login, password) {
 
-    const result = await sendRequest('/login', 'POST', {
+    const result = await sendRequest('/auth/login', 'POST', {
         login,
         password
     })
@@ -45,14 +45,14 @@ export async function loginUser(login, password) {
 }
 
 export function registerUser(login, password) {
-    return sendRequest('/register', 'POST', {
+    return sendRequest('/auth/register', 'POST', {
         login,
         password
     })
 }
 
 export function checkToken() {
-    return sendRequest('/me', 'GET')
+    return sendRequest('/auth/me', 'GET')
 }
 
 export function logoutUser() {
