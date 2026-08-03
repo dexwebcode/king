@@ -1,4 +1,4 @@
-const API_URL = 'http://127.0.0.1:5000'
+const API_URL = import.meta.env.VITE_API_URL;
 
 async function sendRequest(endpoint, method = 'GET', body = null) {
 
@@ -19,7 +19,7 @@ async function sendRequest(endpoint, method = 'GET', body = null) {
 
     const data = await response.json()
     console.log("Response from API:", { endpoint, method, body, response: data })
-    
+
     return {
         ok: response.ok,
         status: response.status,
