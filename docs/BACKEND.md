@@ -3,7 +3,7 @@
 ```
 backend/
   ├── __init__.py
-  ├── main.py
+  ├── main.py ----> Основной файл входа в Fast Api
   ├── .env
   │
   ├── core/
