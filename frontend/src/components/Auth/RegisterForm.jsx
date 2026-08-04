@@ -4,22 +4,27 @@ import { registerUser } from './authApi'
 // ------ Импорт функции проверки пароля ------ //
 import { validatePassword } from './validatePassword'
 
+// ------ Импорт функции проверки почты ------ //
+import { validateEmail } from './validateEmail'
+
 /// ------ Компонент формы регистрации ------ ///
 export default function RegisterForm({
 
     // ------ Данные пользователя ------ //
-    login,
+    email,
     password,
     repeatPassword,
 
-    // ------ Подсказка проверки пароля ------ //
+    // ------ Подсказки проверки ------ //
     passwordHint,
+    emailHint,
 
     // ------ Функции изменения состояний ------ //
-    setLogin,
+    setEmail,
     setPassword,
     setRepeatPassword,
     setPasswordHint,
+    setEmailHint,
 
     // ------ Глобальное состояние авторизации ------ //
     setIsAuth,
@@ -44,68 +49,117 @@ export default function RegisterForm({
         )
     }
 
-    // ------ Функция регистрации ------ //
-    async function handleRegister() {
+    // ------ Функция изменения почты + проверка ------ //
+    function handleEmailChange(event) {
 
-        // ------ Проверка совпадения паролей ------ //
-        if (password !== repeatPassword) {
+        // ------ Получаем текущее значение input ------ //
+        const value = event.target.value
 
-            // ------ Меняем состояние подсказки ошибки ------ //
-            setPasswordHint('Пароли не совпадают')
+        // ------ Обновляем состояние email ------ //
+        setEmail(value)
 
-            // ------ Останавливаем выполнение функции ------ //
+        // ------ Проверяем почту и меняем состояние emailHint ------ //
+        setEmailHint(
+            validateEmail(value)
+        )
+    }
+
+   // ------ Функция регистрации ------ //
+// ------ Функция регистрации ------ //
+async function handleRegister() {
+
+    // ------ Нормализуем почту ------ //
+    const normalizedEmail = email.trim().toLowerCase()
+
+    // ------ Проверяем корректность почты ------ //
+    const emailError = validateEmail(normalizedEmail)
+
+    if (emailError) {
+        setEmailHint(emailError)
+        return
+    }
+
+    // ------ Проверяем корректность пароля ------ //
+    const passwordError = validatePassword(password)
+
+    if (passwordError) {
+        setPasswordHint(passwordError)
+        return
+    }
+
+    // ------ Проверяем совпадение паролей ------ //
+    if (password !== repeatPassword) {
+        setPasswordHint('Пароли не совпадают')
+        return
+    }
+
+    try {
+
+        // ------ Отправляем данные на backend ------ //
+        const response = await registerUser(
+            normalizedEmail,
+            password
+        )
+
+        // ------ Получаем JSON-ответ сервера ------ //
+        const data = await response.json()
+
+        // ------ Если регистрация завершилась ошибкой ------ //
+        if (!response.ok) {
+            setEmailHint(
+                data.detail || 'Ошибка регистрации'
+            )
+
             return
         }
 
-        try {
+        // ------ Сохраняем JWT-токен ------ //
+        localStorage.setItem(
+            'token',
+            data.token
+        )
 
-            // ------ POST запрос на backend сервер для регистрации ------ //
-            // ------ Form JSON: { login, password } ------ //
-            const response = await registerUser(
-                login,
-                password
-            )
+        // ------ Изменяем состояние авторизации ------ //
+        setIsAuth(true)
 
-            // ------ Если сервер вернул успешную регистрацию ------ //
-            if (response.ok) {
+    } catch (error) {
 
-                // ------ Изменяем глобальное состояние авторизации ------ //
-                setIsAuth(true)
-            }
+        console.log('Ошибка сервера:', error)
 
-        } catch (error) {
-
-            // ------ Логирование серверной ошибки ------ //
-            console.log('Ошибка сервера:', error)
-        }
+        setEmailHint(
+            'Не удалось подключиться к серверу'
+        )
     }
+}
 
     return (
         <>
 
-            {/* ------ INPUT ЛОГИНА ------ */}
+            {/* ------ INPUT ПОЧТЫ ------ */}
 
             <input
                 className="Username-input"
-                type="text"
-                placeholder="Логин"
-                value={login}
-
-                onChange={(event) => {
-
-                    // ------ Изменяем состояние login ------ //
-                    setLogin(event.target.value)
-                }}
+                type="email"
+                placeholder="Введите почту"
+                value={email}
+                onChange={handleEmailChange}
             />
+
+            {/* ------ ПОДСКАЗКА ПРОВЕРКИ ПОЧТЫ ------ */}
+
+            {emailHint && (
+                <p className="Password-hint">
+                    {emailHint}
+                </p>
+            )}
 
             {/* ------ INPUT ПАРОЛЯ ------ */}
 
             <input
                 className="Password-input"
                 type="password"
-                placeholder="Пароль"
+                placeholder="Придумайте пароль"
                 value={password}
-
                 onChange={handlePasswordChange}
             />
 
@@ -116,14 +170,13 @@ export default function RegisterForm({
                 type="password"
                 placeholder="Повторите пароль"
                 value={repeatPassword}
-
                 onChange={(event) => {
 
                     // ------ Изменяем состояние repeatPassword ------ //
                     setRepeatPassword(event.target.value)
                 }}
-
             />
+
             {/* ------ ПОДСКАЗКА ПРОВЕРКИ ПАРОЛЯ ------ */}
 
             {passwordHint && (
@@ -131,7 +184,6 @@ export default function RegisterForm({
                     {passwordHint}
                 </p>
             )}
-
 
             {/* ------ КОНТЕЙНЕР КНОПОК ------ */}
 
@@ -142,7 +194,6 @@ export default function RegisterForm({
                 <button
                     className="Login-button"
                     type="button"
-
                     onClick={handleRegister}
                 >
                     Создать аккаунт
@@ -153,7 +204,6 @@ export default function RegisterForm({
                 <button
                     className="Register-button"
                     type="button"
-
                     onClick={() => {
 
                         // ------ Переключение режима на login ------ //
@@ -164,6 +214,7 @@ export default function RegisterForm({
                 </button>
 
             </section>
+
         </>
     )
 }

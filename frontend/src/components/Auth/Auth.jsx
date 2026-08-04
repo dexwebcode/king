@@ -7,54 +7,31 @@ import { useEffect, useState } from 'react'
 // ------ Импорт компонентов форм ------ //
 import LoginForm from './LoginForm'
 import RegisterForm from './RegisterForm'
+
 import logo from "../../assets/logo.png"
-import logo_2 from "../../assets/logo.png"
-import logo_3 from "../../assets/logo.png"
-import logo_4 from "../../assets/logo.png"
-import logo_5 from "../../assets/logo.png"
-import logo_6 from "../../assets/logo.png"
-import logo_7 from "../../assets/logo.png"
-import logo_8 from "../../assets/logo.png"
-import logo_9 from "../../assets/logo.png"
-import logo_10 from "../../assets/logo.png"
-import logo_11 from "../../assets/logo.png"
-import logo_12 from "../../assets/logo.png"
-import logo_13 from "../../assets/logo.png"
-import logo_14 from "../../assets/logo.png"
-import logo_15 from "../../assets/logo.png"
-import logo_16 from "../../assets/logo.png"
-import logo_17 from "../../assets/logo.png"
-import logo_18 from "../../assets/logo.png"
-import logo_19 from "../../assets/logo.png"
-import logo_20 from "../../assets/logo.png"
-import logo_21 from "../../assets/logo.png"
-import logo_22 from "../../assets/logo.png"
 /// ------ Главный компонент авторизации ------ ///
 export default function Auth({ setIsAuth }) {
 
     // ------ Режим формы: login/register ------ //
     const [mode, setMode] = useState('login')
 
-    // ------ Режим меню ------ //
-    const [menuMode, setMenuMode] = useState(false)
-
-    const [panel, setPanel] = useState(null);
-
-    // ------ Состояния данных пользователя ------ //
-    const [login, setLogin] = useState('')
+    // ------ Данные пользователя ------ //
+    const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-
-    // ------ Состояние повтора пароля ------ //
     const [repeatPassword, setRepeatPassword] = useState('')
 
-    // ------ Состояние подсказки проверки пароля ------ //
+    // ------ Подсказки ------ //
+    const [emailHint, setEmailHint] = useState('')
     const [passwordHint, setPasswordHint] = useState('')
-
+    const logos = Array.from({ length: 22 })
     // ------ Функция очистки всех полей формы ------ //
     function clearFields() {
-        setLogin('')
+
+        setEmail('')
         setPassword('')
         setRepeatPassword('')
+
+        setEmailHint('')
         setPasswordHint('')
     }
 
@@ -69,138 +46,15 @@ export default function Auth({ setIsAuth }) {
         <section className="Auth">
             <header className="Auth-header">
 
-                <img
-                    src={logo}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo"
-                />
-                <img
-                    src={logo_2}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_2"
-                />
-                <img
-                    src={logo_3}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_3"
-                />
-                <img
-                    src={logo_4}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_4"
-                />
-                <img
-                    src={logo_5}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_5"
-                />
-                <img
-                    src={logo_6}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_6"
-                />
-                <img
-                    src={logo_7}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_7"
-                />
-                <img
-                    src={logo_8}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_8"
-                />
-                <img
-                    src={logo_9}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_9"
-                />
-                <img
-                    src={logo_10}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_10"
-                />
-                <img
-                    src={logo_11}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_11"
-                />
-                <img
-                    src={logo_12}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_12"
-                />
-                <img
-                    src={logo_13}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_13"
-                />
-                <img
-                    src={logo_14}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_14"
-                />
-                <img
-                    src={logo_15}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_15"
-                />
-                <img
-                    src={logo_16}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_16"
-                />
-                <img
-                    src={logo_17}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_17"
-                />
-                <img
-                    src={logo_18}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_18"
-                />
-                <img
-                    src={logo_19}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_19"
-                />
-                <img
-                    src={logo_20}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_20"
-                />
-                <img
-                    src={logo_21}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_21"
-                />
-                <img
-                    src={logo_22}
-                    onClick={() => setMenuMode(!menuMode)}
-                    alt="Logo"
-                    className="Logo_22"
-                />
+                {logos.map((_, index) => (
+                    <img
+                        key={index}
+                        src={logo}
+                        alt="Logo"
+                        className={index === 0 ? "Logo" : `Logo_${index + 1}`}
+                    />
+                ))}
+
             </header>
             {/* ---------- КОНТЕЙНЕР ФОРМЫ ---------- */}
             <section className="Registration">
@@ -218,21 +72,14 @@ export default function Auth({ setIsAuth }) {
                     {/* ---------- LOGIN FORM ---------- */}
 
                     {mode === 'login' ? (
-
                         <LoginForm
-
-                            // ------ Данные пользователя ------ //
-                            login={login}
+                            email={email}
                             password={password}
 
-                            // ------ Функции изменения состояний ------ //
-                            setLogin={setLogin}
+                            setEmail={setEmail}
                             setPassword={setPassword}
 
-                            // ------ Глобальная авторизация ------ //
                             setIsAuth={setIsAuth}
-
-                            // ------ Изменение режима ------ //
                             setMode={setMode}
                         />
 
@@ -242,22 +89,20 @@ export default function Auth({ setIsAuth }) {
 
                         <RegisterForm
 
-                            // ------ Данные пользователя ------ //
-                            login={login}
+                            email={email}
                             password={password}
                             repeatPassword={repeatPassword}
-                            // ------ Подсказка проверки пароля ------ //
+
                             passwordHint={passwordHint}
-                            // ------ Функции изменения состояний ------ //
-                            setLogin={setLogin}
+                            emailHint={emailHint}
+
+                            setEmail={setEmail}
                             setPassword={setPassword}
                             setRepeatPassword={setRepeatPassword}
                             setPasswordHint={setPasswordHint}
+                            setEmailHint={setEmailHint}
 
-                            // ------ Глобальная авторизация ------ //
                             setIsAuth={setIsAuth}
-
-                            // ------ Изменение режима ------ //
                             setMode={setMode}
                         />
                     )}

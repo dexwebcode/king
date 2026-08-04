@@ -54,7 +54,7 @@ export default function LoginForm({
             <input
                 className="Username-input"
                 type="text"
-                placeholder="Логин"
+                placeholder="Почта"
                 value={login}
 
                 onChange={(event) => {

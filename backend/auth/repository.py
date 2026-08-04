@@ -46,3 +46,46 @@ def get_user_by_id(
     )
 
     return result.mappings().first()
+
+
+# Определение функции для добавления пользователя
+def create_user(
+    session: Session,
+    login: str,
+    email: str,
+    password: str,
+):
+    try:
+        result = session.execute(
+            text("""
+                INSERT INTO users (
+                    login,
+                    mail,
+                    password
+                )
+                VALUES (
+                    :login,
+                    :email,
+                    :password
+                )
+                RETURNING
+                    id,
+                    login,
+                    mail
+            """),
+            {
+                "login": login,
+                "email": email,
+                "password": password,
+            },
+        )
+
+        user = result.mappings().first()
+
+        session.commit()
+
+        return user
+
+    except Exception:
+        session.rollback()
+        raise

@@ -33,5 +33,5 @@ export function validatePassword(value) {
         return 'Добавьте: ' + missing.join(', ')
     }
 
-    return 'Пароль подходит'
+    return ''
 }
