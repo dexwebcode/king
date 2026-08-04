@@ -1,17 +1,30 @@
 # Logs
-logs
+logs/
 *.log
-*__pycache__
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-.gigacode
-frontend/node_modules
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Frontend
+frontend/node_modules/
+
+# Local files
 *.local
-*.env
-# Editor directories and files
+
+# Editors
 .vscode/*
 !.vscode/extensions.json
+.gigacode/
