@@ -1,0 +1,65 @@
+.panel-section {
+    border-radius: 15px;
+
+    padding: 24px;
+
+    margin-block: 18px;
+}
+
+.quick-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+
+    gap: 10px;
+}
+
+.quick-field span {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    margin-bottom: 8px;
+
+    color: #d9d9d6;
+}
+
+.quick-field b {
+    width: 21px;
+    height: 21px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 5px;
+
+    background: #25272c;
+
+    border: 1px solid var(--line);
+}
+
+.fake-input {
+    height: 43px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 12px;
+
+    border: 1px solid var(--line);
+    border-radius: 7px;
+
+    background: rgba(255, 255, 255, .035);
+
+    color: #74777d;
+
+    font-size: 12px;
+}
+
+.quick-submit {
+    display: block;
+
+    min-width: 250px;
+
+    margin: 18px auto 0;
+}

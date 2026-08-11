@@ -1,0 +1,43 @@
+.footer {
+    display: grid;
+    grid-template-columns: 1.5fr repeat(4, 1fr);
+
+    gap: 38px;
+
+    padding-block: 34px 50px;
+
+    color: #8f9197;
+}
+
+.footer h4 {
+    margin: 0 0 12px;
+
+    color: #e9e9e5;
+
+    font-size: 16px;
+
+    font-weight: 700;
+}
+
+.footer a,
+.footer p {
+    display: block;
+
+    margin: 7px 0;
+
+    color: inherit;
+
+    text-decoration: none;
+
+    transition: .2s ease;
+}
+
+.footer a:hover {
+    color: #ffffff;
+}
+
+.footer-brand p {
+    max-width: 210px;
+
+    line-height: 1.5;
+}

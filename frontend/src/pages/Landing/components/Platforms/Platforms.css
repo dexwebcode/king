@@ -1,0 +1,56 @@
+.platform-cards {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+
+    gap: 12px;
+
+    margin-bottom: 18px;
+}
+
+.platform-card {
+    padding: 17px;
+
+    border: 1px solid var(--line);
+    border-radius: 12px;
+
+    background: linear-gradient(180deg,
+            rgba(25, 26, 30, .96),
+            rgba(15, 16, 19, .96));
+
+    transition: .25s ease;
+}
+
+.platform-card:hover {
+    transform: translateY(-3px);
+
+    border-color: rgba(255, 209, 90, .25);
+}
+
+.platform-image {
+    width: 62px;
+    height: 62px;
+
+    margin-bottom: 20px;
+
+    border-radius: 17px;
+}
+
+.platform-card h3 {
+    margin: 0 0 10px;
+}
+
+.platform-card p {
+    min-height: 42px;
+
+    margin: 0 0 14px;
+
+    color: var(--muted);
+
+    line-height: 1.5;
+
+    font-size: 14px;
+}
+
+.platform-card strong {
+    color: #ffe187;
+}

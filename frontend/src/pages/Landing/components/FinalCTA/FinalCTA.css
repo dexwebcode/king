@@ -1,0 +1,43 @@
+.final-cta {
+    min-height: 190px;
+
+    display: grid;
+    grid-template-columns: 1.2fr .8fr;
+    align-items: center;
+
+    padding: 28px 36px;
+
+    border-radius: 15px;
+
+    overflow: hidden;
+}
+
+.final-copy {
+    max-width: 650px;
+}
+
+.final-copy .hero-actions {
+    margin-top: 20px;
+}
+
+.final-image {
+    height: 150px;
+
+    border-radius: 20px;
+
+    opacity: .65;
+}
+
+.final-cta h2 {
+    margin: 0 0 8px;
+
+    font-size: 24px;
+}
+
+.final-cta p {
+    margin: 0;
+
+    color: var(--muted);
+
+    line-height: 1.6;
+}

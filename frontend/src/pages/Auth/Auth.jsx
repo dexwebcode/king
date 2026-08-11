@@ -9,11 +9,12 @@ import LoginForm from './LoginForm'
 import RegisterForm from './RegisterForm'
 
 import logo from "../../assets/logo.png"
+import { Link } from "react-router-dom"
 /// ------ Главный компонент авторизации ------ ///
-export default function Auth({ setIsAuth }) {
+export default function Auth({ setIsAuth = () => {}, initialMode = 'login' }) {
 
     // ------ Режим формы: login/register ------ //
-    const [mode, setMode] = useState('login')
+    const [mode, setMode] = useState(initialMode)
 
     // ------ Данные пользователя ------ //
     const [email, setEmail] = useState('')
@@ -23,7 +24,7 @@ export default function Auth({ setIsAuth }) {
     // ------ Подсказки ------ //
     const [emailHint, setEmailHint] = useState('')
     const [passwordHint, setPasswordHint] = useState('')
-    const logos = Array.from({ length: 22 })
+
     // ------ Функция очистки всех полей формы ------ //
     function clearFields() {
 
@@ -44,25 +45,35 @@ export default function Auth({ setIsAuth }) {
     return (
 
         <section className="Auth">
-            <header className="Auth-header">
+            <div className="Auth-ambient Auth-ambient-one" />
+            <div className="Auth-ambient Auth-ambient-two" />
 
-                {logos.map((_, index) => (
+            <header className="Auth-header container">
+                <Link
+                    to="/"
+                    className="Auth-brand"
+                    aria-label="KingPromotion"
+                >
                     <img
-                        key={index}
                         src={logo}
-                        alt="Logo"
-                        className={index === 0 ? "Logo" : `Logo_${index + 1}`}
+                        alt="KingPromotion"
+                        width={40}
+                        height={40}
                     />
-                ))}
 
+                    <span>
+                        <strong>KING</strong>
+                        <small>PROMOTION</small>
+                    </span>
+                </Link>
             </header>
+
             {/* ---------- КОНТЕЙНЕР ФОРМЫ ---------- */}
             <section className="Registration">
 
                 {/* ---------- HEADING ---------- */}
                 <h2 className="Registration-heading">
-                    KING PROMOTION
-                    {/* Логотип в заголовке */}
+                    {mode === 'login' ? 'Вход' : 'Регистрация'}
                 </h2>
 
                 {/* ---------- КОНТЕНТ ФОРМЫ ---------- */}
@@ -73,10 +84,10 @@ export default function Auth({ setIsAuth }) {
 
                     {mode === 'login' ? (
                         <LoginForm
-                            email={email}
+                            login={email}
                             password={password}
 
-                            setEmail={setEmail}
+                            setLogin={setEmail}
                             setPassword={setPassword}
 
                             setIsAuth={setIsAuth}

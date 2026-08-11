@@ -1,0 +1,230 @@
+.hero {
+    position: relative;
+
+    top: -50px;
+
+    min-height: 490px;
+
+    display: grid;
+    grid-template-columns: 1fr 1.08fr;
+
+    gap: 58px;
+
+    align-items: center;
+
+    padding-block: 72px 42px;
+}
+
+.hero-copy {
+    position: relative;
+    top: -10px;
+}
+
+.eyebrow {
+    display: inline-flex;
+
+    margin-bottom: 22px;
+
+    padding: 8px 12px;
+
+    border: 1px solid var(--line);
+    border-radius: 999px;
+
+    background: rgba(255, 255, 255, .025);
+
+    color: #d7d7d4;
+
+    font-size: 16px;
+}
+
+.hero h1 {
+    margin: 0;
+
+    max-width: 670px;
+
+    font-size: clamp(38px, 5vw, 62px);
+
+    line-height: 1.07;
+
+    letter-spacing: -.045em;
+}
+
+.hero-subtitle {
+    margin: 22px 0 28px;
+
+    max-width: 560px;
+
+    color: var(--muted);
+
+    font-size: 16px;
+
+    line-height: 1.65;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.hero-notes {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 24px;
+
+    margin-top: 24px;
+
+    color: #c8c9c5;
+}
+
+/* ---------- Card ---------- */
+
+.hero-order-card {
+    border-radius: 20px;
+    padding: 24px;
+}
+
+.order-card-head,
+.order-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.order-card-head h3 {
+    margin: 3px 0 0;
+    font-size: 18px;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.status-dot {
+    color: var(--gold);
+}
+
+/* ---------- Steps ---------- */
+
+.steps-line {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 12px;
+
+    margin: 22px 0;
+}
+
+.step {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    color: #6f7278;
+}
+
+.step span {
+    width: 26px;
+    height: 26px;
+
+    display: grid;
+    place-items: center;
+
+    border: 1px solid var(--line);
+    border-radius: 50%;
+}
+
+.step.active {
+    color: var(--gold);
+}
+
+.step small {
+    font-size: 14px;
+}
+
+/* ---------- Fields ---------- */
+
+.field-block {
+    margin-top: 18px;
+}
+
+.field-block>label {
+    display: block;
+
+    margin-bottom: 10px;
+
+    font-weight: 700;
+}
+
+/* ---------- Platforms ---------- */
+
+.platform-grid.compact {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 8px;
+}
+
+.platform-choice {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    min-height: 42px;
+
+    border: 1px solid var(--line);
+    border-radius: 8px;
+
+    background: rgba(255, 255, 255, .025);
+
+    color: #dddddd;
+}
+
+.platform-choice .image-placeholder {
+    width: 24px;
+    height: 24px;
+
+    border-radius: 6px;
+}
+
+/* ---------- Services ---------- */
+
+.service-pills {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 8px;
+}
+
+.service-pills button {
+    padding: 12px;
+
+    border: 1px solid var(--line);
+    border-radius: 8px;
+
+    background: rgba(255, 255, 255, .025);
+
+    color: #eeeeee;
+
+    text-align: left;
+}
+
+.service-pills small {
+    display: block;
+
+    margin-top: 5px;
+
+    color: var(--gold);
+}
+
+/* ---------- Footer ---------- */
+
+.order-card-footer {
+    margin-top: 20px;
+
+    padding-top: 16px;
+
+    border-top: 1px solid var(--line);
+}

@@ -1,0 +1,125 @@
+.site-header.container {
+    position: relative;
+    z-index: 20;
+
+    height: 78px;
+
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+
+    gap: 28px;
+
+    border-bottom: 1px solid rgba(255, 255, 255, .04);
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-mark {
+    color: var(--gold);
+    font-size: 28px;
+
+    filter: drop-shadow(0 0 10px rgba(255, 209, 90, .35));
+}
+
+.brand strong,
+.brand small {
+    display: block;
+    line-height: 1;
+}
+
+.brand strong {
+    letter-spacing: .04em;
+}
+
+.brand small {
+    margin-top: 3px;
+
+    color: #b9b9b3;
+
+    letter-spacing: .24em;
+}
+
+.main-nav {
+    display: flex;
+    justify-content: center;
+
+    gap: 30px;
+
+    color: #b8b9bd;
+}
+
+.main-nav a {
+    transition: .2s ease;
+}
+
+.main-nav a:hover {
+    color: #ffffff;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* ---------- Buttons ---------- */
+
+.button {
+    padding: 11px 18px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid transparent;
+    border-radius: 8px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: .2s ease;
+}
+
+.button-label {
+    pointer-events: none;
+}
+
+.button:hover {
+    transform: translateY(-1px);
+}
+
+.button-gold {
+    color: #17130a;
+
+    background: linear-gradient(180deg,
+            #ffe07c,
+            #f1b928);
+
+    box-shadow:
+        0 0 24px rgba(255, 199, 61, .26),
+        inset 0 1px rgba(255, 255, 255, .55);
+}
+
+.button-ghost {
+    background: #101114;
+    color: #eeeeee;
+
+    border-color: var(--line);
+}
+
+.button-outline {
+    color: #f6f6f4;
+
+    background: rgba(255, 255, 255, .02);
+
+    border-color: rgba(241, 185, 40, .35);
+}
+
+.button-large {
+    padding: 15px 24px;
+}

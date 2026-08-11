@@ -1,0 +1,37 @@
+.reliability-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 12px;
+
+    font-size: 14px;
+}
+
+.reliability-card {
+    display: flex;
+
+    gap: 14px;
+
+    padding: 18px;
+
+    border: 1px solid var(--line);
+    border-radius: 10px;
+
+    background: rgba(255, 255, 255, .02);
+}
+
+.reliability-card>span {
+    color: var(--gold);
+}
+
+.reliability-card h3 {
+    margin: 0 0 7px;
+}
+
+.reliability-card p {
+    margin: 0;
+
+    color: var(--muted);
+
+    line-height: 1.45;
+}

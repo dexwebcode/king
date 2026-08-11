@@ -101,13 +101,10 @@ async function handleRegister() {
             password
         )
 
-        // ------ Получаем JSON-ответ сервера ------ //
-        const data = await response.json()
-
         // ------ Если регистрация завершилась ошибкой ------ //
         if (!response.ok) {
             setEmailHint(
-                data.detail || 'Ошибка регистрации'
+                response.data?.detail || 'Ошибка регистрации'
             )
 
             return
@@ -116,7 +113,7 @@ async function handleRegister() {
         // ------ Сохраняем JWT-токен ------ //
         localStorage.setItem(
             'token',
-            data.token
+            response.data.token
         )
 
         // ------ Изменяем состояние авторизации ------ //
