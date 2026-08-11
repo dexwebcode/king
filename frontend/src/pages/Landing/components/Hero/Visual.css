@@ -1,0 +1,467 @@
+/* =========================================================
+   HERO VISUAL
+========================================================= */
+
+.hero-visual {
+    position: absolute;
+
+    /* Положение всей композиции */
+    top: 30%;
+    left: 720px;
+
+    transform: translate(-50%, -50%);
+
+    /* Область вокруг телефона */
+    width: 620px;
+    height: 620px;
+    rotate: 10deg;
+    z-index: 3;
+
+    /* ВАЖНО:
+       разрешаем взаимодействие мыши с элементами */
+    pointer-events: auto;
+
+    animation: heroRevealUp 0.95s cubic-bezier(0.22, 1, 0.36, 1) 0.48s both;
+}
+
+.hero-visual .phone,
+.hero-visual .social-icon {
+    animation: heroVisualItemReveal 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero-visual .phone {
+    animation-delay: 0.56s;
+}
+
+.hero-visual .insta {
+    animation-delay: 0.64s;
+}
+
+.hero-visual .x {
+    animation-delay: 0.7s;
+}
+
+.hero-visual .vk {
+    animation-delay: 0.76s;
+}
+
+.hero-visual .telegram {
+    animation-delay: 0.82s;
+}
+
+.hero-visual .tiktok {
+    animation-delay: 0.88s;
+}
+
+.hero-visual .youtube {
+    animation-delay: 0.94s;
+}
+
+@keyframes heroVisualItemReveal {
+    from {
+        opacity: 0;
+        translate: 0 24px;
+    }
+
+    to {
+        opacity: 1;
+        translate: 0 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .hero-visual,
+    .hero-visual .phone,
+    .hero-visual .social-icon {
+        animation: none;
+    }
+
+}
+
+
+/* =========================================================
+   PHONE
+========================================================= */
+
+.hero-visual .phone {
+    position: absolute;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+
+    width: auto;
+    height: 500px;
+
+    object-fit: contain;
+
+    z-index: 5;
+
+    filter:
+        drop-shadow(0 35px 70px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 45px rgba(255, 190, 45, 0.10));
+
+    pointer-events: auto;
+    cursor: pointer;
+
+    transform-origin: center center;
+
+    transition:
+        transform 0.35s ease,
+        filter 0.35s ease;
+}
+
+
+/* =========================================================
+   SOCIAL ICONS
+========================================================= */
+
+.hero-visual .social-icon {
+    position: absolute;
+
+    width: 105px;
+    height: 105px;
+
+    object-fit: contain;
+
+    z-index: 4;
+
+    filter:
+        drop-shadow(0 20px 30px rgba(0, 0, 0, 0.45));
+
+    /*
+       Анимируем только transform и тень.
+       top / left / right / bottom НЕ изменяются.
+    */
+    transition:
+        transform 0.35s ease,
+        filter 0.35s ease;
+
+    /*
+       Увеличение происходит от центра.
+       Поэтому иконка не съезжает со своей позиции.
+    */
+    transform-origin: center center;
+
+    pointer-events: auto;
+
+    cursor: pointer;
+}
+
+/* =========================================================
+   SOCIAL ICONS
+========================================================= */
+
+.hero-visual .social-icon {
+    position: absolute;
+
+    object-fit: contain;
+
+    filter:
+        drop-shadow(0 20px 30px rgba(0, 0, 0, 0.45));
+
+    transition:
+        transform 0.35s ease,
+        filter 0.35s ease;
+
+    transform-origin: center center;
+
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   INSTAGRAM
+========================================================= */
+
+.hero-visual .insta {
+    top: 65px;
+    left: 200px;
+
+    width: 115px;
+    height: 115px;
+
+    z-index: 5;
+
+    transform: rotate(-10deg);
+}
+
+.hero-visual .insta:hover {
+    transform:
+        rotate(0deg) scale(1.087);
+}
+
+
+/* =========================================================
+   X
+========================================================= */
+
+.hero-visual .x {
+    top: 320px;
+    right: 90px;
+
+    width: 140px;
+    height: 140px;
+
+    z-index: 8;
+
+    transform: rotate(9deg);
+}
+
+.hero-visual .x:hover {
+    transform:
+        rotate(19deg) scale(1.071);
+}
+
+
+/* =========================================================
+   VK
+========================================================= */
+
+.hero-visual .vk {
+    top: 370px;
+    right: 380px;
+
+    width: 120px;
+    height: 120px;
+
+    z-index: 7;
+
+    transform: rotate(7deg);
+}
+
+.hero-visual .vk:hover {
+    transform:
+        rotate(17deg) scale(1.083);
+}
+
+
+/* =========================================================
+   TELEGRAM
+========================================================= */
+
+.hero-visual .telegram {
+    bottom: 55px;
+    right: 220px;
+
+    width: 110px;
+    height: 110px;
+
+    z-index: 7;
+
+    transform: rotate(-7deg);
+}
+
+.hero-visual .telegram:hover {
+    transform:
+        rotate(3deg) scale(1.091);
+}
+
+
+/* =========================================================
+   TIKTOK
+========================================================= */
+
+.hero-visual .tiktok {
+    bottom: 365px;
+    left: 425px;
+
+    width: 120px;
+    height: 120px;
+
+    z-index: 6;
+
+    transform: rotate(8deg);
+}
+
+.hero-visual .tiktok:hover {
+    transform:
+        rotate(18deg) scale(1.083);
+}
+
+
+/* =========================================================
+   YOUTUBE
+========================================================= */
+
+.hero-visual .youtube {
+    bottom: 325px;
+    left: 125px;
+
+    width: 80px;
+    height: 80px;
+
+    z-index: 9;
+
+    transform: rotate(8deg);
+}
+
+.hero-visual .youtube:hover {
+    transform:
+        rotate(18deg) scale(1.125);
+}
+
+/* =========================================================
+   HOVER ANIMATIONS
+
+   Каждая иконка:
+   1. визуально увеличивается примерно на 10px
+   2. поворачивается ещё на +10deg
+   3. НЕ меняет свою позицию
+========================================================= */
+
+
+/* ---------------------------------------------------------
+   INSTAGRAM
+
+   Размер:
+   115px -> 125px
+
+   Поворот:
+   -10deg -> 0deg
+--------------------------------------------------------- */
+
+.hero-visual .insta:hover {
+    transform:
+        rotate(0deg) scale(1.087);
+
+    filter:
+        drop-shadow(0 25px 35px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 20px rgba(255, 190, 45, 0.08));
+}
+
+
+/* ---------------------------------------------------------
+   X
+
+   Размер:
+   140px -> 150px
+
+   Поворот:
+   9deg -> 19deg
+--------------------------------------------------------- */
+
+.hero-visual .x:hover {
+    transform:
+        rotate(-19deg) scale(1.071);
+
+    filter:
+        drop-shadow(0 25px 35px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 20px rgba(255, 190, 45, 0.08));
+}
+
+
+/* ---------------------------------------------------------
+   VK
+
+   Размер:
+   120px -> 130px
+
+   Поворот:
+   7deg -> 17deg
+--------------------------------------------------------- */
+
+.hero-visual .vk:hover {
+    transform:
+        rotate(17deg) scale(1.083);
+
+    filter:
+        drop-shadow(0 25px 35px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 20px rgba(255, 190, 45, 0.08));
+}
+
+
+/* ---------------------------------------------------------
+   TELEGRAM
+
+   Размер:
+   110px -> 120px
+
+   Поворот:
+   -7deg -> 3deg
+--------------------------------------------------------- */
+
+.hero-visual .telegram:hover {
+    transform:
+        rotate(3deg) scale(1.091);
+
+    filter:
+        drop-shadow(0 25px 35px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 20px rgba(255, 190, 45, 0.08));
+}
+
+
+/* ---------------------------------------------------------
+   TIKTOK
+
+   Размер:
+   120px -> 130px
+
+   Поворот:
+   8deg -> 18deg
+--------------------------------------------------------- */
+
+.hero-visual .tiktok:hover {
+    transform:
+        rotate(18deg) scale(1.083);
+
+    filter:
+        drop-shadow(0 25px 35px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 20px rgba(255, 190, 45, 0.08));
+}
+
+
+/* ---------------------------------------------------------
+   YOUTUBE
+
+   Размер:
+   80px -> 90px
+
+   Поворот:
+   8deg -> 18deg
+--------------------------------------------------------- */
+
+.hero-visual .youtube:hover {
+    transform:
+        rotate(-18deg) scale(1.125);
+
+    filter:
+        drop-shadow(0 25px 35px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 20px rgba(255, 190, 45, 0.08));
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1050px) {
+
+    .hero-visual {
+        width: 520px;
+        height: 520px;
+
+        transform:
+            translate(-50%, -50%) scale(0.85);
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 800px) {
+
+    .hero-visual {
+        position: relative;
+
+        top: auto;
+        left: auto;
+
+        margin: 40px auto 0;
+
+        width: 520px;
+        height: 520px;
+
+        transform: scale(0.8);
+
+        transform-origin: top center;
+    }
+}

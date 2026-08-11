@@ -8,7 +8,6 @@ export default function App() {
         <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Auth initialMode="login" />} />
-            <Route path="/register" element={<Auth initialMode="register" />} />
         </Routes>
     );
 }

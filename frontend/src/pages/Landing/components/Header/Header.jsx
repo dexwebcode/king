@@ -54,7 +54,6 @@ export default function Header() {
                 </a>
 
             </nav>
-
             <div className="header-actions">
 
                 <button
@@ -70,7 +69,6 @@ export default function Header() {
                 <button
                     type="button"
                     className="button button-gold"
-                    onClick={() => goToAuth("/register")}
                 >
                     <span className="button-label">
                         Оформить заказ

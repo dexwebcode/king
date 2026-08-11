@@ -1,7 +1,14 @@
 .site-header.container {
-    position: relative;
-    z-index: 20;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
 
+    z-index: 1000;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding-inline: max(20px, calc((100vw - 1770px) / 2));
     height: 78px;
 
     display: grid;
@@ -9,9 +16,22 @@
     align-items: center;
 
     gap: 28px;
+    overflow: hidden;
+    isolation: isolate;
 
     border-bottom: 1px solid rgba(255, 255, 255, .04);
+
+    background: rgba(7, 8, 10, .82);
+
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
 }
+
+.site-header.container>* {
+    position: relative;
+    z-index: 1;
+}
+
 
 .brand {
     display: inline-flex;
@@ -69,20 +89,24 @@
 /* ---------- Buttons ---------- */
 
 .button {
-    padding: 11px 18px;
-
+    position: relative;
+    width: 100%;
+    height: 58px;
+    padding: 0 24px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-
-    border: 1px solid transparent;
-    border-radius: 8px;
-
-    font-weight: 700;
-
+    border: 0;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #ffd15d, #f2ad25);
+    color: #131313;
+    font-size: 17px;
+    font-weight: 750;
+    box-shadow: 0 12px 30px rgba(235, 170, 35, 0.18);
     cursor: pointer;
-
-    transition: .2s ease;
+    transition:
+        transform .25s ease,
+        box-shadow .25s ease;
 }
 
 .button-label {
@@ -90,36 +114,122 @@
 }
 
 .button:hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 15px 38px rgba(235, 170, 35, 0.28);
 }
 
-.button-gold {
-    color: #17130a;
+.button-gold,
+.button-outline {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
 
-    background: linear-gradient(180deg,
-            #ffe07c,
-            #f1b928);
+    background: transparent;
+
+    border: 1px solid #f2ad25;
+    color: #ffd15d;
+
+    box-shadow: none;
+
+    transition:
+        color 0.5s ease,
+        border-color 0.5s ease,
+        box-shadow 0.5s ease,
+        transform 0.35s ease;
+}
+
+/* =========================================================
+   ЗОЛОТАЯ ЗАЛИВКА
+========================================================= */
+
+.button-gold::before,
+.button-outline::before {
+    content: "";
+
+    position: absolute;
+    inset: 0;
+
+    background: linear-gradient(135deg,
+            #ffd15d,
+            #f2ad25);
+
+    opacity: 0;
+
+    z-index: -1;
+
+    transition: opacity 0.5s ease;
+
+    pointer-events: none;
+}
+
+
+/* =========================================================
+   ТЕКСТ КНОПКИ
+========================================================= */
+
+.button-gold .button-label,
+.button-outline .button-label {
+    position: relative;
+    z-index: 1;
+
+    color: #ffd15d;
+
+    transition: color 0.5s ease;
+}
+
+
+/* =========================================================
+   HOVER
+========================================================= */
+
+.button-gold:hover,
+.button-outline:hover {
+    color: #131313;
+
+    border-color: #ffd15d;
 
     box-shadow:
-        0 0 24px rgba(255, 199, 61, .26),
-        inset 0 1px rgba(255, 255, 255, .55);
+        0 12px 30px rgba(235, 170, 35, 0.20),
+        0 0 22px rgba(255, 209, 93, 0.10);
+
+    transform: translateY(-2px);
 }
 
-.button-ghost {
-    background: #101114;
-    color: #eeeeee;
 
-    border-color: var(--line);
+/* Плавно включаем золотой фон */
+
+.button-gold:hover::before,
+.button-outline:hover::before {
+    opacity: 1;
 }
 
-.button-outline {
-    color: #f6f6f4;
 
-    background: rgba(255, 255, 255, .02);
+/* Плавно меняем текст на чёрный */
 
-    border-color: rgba(241, 185, 40, .35);
+.button-gold:hover .button-label,
+.button-outline:hover .button-label {
+    color: #131313;
+}
+
+.header-actions .button,
+.hero-actions .button,
+.test-banner .button,
+.final-cta .button {
+    width: auto;
+}
+
+.header-actions .button {
+    height: 44px;
+    min-width: 112px;
+    font-size: 14px;
 }
 
 .button-large {
-    padding: 15px 24px;
+    padding: 0 28px;
+}
+
+@media (max-width: 640px) {
+    .site-header.container {
+        padding-inline: 12px;
+    }
 }

@@ -1,5 +1,6 @@
 // ------ Импорт API функции авторизации ------ //
 import { loginUser } from './authApi'
+import { useState } from 'react'
 
 /// ------ Компонент формы авторизации ------ ///
 export default function LoginForm({
@@ -19,6 +20,7 @@ export default function LoginForm({
     setMode
 
 }) {
+    const [showPassword, setShowPassword] = useState(false)
 
     // ------ Функция авторизации ------ //
     async function handleLogin() {
@@ -51,33 +53,88 @@ export default function LoginForm({
 
             {/* ------ INPUT ЛОГИНА ------ */}
 
-            <input
-                className="Username-input"
-                type="text"
-                placeholder="Почта"
-                value={login}
+            <div className="login-field">
+                <label htmlFor="auth-login">
+                    E-mail или телефон
+                </label>
 
-                onChange={(event) => {
+                <div className="login-input-wrapper">
+                    <span className="input-icon" aria-hidden="true">@</span>
 
-                    // ------ Изменяем состояние login ------ //
-                    setLogin(event.target.value)
-                }}
-            />
+                    <input
+                        id="auth-login"
+                        className="Username-input"
+                        type="text"
+                        placeholder="Введите e-mail или телефон"
+                        value={login}
+
+                        onChange={(event) => {
+
+                            // ------ Изменяем состояние login ------ //
+                            setLogin(event.target.value)
+                        }}
+                    />
+                </div>
+            </div>
 
             {/* ------ INPUT ПАРОЛЯ ------ */}
 
-            <input
-                className="Password-input"
-                type="password"
-                placeholder="Пароль"
-                value={password}
+            <div className="login-field">
+                <div className="password-label">
+                    <label htmlFor="auth-password">
+                        Пароль
+                    </label>
 
-                onChange={(event) => {
+                    <button
+                        type="button"
+                        className="forgot-password"
+                    >
+                        Забыли пароль?
+                    </button>
+                </div>
 
-                    // ------ Изменяем состояние password ------ //
-                    setPassword(event.target.value)
-                }}
-            />
+                <div className="login-input-wrapper">
+                    <span className="input-icon" aria-hidden="true">•</span>
+
+                    <input
+                        id="auth-password"
+                        className="Password-input"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Введите пароль"
+                        value={password}
+
+                        onChange={(event) => {
+
+                            // ------ Изменяем состояние password ------ //
+                            setPassword(event.target.value)
+                        }}
+                    />
+
+                    <button
+                        type="button"
+                        className="password-eye"
+                        aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                        onClick={() => setShowPassword(!showPassword)}
+                    >
+                        {showPassword ? 'Скрыть' : 'Показать'}
+                    </button>
+                </div>
+            </div>
+
+            <label className="remember-me">
+                <input
+                    type="checkbox"
+                    defaultChecked
+                />
+
+                <span className="custom-checkbox">
+                    ✓
+                </span>
+
+                <span>
+                    Запомнить меня
+                </span>
+            </label>
 
             {/* ------ КОНТЕЙНЕР КНОПОК ------ */}
 
@@ -86,30 +143,46 @@ export default function LoginForm({
                 {/* ------ КНОПКА АВТОРИЗАЦИИ ------ */}
 
                 <button
-                    className="Login-button"
+                    className="Login-button login-submit"
                     type="button"
 
                     onClick={handleLogin}
                 >
-                    Войти
+                    <span>Войти</span>
+                    <span className="login-arrow">→</span>
                 </button>
 
-                {/* ------ КНОПКА ПЕРЕХОДА В REGISTER ------ */}
+            </section>
+
+            <div className="login-divider">
+                <span></span>
+                <p>Или войдите через</p>
+                <span></span>
+            </div>
+
+            <div className="login-socials">
+                <button type="button" aria-label="Войти через Google">G</button>
+                <button type="button" aria-label="Войти через VK">VK</button>
+                <button type="button" aria-label="Войти через Telegram">TG</button>
+                <button type="button" aria-label="Войти по QR-коду">QR</button>
+            </div>
+
+            <div className="login-register">
+                <span>
+                    Нет аккаунта?
+                </span>
 
                 <button
-                    className="Register-button"
                     type="button"
-
                     onClick={() => {
 
                         // ------ Переключение режима на register ------ //
                         setMode('register')
                     }}
                 >
-                    Регистрация
+                    Зарегистрироваться
                 </button>
-
-            </section>
+            </div>
         </>
     )
 }

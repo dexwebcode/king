@@ -9,6 +9,13 @@ import LoginForm from './LoginForm'
 import RegisterForm from './RegisterForm'
 
 import logo from "../../assets/logo.png"
+import phone from "../../assets/phone.png"
+import instagram from "../../assets/insta.png"
+import youtube from "../../assets/youtube.png"
+import tiktok from "../../assets/tiktok.png"
+import vk from "../../assets/vk.png"
+import x from "../../assets/x.png"
+import telegram from "../../assets/telegram.png"
 import { Link } from "react-router-dom"
 /// ------ Главный компонент авторизации ------ ///
 export default function Auth({ setIsAuth = () => {}, initialMode = 'login' }) {
@@ -44,91 +51,126 @@ export default function Auth({ setIsAuth = () => {}, initialMode = 'login' }) {
 
     return (
 
-        <section className="Auth">
-            <div className="Auth-ambient Auth-ambient-one" />
-            <div className="Auth-ambient Auth-ambient-two" />
+        <main className="login-page">
 
-            <header className="Auth-header container">
+            <section className="login-left">
+
                 <Link
                     to="/"
-                    className="Auth-brand"
-                    aria-label="KingPromotion"
+                    className="login-logo"
+                    aria-label="KING PROMOTION"
                 >
                     <img
+                        className="logo-image"
                         src={logo}
-                        alt="KingPromotion"
-                        width={40}
-                        height={40}
+                        alt="KING PROMOTION"
                     />
 
-                    <span>
+                    <div className="logo-text">
                         <strong>KING</strong>
-                        <small>PROMOTION</small>
-                    </span>
+                        <span>PROMOTION</span>
+                    </div>
                 </Link>
-            </header>
 
-            {/* ---------- КОНТЕЙНЕР ФОРМЫ ---------- */}
-            <section className="Registration">
+                <div className="login-left-copy">
+                    <h1>
+                        Добро пожаловать
+                        <br />
+                        в <span>KING PROMOTION</span>
+                    </h1>
 
-                {/* ---------- HEADING ---------- */}
-                <h2 className="Registration-heading">
-                    {mode === 'login' ? 'Вход' : 'Регистрация'}
-                </h2>
+                    <p>
+                        Войдите в свой аккаунт и управляйте продвижением
+                        <br />
+                        в социальных сетях легко и эффективно.
+                    </p>
+                </div>
 
-                {/* ---------- КОНТЕНТ ФОРМЫ ---------- */}
 
-                <section className="Registration-content">
+                <div className="login-features">
+                    <div className="login-feature">
+                        <span className="feature-icon">✓</span>
+                        <strong>Безопасно</strong>
+                        <span>100% гарантия</span>
+                    </div>
 
-                    {/* ---------- LOGIN FORM ---------- */}
+                    <div className="login-feature">
+                        <span className="feature-icon">⚡</span>
+                        <strong>Быстрый вход</strong>
+                        <span>за секунды</span>
+                    </div>
 
-                    {mode === 'login' ? (
-                        <LoginForm
-                            login={email}
-                            password={password}
+                    <div className="login-feature">
+                        <span className="feature-icon">?</span>
+                        <strong>Поддержка</strong>
+                        <span>24/7</span>
+                    </div>
 
-                            setLogin={setEmail}
-                            setPassword={setPassword}
+                    <div className="login-feature">
+                        <span className="feature-icon">↗</span>
+                        <strong>Реальные</strong>
+                        <span>результаты</span>
+                    </div>
+                </div>
 
-                            setIsAuth={setIsAuth}
-                            setMode={setMode}
-                        />
-
-                    ) : (
-
-                        /* ---------- REGISTER FORM ---------- */
-
-                        <RegisterForm
-
-                            email={email}
-                            password={password}
-                            repeatPassword={repeatPassword}
-
-                            passwordHint={passwordHint}
-                            emailHint={emailHint}
-
-                            setEmail={setEmail}
-                            setPassword={setPassword}
-                            setRepeatPassword={setRepeatPassword}
-                            setPasswordHint={setPasswordHint}
-                            setEmailHint={setEmailHint}
-
-                            setIsAuth={setIsAuth}
-                            setMode={setMode}
-                        />
-                    )}
-
-                </section>
-                {mode === 'login' && (
-                    <button
-                        className="QR-button"
-                        type="button"
-                    >
-                        Вход по QR-коду
-                    </button>
-                )}
             </section>
 
-        </section >
+            <section className="login-right">
+                <div className="login-card">
+                    <div className="login-card-header">
+                        <h2>
+                            {mode === 'login' ? 'Вход в аккаунт' : 'Регистрация'}
+                        </h2>
+
+                        <p>
+                            {mode === 'login'
+                                ? 'Введите свои данные для входа'
+                                : 'Создайте аккаунт для начала работы'}
+                        </p>
+                    </div>
+
+                    <section className="Registration-content">
+                        {mode === 'login' ? (
+                            <LoginForm
+                                login={email}
+                                password={password}
+
+                                setLogin={setEmail}
+                                setPassword={setPassword}
+
+                                setIsAuth={setIsAuth}
+                                setMode={setMode}
+                            />
+
+                        ) : (
+
+                            <RegisterForm
+
+                                email={email}
+                                password={password}
+                                repeatPassword={repeatPassword}
+
+                                passwordHint={passwordHint}
+                                emailHint={emailHint}
+
+                                setEmail={setEmail}
+                                setPassword={setPassword}
+                                setRepeatPassword={setRepeatPassword}
+                                setPasswordHint={setPasswordHint}
+                                setEmailHint={setEmailHint}
+
+                                setIsAuth={setIsAuth}
+                                setMode={setMode}
+                            />
+                        )}
+                    </section>
+                </div>
+            </section>
+
+            <footer className="login-footer">
+                © 2026 KING PROMOTION. Все права защищены.
+            </footer>
+
+        </main>
     )
 }

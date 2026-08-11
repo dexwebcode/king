@@ -1,88 +1,186 @@
+/* =========================================================
+   HERO
+========================================================= */
+
 .hero {
     position: relative;
+    margin-top: 100px;
+    min-height: calc(100vh - 70px);
 
-    top: -50px;
+    display: flex;
+    flex-direction: column;
 
-    min-height: 490px;
+    justify-content: center;
 
-    display: grid;
-    grid-template-columns: 1fr 1.08fr;
+    padding-top: 30px;
+    padding-bottom: 30px;
 
-    gap: 58px;
-
-    align-items: center;
-
-    padding-block: 72px 42px;
+    overflow: hidden;
 }
+
+/* =========================================================
+   LEFT SIDE
+========================================================= */
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 28px;
+
+    width: 100%;
+    max-width: 720px;
+}
+
+
+/* =========================================================
+   HERO COPY
+========================================================= */
 
 .hero-copy {
     position: relative;
-    top: -10px;
 }
+
+.eyebrow,
+.hero h1,
+.hero-subtitle,
+.hero-actions,
+.hero-order-card {
+    animation: heroRevealUp 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.eyebrow {
+    animation-delay: 0.05s;
+}
+
+.hero h1 {
+    animation-delay: 0.14s;
+}
+
+.hero-subtitle {
+    animation-delay: 0.26s;
+}
+
+.hero-actions {
+    animation-delay: 0.36s;
+}
+
+.hero-order-card {
+    animation-delay: 0.72s;
+}
+
+@keyframes heroRevealUp {
+    from {
+        opacity: 0;
+        filter: brightness(30%);
+        translate: 0 28px;
+    }
+
+    to {
+        opacity: 1;
+        filter: brightness(100%);
+        translate: 0 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .eyebrow,
+    .hero h1,
+    .hero-subtitle,
+    .hero-actions,
+    .hero-order-card {
+        animation: none;
+    }
+
+}
+
 
 .eyebrow {
     display: inline-flex;
 
-    margin-bottom: 22px;
+    margin-bottom: 16px;
 
-    padding: 8px 12px;
+    padding: 7px 13px;
 
     border: 1px solid var(--line);
     border-radius: 999px;
 
-    background: rgba(255, 255, 255, .025);
+    background: rgba(255, 255, 255, 0.025);
 
     color: #d7d7d4;
 
-    font-size: 16px;
+    font-size: 14px;
 }
+
+
+/* ---------- TITLE ---------- */
 
 .hero h1 {
     margin: 0;
 
-    max-width: 670px;
+    font-size: clamp(46px, 5vw, 72px);
 
-    font-size: clamp(38px, 5vw, 62px);
+    line-height: 0.9;
 
-    line-height: 1.07;
+    letter-spacing: -0.055em;
 
-    letter-spacing: -.045em;
+    font-weight: 800;
 }
 
-.hero-subtitle {
-    margin: 22px 0 28px;
 
-    max-width: 560px;
+.hero h1 span {
+    display: block;
+}
+
+
+/* ---------- DESCRIPTION ---------- */
+
+.hero-subtitle {
+    margin: 18px 0 20px;
+
+    max-width: 570px;
 
     color: var(--muted);
 
-    font-size: 16px;
+    font-size: 15px;
 
-    line-height: 1.65;
+    line-height: 1.55;
 }
+
+
+/* ---------- BUTTONS ---------- */
 
 .hero-actions {
     display: flex;
-    gap: 12px;
+    gap: 10px;
 }
 
-.hero-notes {
-    display: flex;
-    flex-wrap: wrap;
+.hero-actions .button {
+    min-height: 46px;
 
-    gap: 24px;
-
-    margin-top: 24px;
-
-    color: #c8c9c5;
+    padding-inline: 22px;
 }
 
-/* ---------- Card ---------- */
+
+/* =========================================================
+   ORDER CARD
+========================================================= */
 
 .hero-order-card {
-    border-radius: 20px;
-    padding: 24px;
+    position: relative;
+    width: 100%;
+    height: 800px;
+    top: -345px;
+    left: 1050px;
+    padding: 20px;
+    border-radius: 18px;
 }
+
+/* ---------- HEADER ---------- */
 
 .order-card-head,
 .order-card-footer {
@@ -91,140 +189,296 @@
     align-items: center;
 }
 
+
 .order-card-head h3 {
-    margin: 3px 0 0;
-    font-size: 18px;
+    margin: 2px 0 0;
+
+    font-size: 17px;
 }
+
 
 .muted {
     color: var(--muted);
+
+    font-size: 13px;
 }
+
 
 .status-dot {
     color: var(--gold);
 }
 
-/* ---------- Steps ---------- */
+
+/* =========================================================
+   STEPS
+========================================================= */
 
 .steps-line {
     display: grid;
+
     grid-template-columns: repeat(4, 1fr);
 
-    gap: 12px;
+    gap: 8px;
 
-    margin: 22px 0;
+    margin: 15px 0;
 }
+
 
 .step {
     display: flex;
+
     align-items: center;
 
-    gap: 8px;
+    gap: 6px;
 
     color: #6f7278;
 }
 
+
 .step span {
-    width: 26px;
-    height: 26px;
+    width: 23px;
+    height: 23px;
+
+    flex-shrink: 0;
 
     display: grid;
+
     place-items: center;
 
     border: 1px solid var(--line);
     border-radius: 50%;
+
+    font-size: 12px;
 }
+
+
+.step small {
+    font-size: 12px;
+}
+
 
 .step.active {
     color: var(--gold);
 }
 
-.step small {
-    font-size: 14px;
-}
 
-/* ---------- Fields ---------- */
+/* =========================================================
+   FIELD
+========================================================= */
 
 .field-block {
-    margin-top: 18px;
+    margin-top: 13px;
 }
+
 
 .field-block>label {
     display: block;
 
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 
+    font-size: 14px;
     font-weight: 700;
 }
 
-/* ---------- Platforms ---------- */
+
+/* =========================================================
+   PLATFORMS
+========================================================= */
 
 .platform-grid.compact {
     display: grid;
+
     grid-template-columns: repeat(3, 1fr);
 
-    gap: 8px;
+    gap: 7px;
 }
 
+
 .platform-choice {
+    min-width: 0;
+    min-height: 38px;
+
     display: flex;
+
     align-items: center;
 
-    gap: 8px;
+    gap: 7px;
 
-    min-height: 42px;
+    padding: 5px 8px;
 
     border: 1px solid var(--line);
     border-radius: 8px;
 
-    background: rgba(255, 255, 255, .025);
+    background: rgba(255, 255, 255, 0.025);
 
-    color: #dddddd;
+    color: #ddd;
+
+    font-size: 13px;
 }
+
 
 .platform-choice .image-placeholder {
-    width: 24px;
-    height: 24px;
+    width: 21px;
+    height: 21px;
 
-    border-radius: 6px;
+    flex-shrink: 0;
+
+    border-radius: 5px;
 }
 
-/* ---------- Services ---------- */
+
+/* =========================================================
+   SERVICES
+========================================================= */
 
 .service-pills {
     display: grid;
+
     grid-template-columns: repeat(3, 1fr);
 
-    gap: 8px;
+    gap: 7px;
 }
 
+
 .service-pills button {
-    padding: 12px;
+    padding: 9px 11px;
 
     border: 1px solid var(--line);
     border-radius: 8px;
 
-    background: rgba(255, 255, 255, .025);
+    background: rgba(255, 255, 255, 0.025);
 
-    color: #eeeeee;
+    color: #eee;
 
     text-align: left;
+
+    font-size: 13px;
 }
+
 
 .service-pills small {
     display: block;
 
-    margin-top: 5px;
+    margin-top: 3px;
 
     color: var(--gold);
+
+    font-size: 11px;
 }
 
-/* ---------- Footer ---------- */
+
+/* =========================================================
+   ORDER FOOTER
+========================================================= */
 
 .order-card-footer {
-    margin-top: 20px;
+    margin-top: 15px;
 
-    padding-top: 16px;
+    padding-top: 13px;
 
     border-top: 1px solid var(--line);
+
+    font-size: 14px;
+}
+
+
+.order-card-footer .button {
+    min-height: 40px;
+
+    padding: 0 20px;
+}
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1050px) {
+
+    .hero {
+        grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+
+        gap: 25px;
+    }
+
+    .hero h1 {
+        font-size: clamp(42px, 6vw, 60px);
+    }
+
+    .hero-visual img {
+        width: 115%;
+        max-width: 480px;
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 800px) {
+
+    .hero {
+        min-height: auto;
+
+        grid-template-columns: 1fr;
+
+        padding-top: 50px;
+        padding-bottom: 50px;
+
+        overflow: visible;
+    }
+
+
+    .hero-content {
+        max-width: none;
+    }
+
+
+    .hero-visual {
+        grid-row: 2;
+
+        min-height: 400px;
+    }
+
+
+    .hero-visual img {
+        width: min(100%, 450px);
+
+        max-height: none;
+    }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 550px) {
+
+    .hero h1 {
+        font-size: 44px;
+    }
+
+
+    .hero-actions {
+        flex-direction: column;
+    }
+
+
+    .platform-grid.compact {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+
+    .service-pills {
+        grid-template-columns: 1fr;
+    }
+
+
+    .steps-line {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
 }

@@ -7,6 +7,8 @@ import { validatePassword } from './validatePassword'
 // ------ Импорт функции проверки почты ------ //
 import { validateEmail } from './validateEmail'
 
+import { useState } from 'react'
+
 /// ------ Компонент формы регистрации ------ ///
 export default function RegisterForm({
 
@@ -33,6 +35,9 @@ export default function RegisterForm({
     setMode
 
 }) {
+    const [showPassword, setShowPassword] = useState(false)
+    const [showRepeatPassword, setShowRepeatPassword] = useState(false)
+
 
     // ------ Функция изменения пароля + проверка безопасности ------ //
     function handlePasswordChange(event) {
@@ -64,83 +69,93 @@ export default function RegisterForm({
         )
     }
 
-   // ------ Функция регистрации ------ //
-// ------ Функция регистрации ------ //
-async function handleRegister() {
+    // ------ Функция регистрации ------ //
+    async function handleRegister() {
 
-    // ------ Нормализуем почту ------ //
-    const normalizedEmail = email.trim().toLowerCase()
+        // ------ Нормализуем почту ------ //
+        const normalizedEmail = email.trim().toLowerCase()
 
-    // ------ Проверяем корректность почты ------ //
-    const emailError = validateEmail(normalizedEmail)
+        // ------ Проверяем корректность почты ------ //
+        const emailError = validateEmail(normalizedEmail)
 
-    if (emailError) {
-        setEmailHint(emailError)
-        return
-    }
-
-    // ------ Проверяем корректность пароля ------ //
-    const passwordError = validatePassword(password)
-
-    if (passwordError) {
-        setPasswordHint(passwordError)
-        return
-    }
-
-    // ------ Проверяем совпадение паролей ------ //
-    if (password !== repeatPassword) {
-        setPasswordHint('Пароли не совпадают')
-        return
-    }
-
-    try {
-
-        // ------ Отправляем данные на backend ------ //
-        const response = await registerUser(
-            normalizedEmail,
-            password
-        )
-
-        // ------ Если регистрация завершилась ошибкой ------ //
-        if (!response.ok) {
-            setEmailHint(
-                response.data?.detail || 'Ошибка регистрации'
-            )
-
+        if (emailError) {
+            setEmailHint(emailError)
             return
         }
 
-        // ------ Сохраняем JWT-токен ------ //
-        localStorage.setItem(
-            'token',
-            response.data.token
-        )
+        // ------ Проверяем корректность пароля ------ //
+        const passwordError = validatePassword(password)
 
-        // ------ Изменяем состояние авторизации ------ //
-        setIsAuth(true)
+        if (passwordError) {
+            setPasswordHint(passwordError)
+            return
+        }
 
-    } catch (error) {
+        // ------ Проверяем совпадение паролей ------ //
+        if (password !== repeatPassword) {
+            setPasswordHint('Пароли не совпадают')
+            return
+        }
 
-        console.log('Ошибка сервера:', error)
+        try {
 
-        setEmailHint(
-            'Не удалось подключиться к серверу'
-        )
+            // ------ Отправляем данные на backend ------ //
+            const response = await registerUser(
+                normalizedEmail,
+                password
+            )
+
+            // ------ Если регистрация завершилась ошибкой ------ //
+            if (!response.ok) {
+                setEmailHint(
+                    response.data?.detail || 'Ошибка регистрации'
+                )
+
+                return
+            }
+
+            // ------ Сохраняем JWT-токен ------ //
+            localStorage.setItem(
+                'token',
+                response.data.token
+            )
+
+            // ------ Изменяем состояние авторизации ------ //
+            setIsAuth(true)
+
+        } catch (error) {
+
+            console.log('Ошибка сервера:', error)
+
+            setEmailHint(
+                'Не удалось подключиться к серверу'
+            )
+        }
     }
-}
 
     return (
         <>
 
             {/* ------ INPUT ПОЧТЫ ------ */}
 
-            <input
-                className="Username-input"
-                type="email"
-                placeholder="Введите почту"
-                value={email}
-                onChange={handleEmailChange}
-            />
+            <div className="login-field">
+                <label htmlFor="register-email">
+                    E-mail
+                </label>
+
+                <div className="login-input-wrapper">
+                    <span className="input-icon" aria-hidden="true">@</span>
+
+                    <input
+                        id="register-email"
+                        className="Username-input"
+                        type="email"
+                        placeholder="Введите почту"
+                        value={email}
+                        onChange={handleEmailChange}
+                    />
+                </div>
+            </div>
 
             {/* ------ ПОДСКАЗКА ПРОВЕРКИ ПОЧТЫ ------ */}
 
@@ -152,27 +167,67 @@ async function handleRegister() {
 
             {/* ------ INPUT ПАРОЛЯ ------ */}
 
-            <input
-                className="Password-input"
-                type="password"
-                placeholder="Придумайте пароль"
-                value={password}
-                onChange={handlePasswordChange}
-            />
+            <div className="login-field">
+                <label htmlFor="register-password">
+                    Пароль
+                </label>
+
+                <div className="login-input-wrapper">
+                    <span className="input-icon" aria-hidden="true">•</span>
+
+                    <input
+                        id="register-password"
+                        className="Password-input"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Придумайте пароль"
+                        value={password}
+                        onChange={handlePasswordChange}
+                    />
+
+                    <button
+                        type="button"
+                        className="password-eye"
+                        aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                        onClick={() => setShowPassword(!showPassword)}
+                    >
+                        {showPassword ? 'Скрыть' : 'Показать'}
+                    </button>
+                </div>
+            </div>
 
             {/* ------ INPUT ПОВТОРА ПАРОЛЯ ------ */}
 
-            <input
-                className="Password-input"
-                type="password"
-                placeholder="Повторите пароль"
-                value={repeatPassword}
-                onChange={(event) => {
+            <div className="login-field">
+                <label htmlFor="register-repeat-password">
+                    Повторите пароль
+                </label>
 
-                    // ------ Изменяем состояние repeatPassword ------ //
-                    setRepeatPassword(event.target.value)
-                }}
-            />
+                <div className="login-input-wrapper">
+                    <span className="input-icon" aria-hidden="true">•</span>
+
+                    <input
+                        id="register-repeat-password"
+                        className="Password-input"
+                        type={showRepeatPassword ? 'text' : 'password'}
+                        placeholder="Повторите пароль"
+                        value={repeatPassword}
+                        onChange={(event) => {
+
+                            // ------ Изменяем состояние repeatPassword ------ //
+                            setRepeatPassword(event.target.value)
+                        }}
+                    />
+
+                    <button
+                        type="button"
+                        className="password-eye"
+                        aria-label={showRepeatPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                        onClick={() => setShowRepeatPassword(!showRepeatPassword)}
+                    >
+                        {showRepeatPassword ? 'Скрыть' : 'Показать'}
+                    </button>
+                </div>
+            </div>
 
             {/* ------ ПОДСКАЗКА ПРОВЕРКИ ПАРОЛЯ ------ */}
 
@@ -189,17 +244,22 @@ async function handleRegister() {
                 {/* ------ КНОПКА РЕГИСТРАЦИИ ------ */}
 
                 <button
-                    className="Login-button"
+                    className="Login-button login-submit"
                     type="button"
                     onClick={handleRegister}
                 >
-                    Создать аккаунт
+                    <span>Создать аккаунт</span>
+                    <span className="login-arrow">→</span>
                 </button>
 
-                {/* ------ КНОПКА ВОЗВРАТА В LOGIN ------ */}
+            </section>
+
+            <div className="login-register">
+                <span>
+                    Уже есть аккаунт?
+                </span>
 
                 <button
-                    className="Register-button"
                     type="button"
                     onClick={() => {
 
@@ -207,10 +267,9 @@ async function handleRegister() {
                         setMode('login')
                     }}
                 >
-                    Назад
+                    Войти
                 </button>
-
-            </section>
+            </div>
 
         </>
     )
