@@ -32,7 +32,10 @@ export default function RegisterForm({
     setIsAuth,
 
     // ------ Изменение режима login/register ------ //
-    setMode
+    setMode,
+
+    // ------ Показывать переключатель на вход ------ //
+    showModeSwitch = true
 
 }) {
     const [showPassword, setShowPassword] = useState(false)
@@ -254,22 +257,24 @@ export default function RegisterForm({
 
             </section>
 
-            <div className="login-register">
-                <span>
-                    Уже есть аккаунт?
-                </span>
+            {showModeSwitch && (
+                <div className="login-register">
+                    <span>
+                        Уже есть аккаунт?
+                    </span>
 
-                <button
-                    type="button"
-                    onClick={() => {
+                    <button
+                        type="button"
+                        onClick={() => {
 
-                        // ------ Переключение режима на login ------ //
-                        setMode('login')
-                    }}
-                >
-                    Войти
-                </button>
-            </div>
+                            // ------ Переключение режима на login ------ //
+                            setMode('login')
+                        }}
+                    >
+                        Войти
+                    </button>
+                </div>
+            )}
 
         </>
     )

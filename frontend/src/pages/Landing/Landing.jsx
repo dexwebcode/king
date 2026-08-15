@@ -1,5 +1,6 @@
 import Header from "./components/Header/Header";
 import Hero from "./components/Hero/Hero";
+import OrderCard from "./components/OrderCard/OrderCard";
 import Stats from "./components/Stats/Stats";
 import QuickOrder from "./components/QuickOrder/QuickOrder";
 import Platforms from "./components/Platforms/Platforms";
@@ -23,6 +24,9 @@ export default function Landing() {
 
             <main id="top">
                 <Hero />
+                <section className="landing-order-card-section container" id="quick-order">
+                    <OrderCard />
+                </section>
                 <Stats />
                 <QuickOrder />
                 <Platforms />

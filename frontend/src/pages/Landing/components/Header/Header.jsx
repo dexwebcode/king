@@ -62,7 +62,7 @@ export default function Header() {
                     onClick={() => goToAuth("/login")}
                 >
                     <span className="button-label">
-                        Войти
+                        Регистрация
                     </span>
                 </button>
 
@@ -71,7 +71,7 @@ export default function Header() {
                     className="button button-gold"
                 >
                     <span className="button-label">
-                        Оформить заказ
+                        Вход
                     </span>
                 </button>
 

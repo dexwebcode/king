@@ -16,6 +16,111 @@
     animation: heroRevealUp 0.95s cubic-bezier(0.22, 1, 0.36, 1) 0.48s both;
 }
 
+.hero-register-card {
+    position: absolute;
+    z-index: 4;
+    top: var(--hero-top-offset);
+    right: clamp(28px, 6vw, 120px);
+    width: min(520px, calc(100vw - 48px));
+    padding: 38px 40px 34px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    background: linear-gradient(145deg, rgba(22, 24, 28, 0.94), rgba(8, 10, 13, 0.98));
+    box-shadow:
+        0 32px 80px rgba(0, 0, 0, 0.56),
+        0 0 0 1px rgba(255, 209, 90, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    pointer-events: auto;
+}
+
+.hero-decor-icon {
+    position: absolute;
+    z-index: 1;
+    object-fit: contain;
+    pointer-events: none;
+    opacity: 1;
+    filter: none;
+}
+
+.hero-decor-icon--insta {
+    top: 154px;
+    left: clamp(620px, 38vw, 750px);
+    width: 168px;
+    height: 168px;
+    transform: rotate(16deg);
+}
+
+.hero-decor-icon--youtube {
+    left: clamp(650px, 46vw, 820px);
+    bottom: 125px;
+    width: 120px;
+    height: 120px;
+    transform: rotate(-10deg);
+}
+
+.hero-decor-icon--tiktok {
+    top: 325px;
+    left: clamp(780px, 45vw, 990px);
+    width: 196px;
+    height: 196px;
+    transform: rotate(11deg);
+}
+
+.hero-decor-icon--telegram {
+    top: 26px;
+    right: clamp(680px, 2vw, 40px);
+    width: 142px;
+    height: 142px;
+    transform: rotate(16deg);
+}
+
+.hero-decor-icon--vk {
+    right: clamp(260px, 19vw, 380px);
+    bottom: 28px;
+    width: 214px;
+    height: 214px;
+    transform: rotate(-8deg);
+}
+
+.hero-decor-icon--x {
+    top: 520px;
+    left: clamp(520px, 34vw, 690px);
+    width: 128px;
+    height: 128px;
+    transform: rotate(-14deg);
+}
+
+.hero-register-header {
+    margin-bottom: 28px;
+    text-align: left;
+}
+
+.hero-register-header h2 {
+    font-size: 28px;
+}
+
+.hero-register-header p {
+    font-size: 15px;
+}
+
+.hero-register-card .login-field {
+    margin-bottom: 18px;
+}
+
+.hero-register-card .login-input-wrapper {
+    height: 58px;
+}
+
+.hero-register-card .Buttons-container {
+    margin-top: 22px;
+}
+
+.hero-register-card .login-submit {
+    height: 54px;
+}
+
 .hero-visual .hero-order-card {
     position: absolute;
     z-index: 12;
@@ -88,7 +193,7 @@
 
 .hero-visual .telegram {
     top: -20px;
-    left: 1650px;
+    left: 1670px;
 
 
     width: 180px;
@@ -148,10 +253,10 @@
         drop-shadow(0 25px 35px rgba(0, 0, 0, 0.56)) drop-shadow(0 0 24px rgba(255, 190, 45, 0.11));
 }
 
-.hero-visual:has(.order-card-scene:hover) .social-icon,
+.hero-visual:has(.order-card-scene--hover-ready) .social-icon,
 .hero-visual:has(.order-card-scene:focus-within) .social-icon {
     filter:
-        blur(12px) saturate(1.08) brightness(0.82) drop-shadow(0 22px 34px rgba(0, 0, 0, 0.42));
+        saturate(1.08) brightness(0.82) drop-shadow(0 22px 34px rgba(0, 0, 0, 0.42));
 }
 
 @keyframes heroVisualItemReveal {
@@ -185,8 +290,14 @@
         inset: 0;
     }
 
-    .hero-visual .hero-order-card {
-        right: 330px;
+    .hero-register-card {
+        right: 24px;
+        width: min(460px, calc(100vw - 48px));
+        padding: 30px;
+    }
+
+    .hero-decor-icon {
+        scale: 0.78;
     }
 
     .hero-visual .insta {
@@ -217,21 +328,24 @@
 
         width: 100%;
         height: auto;
-        min-height: 680px;
+        min-height: 0;
 
         margin-top: 34px;
 
         transform: none;
     }
 
-    .hero-visual .hero-order-card {
+    .hero-register-card {
         position: relative;
         top: auto;
         right: auto;
-
         width: 100%;
-
+        padding: 26px 22px;
         transform: none;
+    }
+
+    .hero-decor-icon {
+        display: none;
     }
 
     .hero-visual .social-icon {

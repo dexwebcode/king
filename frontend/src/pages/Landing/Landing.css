@@ -28,7 +28,7 @@ body {
     margin: 0;
     min-width: 320px;
     background: #07080a;
-    font-size: 16px;
+    font-size: 18px;
     line-height: 1.5;
 }
 
@@ -69,6 +69,116 @@ a {
     z-index: 1;
 }
 
+.page-shell--order-guide .hero.container {
+    z-index: 1301;
+    pointer-events: none;
+}
+
+.page-shell--order-guide .hero-content,
+.page-shell--order-guide .social-icon {
+    pointer-events: none;
+}
+
+.page-shell--order-guide .hero-content {
+    z-index: 0;
+    opacity: 0.24;
+    filter: brightness(0.45);
+}
+
+.page-shell--order-guide .social-icon {
+    opacity: 0.28;
+    filter: brightness(0.45);
+}
+
+.page-shell--order-guide .hero-order-card {
+    z-index: 1302;
+    pointer-events: auto;
+}
+
+.landing-order-guide {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    align-items: center;
+    justify-items: start;
+    padding: 96px clamp(20px, 11vw, 210px) 24px;
+    background: rgba(0, 0, 0, 0.68);
+}
+
+.landing-order-guide__message {
+    position: relative;
+    width: min(360px, 100%);
+    padding: 16px 18px;
+    display: grid;
+    gap: 0;
+    justify-items: start;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
+    background: rgba(13, 14, 17, 0.92);
+    color: var(--gold);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.38);
+    animation: orderGuideMessageReveal 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-order-guide__message p {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+.landing-order-guide__arrow {
+    position: absolute;
+    left: calc(100% + 18px);
+    top: 50%;
+    width: clamp(70px, calc(17vw - 50px), 250px);
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--gold), rgba(255, 209, 90, 0.15));
+    transform: translateY(-50%);
+    pointer-events: none;
+    transform-origin: left center;
+    animation: orderGuideArrowReveal 0.46s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+}
+
+.landing-order-guide__arrow::after {
+    content: "";
+    position: absolute;
+    right: -1px;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    border-top: 4px solid var(--gold);
+    border-right: 4px solid var(--gold);
+    border-radius: 3px;
+    transform: translateY(-50%) rotate(45deg);
+}
+
+@keyframes orderGuideMessageReveal {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes orderGuideArrowReveal {
+    from {
+        opacity: 0;
+        scale: 0.72 1;
+    }
+
+    to {
+        opacity: 1;
+        scale: 1 1;
+    }
+}
+
 .ambient {
     position: absolute;
     border-radius: 999px;
@@ -87,6 +197,17 @@ a {
     background: #8a5a0b;
     top: 900px;
     left: -220px;
+}
+
+.landing-order-card-section {
+    display: flex;
+    justify-content: center;
+    padding-top: 24px;
+    padding-bottom: 90px;
+}
+
+.landing-order-card-section .order-card-scene {
+    left: 0;
 }
 
 .glass-card,
@@ -171,6 +292,10 @@ a {
 
     .site-header {
         height: 66px;
+    }
+
+    .landing-order-guide {
+        inset: 66px 0 0;
     }
 
     .header-actions .button-ghost {

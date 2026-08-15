@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./OrderCard.css";
 import youtube from "../../../../assets/social_icons/youtube.svg";
 import telegram from "../../../../assets/social_icons/telegram.svg";
@@ -37,11 +37,13 @@ const speeds = [
   },
 ];
 
-export default function OrderCard() {
+export default function OrderCard({ isGuidePinned = false, onGuidePanelHover }) {
   const [platform, setPlatform] = useState("instagram");
   const [service, setService] = useState("Подписчики");
   const [quantity, setQuantity] = useState(1000);
   const [speed, setSpeed] = useState("fast");
+  const [isHoverReady, setIsHoverReady] = useState(false);
+  const hoverDelayTimer = useRef(null);
 
   const currentPlatform =
     platforms.find((item) => item.id === platform) || platforms[0];
@@ -59,23 +61,50 @@ export default function OrderCard() {
 
   const formattedQuantity = quantity.toLocaleString("ru-RU");
 
+  const clearHoverDelay = () => {
+    if (hoverDelayTimer.current) {
+      clearTimeout(hoverDelayTimer.current);
+      hoverDelayTimer.current = null;
+    }
+  };
+
+  const activateDelayedHover = () => {
+    setIsHoverReady(true);
+    onGuidePanelHover?.();
+  };
+
+  const handleMouseEnter = () => {
+    clearHoverDelay();
+    hoverDelayTimer.current = setTimeout(activateDelayedHover, 200);
+  };
+
+  const handleMouseLeave = () => {
+    clearHoverDelay();
+    setIsHoverReady(false);
+  };
+
+  const handleFocus = () => {
+    clearHoverDelay();
+    activateDelayedHover();
+  };
+
+  useEffect(() => clearHoverDelay, []);
+
   return (
-    <div className="order-card-scene">
+    <div
+      className={`order-card-scene ${isHoverReady ? "order-card-scene--hover-ready" : ""} ${isGuidePinned ? "order-card-scene--guide-pinned" : ""}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={handleFocus}
+    >
       <div className="order-card-depth order-card-depth--three" />
       <div className="order-card-depth order-card-depth--two" />
       <div className="order-card-depth order-card-depth--one" />
 
       <article className="order-card">
-        <div className="order-card-glow order-card-glow--purple" />
-        <div className="order-card-glow order-card-glow--gold" />
-
         {/* HEADER */}
         <header className="order-card-header">
           <div className="order-card-title-wrapper">
-            <div className="order-card-main-icon">
-              <span>▣</span>
-            </div>
-
             <div>
               <h2>Новый заказ</h2>
               <p>Выберите площадку и настройте параметры</p>
