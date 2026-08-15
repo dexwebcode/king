@@ -18,7 +18,7 @@ import x from "../../assets/x.png"
 import telegram from "../../assets/telegram.png"
 import { Link } from "react-router-dom"
 /// ------ Главный компонент авторизации ------ ///
-export default function Auth({ setIsAuth = () => {}, initialMode = 'login' }) {
+export default function Auth({ setIsAuth = () => { }, initialMode = 'login' }) {
 
     // ------ Режим формы: login/register ------ //
     const [mode, setMode] = useState(initialMode)
@@ -54,23 +54,6 @@ export default function Auth({ setIsAuth = () => {}, initialMode = 'login' }) {
         <main className="login-page">
 
             <section className="login-left">
-
-                <Link
-                    to="/"
-                    className="login-logo"
-                    aria-label="KING PROMOTION"
-                >
-                    <img
-                        className="logo-image"
-                        src={logo}
-                        alt="KING PROMOTION"
-                    />
-
-                    <div className="logo-text">
-                        <strong>KING</strong>
-                        <span>PROMOTION</span>
-                    </div>
-                </Link>
 
                 <div className="login-left-copy">
                     <h1>

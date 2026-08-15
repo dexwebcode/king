@@ -1,8 +1,6 @@
-import { platforms } from "../../landingData";
-import { ImagePlaceholder } from "../../shared";
+import OrderCard from "../OrderCard/OrderCard";
 import "./Hero.css";
 import "./Visual.css";
-import phone from "../../../../assets/phone.png";
 import tiktok from "../../../../assets/tiktok.png";
 import vk from "../../../../assets/vk.png";
 import telegram from "../../../../assets/telegram.png";
@@ -35,108 +33,15 @@ export default function Hero() {
                 </div>
 
 
-                {/* ФОРМА ЗАКАЗА */}
-                <div className="hero-order-card glass-card">
-
-                    <div className="order-card-head">
-                        <div>
-                            <span className="muted">Новый заказ</span>
-                            <h3>Создание заказа</h3>
-                        </div>
-
-                        <span className="status-dot">●</span>
-                    </div>
-
-
-                    <div className="steps-line">
-                        {["Площадка", "Услуга", "Детали", "Оплата"].map(
-                            (item, index) => (
-                                <div
-                                    className={
-                                        index === 0
-                                            ? "step active"
-                                            : "step"
-                                    }
-                                    key={item}
-                                >
-                                    <span>{index + 1}</span>
-                                    <small>{item}</small>
-                                </div>
-                            )
-                        )}
-                    </div>
-
-
-                    <div className="field-block">
-
-                        <label>Выберите площадку</label>
-
-                        <div className="platform-grid compact">
-                            {platforms.map((name) => (
-                                <button
-                                    className="platform-choice"
-                                    key={name}
-                                >
-                                    <ImagePlaceholder label="" />
-                                    <span>{name}</span>
-                                </button>
-                            ))}
-                        </div>
-
-                    </div>
-
-
-                    <div className="field-block">
-
-                        <label>Популярные услуги</label>
-
-                        <div className="service-pills">
-
-                            <button>
-                                Подписчики
-                                <small>от 0.45 ₽</small>
-                            </button>
-
-                            <button>
-                                Просмотры
-                                <small>от 0.20 ₽</small>
-                            </button>
-
-                            <button>
-                                Лайки
-                                <small>от 0.35 ₽</small>
-                            </button>
-
-                        </div>
-
-                    </div>
-
-
-                    <div className="order-card-footer">
-
-                        <span>
-                            Итого: <strong>0 ₽</strong>
-                        </span>
-
-                        <button className="button button-gold">
-                            Оформить заказ
-                        </button>
-
-                    </div>
-
-                </div>
-
             </div>
 
 
-            {/* ПРАВАЯ ЧАСТЬ — ТЕЛЕФОН */}
+            {/* ПРАВАЯ ЧАСТЬ — КАРТОЧКА И СОЦСЕТИ */}
             <div className="hero-visual">
 
-                <img
-                    className="phone"
-                    src={phone}
-                    alt="phone"
-                />
+                <div className="hero-order-card">
+                    <OrderCard />
+                </div>
 
                 <img
                     className="social-icon insta"
