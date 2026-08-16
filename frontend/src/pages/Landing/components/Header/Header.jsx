@@ -1,7 +1,10 @@
 import logo from "../../../../assets/logo.png";
 import "./Header.css";
 
-export default function Header() {
+export default function Header({
+    isExperimentBarOpen = false,
+    onToggleExperimentBar = () => {},
+}) {
     function goToAuth(path) {
         window.location.assign(path);
     }
@@ -55,11 +58,24 @@ export default function Header() {
 
             </nav>
             <div className="header-actions">
+                <button
+                    type="button"
+                    className={
+                        isExperimentBarOpen
+                            ? "button button-outline header-pages-button header-pages-button--active"
+                            : "button button-outline header-pages-button"
+                    }
+                    onClick={onToggleExperimentBar}
+                >
+                    <span className="button-label">
+                        Страницы
+                    </span>
+                </button>
 
                 <button
                     type="button"
                     className="button button-ghost"
-                    onClick={() => goToAuth("/login")}
+                    onClick={() => goToAuth("/register")}
                 >
                     <span className="button-label">
                         Регистрация
@@ -69,6 +85,7 @@ export default function Header() {
                 <button
                     type="button"
                     className="button button-gold"
+                    onClick={() => goToAuth("/login")}
                 >
                     <span className="button-label">
                         Вход

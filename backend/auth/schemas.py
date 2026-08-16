@@ -4,7 +4,7 @@
 #       и авторизации пользователей.
 
 # PYTHON ИМПОРТЫ
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, model_validator
 
 
 # Базовая схема электронной почты
@@ -24,9 +24,26 @@ class EmailRequest(BaseModel):
 
 
 # Схема для авторизации пользователя
-class LoginRequest(EmailRequest):
+class LoginRequest(BaseModel):
+
+    email: str | None = None
+    login: str | None = None
 
     password: str
+
+    @model_validator(mode="after")
+    def validate_login_identifier(self):
+
+        identifier = self.email or self.login
+
+        if not identifier or not identifier.strip():
+            raise ValueError(
+                "Введите логин или почту"
+            )
+
+        self.email = identifier.strip().lower()
+
+        return self
 
     # Минимальная проверка пароля при входе
     @field_validator("password")

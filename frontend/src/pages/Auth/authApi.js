@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 async function sendRequest(endpoint, method = 'GET', body = null) {
 
@@ -17,8 +17,10 @@ async function sendRequest(endpoint, method = 'GET', body = null) {
         body: body ? JSON.stringify(body) : null
     })
 
-    const data = await response.json()
-    console.log("Response from API:", { endpoint, method, body, response: data })
+    const contentType = response.headers.get('content-type') || ''
+    const data = contentType.includes('application/json')
+        ? await response.json()
+        : null
 
     return {
         ok: response.ok,
@@ -27,26 +29,24 @@ async function sendRequest(endpoint, method = 'GET', body = null) {
     }
 }
 
-export async function loginUser(login, password) {
+export async function loginUser(email, password) {
 
     const result = await sendRequest('/auth/login', 'POST', {
-        login,
+        email,
         password
     })
 
     if (result.ok && result.data.token) {
 
         localStorage.setItem("token", result.data.token)
-
-        console.log("TOKEN СОХРАНЕН")
     }
 
     return result
 }
 
-export function registerUser(login, password) {
+export function registerUser(email, password) {
     return sendRequest('/auth/register', 'POST', {
-        login,
+        email,
         password
     })
 }

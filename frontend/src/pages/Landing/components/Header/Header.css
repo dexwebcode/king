@@ -8,7 +8,7 @@
     width: 100%;
     max-width: none;
     margin: 0;
-    padding-inline: max(20px, calc((100vw - 1770px) / 2));
+    padding-inline: var(--page-gutter);
     height: 78px;
 
     display: grid;
@@ -224,12 +224,15 @@
     font-size: 14px;
 }
 
-.button-large {
-    padding: 0 28px;
+.header-actions .header-pages-button {
+    min-width: 104px;
 }
 
-@media (max-width: 640px) {
-    .site-header.container {
-        padding-inline: 12px;
-    }
+.header-pages-button--active {
+    border-color: rgba(255, 209, 90, 0.75);
+    background: rgba(255, 209, 90, 0.12);
+}
+
+.button-large {
+    padding: 0 28px;
 }

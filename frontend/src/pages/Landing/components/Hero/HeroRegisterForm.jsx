@@ -3,8 +3,8 @@ import LoginForm from "../../../Auth/LoginForm";
 import RegisterForm from "../../../Auth/RegisterForm";
 import "../../../Auth/Auth.css";
 
-export default function HeroRegisterForm() {
-    const [mode, setMode] = useState("register");
+export default function HeroRegisterForm({ initialMode = "register" }) {
+    const [mode, setMode] = useState(initialMode);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [repeatPassword, setRepeatPassword] = useState("");

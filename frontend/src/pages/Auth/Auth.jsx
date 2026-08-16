@@ -9,13 +9,6 @@ import LoginForm from './LoginForm'
 import RegisterForm from './RegisterForm'
 
 import logo from "../../assets/logo.png"
-import phone from "../../assets/phone.png"
-import instagram from "../../assets/insta.png"
-import youtube from "../../assets/youtube.png"
-import tiktok from "../../assets/tiktok.png"
-import vk from "../../assets/vk.png"
-import x from "../../assets/x.png"
-import telegram from "../../assets/telegram.png"
 import { Link } from "react-router-dom"
 /// ------ Главный компонент авторизации ------ ///
 export default function Auth({ setIsAuth = () => { }, initialMode = 'login' }) {
@@ -54,6 +47,18 @@ export default function Auth({ setIsAuth = () => { }, initialMode = 'login' }) {
         <main className="login-page">
 
             <section className="login-left">
+                <Link to="/" className="login-logo" aria-label="На главную KING PROMOTION">
+                    <img
+                        className="logo-image"
+                        src={logo}
+                        alt=""
+                    />
+
+                    <span className="logo-text">
+                        <strong>KING</strong>
+                        <span>PROMOTION</span>
+                    </span>
+                </Link>
 
                 <div className="login-left-copy">
                     <h1>

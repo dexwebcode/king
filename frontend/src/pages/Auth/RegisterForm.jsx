@@ -8,6 +8,7 @@ import { validatePassword } from './validatePassword'
 import { validateEmail } from './validateEmail'
 
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 /// ------ Компонент формы регистрации ------ ///
 export default function RegisterForm({
@@ -40,6 +41,8 @@ export default function RegisterForm({
 }) {
     const [showPassword, setShowPassword] = useState(false)
     const [showRepeatPassword, setShowRepeatPassword] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const navigate = useNavigate()
 
 
     // ------ Функция изменения пароля + проверка безопасности ------ //
@@ -101,6 +104,7 @@ export default function RegisterForm({
         }
 
         try {
+            setIsSubmitting(true)
 
             // ------ Отправляем данные на backend ------ //
             const response = await registerUser(
@@ -125,6 +129,7 @@ export default function RegisterForm({
 
             // ------ Изменяем состояние авторизации ------ //
             setIsAuth(true)
+            navigate('/main')
 
         } catch (error) {
 
@@ -133,6 +138,8 @@ export default function RegisterForm({
             setEmailHint(
                 'Не удалось подключиться к серверу'
             )
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -249,9 +256,10 @@ export default function RegisterForm({
                 <button
                     className="Login-button login-submit"
                     type="button"
+                    disabled={isSubmitting}
                     onClick={handleRegister}
                 >
-                    <span>Создать аккаунт</span>
+                    <span>{isSubmitting ? 'Создаем...' : 'Создать аккаунт'}</span>
                     <span className="login-arrow">→</span>
                 </button>
 

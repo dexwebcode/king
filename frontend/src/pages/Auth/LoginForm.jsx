@@ -1,6 +1,7 @@
 // ------ Импорт API функции авторизации ------ //
 import { loginUser } from './authApi'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 /// ------ Компонент формы авторизации ------ ///
 export default function LoginForm({
@@ -21,16 +22,27 @@ export default function LoginForm({
 
 }) {
     const [showPassword, setShowPassword] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [errorMessage, setErrorMessage] = useState('')
+    const navigate = useNavigate()
 
     // ------ Функция авторизации ------ //
     async function handleLogin() {
+        const normalizedLogin = login.trim().toLowerCase()
+
+        if (!normalizedLogin || !password) {
+            setErrorMessage('Введите логин и пароль')
+            return
+        }
+
+        setIsSubmitting(true)
+        setErrorMessage('')
 
         try {
 
             // ------ POST запрос на backend сервер для авторизации ------ //
-            // ------ Form JSON: { login, password } ------ //
             const response = await loginUser(
-                login,
+                normalizedLogin,
                 password
             )
 
@@ -39,12 +51,21 @@ export default function LoginForm({
 
                 // ------ Изменяем глобальное состояние авторизации ------ //
                 setIsAuth(true)
+                navigate('/main')
+                return
             }
+
+            setErrorMessage(
+                response.data?.detail || 'Неверный логин или пароль'
+            )
 
         } catch (error) {
 
             // ------ Логирование серверной ошибки ------ //
             console.log('Ошибка сервера:', error)
+            setErrorMessage('Не удалось подключиться к серверу')
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -55,7 +76,7 @@ export default function LoginForm({
 
             <div className="login-field">
                 <label htmlFor="auth-login">
-                    E-mail или телефон
+                    E-mail
                 </label>
 
                 <div className="login-input-wrapper">
@@ -64,8 +85,8 @@ export default function LoginForm({
                     <input
                         id="auth-login"
                         className="Username-input"
-                        type="text"
-                        placeholder="Введите e-mail или телефон"
+                        type="email"
+                        placeholder="Введите e-mail"
                         value={login}
 
                         onChange={(event) => {
@@ -121,6 +142,12 @@ export default function LoginForm({
                 </div>
             </div>
 
+            {errorMessage && (
+                <p className="Password-hint auth-message auth-message--error">
+                    {errorMessage}
+                </p>
+            )}
+
             <label className="remember-me">
                 <input
                     type="checkbox"
@@ -145,27 +172,14 @@ export default function LoginForm({
                 <button
                     className="Login-button login-submit"
                     type="button"
-
+                    disabled={isSubmitting}
                     onClick={handleLogin}
                 >
-                    <span>Войти</span>
+                    <span>{isSubmitting ? 'Входим...' : 'Войти'}</span>
                     <span className="login-arrow">→</span>
                 </button>
 
             </section>
-
-            <div className="login-divider">
-                <span></span>
-                <p>Или войдите через</p>
-                <span></span>
-            </div>
-
-            <div className="login-socials">
-                <button type="button" aria-label="Войти через Google">G</button>
-                <button type="button" aria-label="Войти через VK">VK</button>
-                <button type="button" aria-label="Войти через Telegram">TG</button>
-                <button type="button" aria-label="Войти по QR-коду">QR</button>
-            </div>
 
             <div className="login-register">
                 <span>

@@ -16,12 +16,22 @@
     animation: heroRevealUp 0.95s cubic-bezier(0.22, 1, 0.36, 1) 0.48s both;
 }
 
-.hero-register-card {
+.hero-form-column {
     position: absolute;
     z-index: 4;
     top: var(--hero-top-offset);
-    right: clamp(28px, 6vw, 120px);
-    width: min(520px, calc(100vw - 48px));
+    right: var(--hero-form-right);
+    width: var(--hero-form-width);
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    pointer-events: auto;
+}
+
+.hero-register-card {
+    position: relative;
+    z-index: 4;
+    width: 100%;
     padding: 38px 40px 34px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 24px;
@@ -32,7 +42,6 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    pointer-events: auto;
 }
 
 .hero-decor-icon {
@@ -333,6 +342,13 @@
         margin-top: 34px;
 
         transform: none;
+    }
+
+    .hero-form-column {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: 100%;
     }
 
     .hero-register-card {
