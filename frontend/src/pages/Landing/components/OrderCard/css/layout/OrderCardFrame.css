@@ -7,15 +7,14 @@
     position: relative;
     --order-card-hover-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
 
-    width: min(900px, calc(100vw - 48px));
+    width: min(1440px, calc(100vw - 24px));
     margin: 0;
     left: 0;
-    perspective: 1800px;
+    perspective: none;
     perspective-origin: 50% 50%;
     transform-origin: top right;
 
-    transition:
-        transform 0.9s var(--order-card-hover-ease);
+    transition: none;
 
 }
 
@@ -28,7 +27,7 @@
     z-index: 5;
 
     width: 100%;
-    padding: 24px;
+    padding: clamp(18px, 2vw, 32px);
 
     border-radius: 36px;
 
@@ -50,11 +49,11 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.22),
         inset 0 -1px 0 rgba(255, 255, 255, 0.05);
 
-    overflow: visible;
+    overflow: hidden;
     backdrop-filter: blur(4px) saturate(1.3);
     -webkit-backdrop-filter: blur(24px) saturate(1.3);
 
-    transform-style: preserve-3d;
+    transform-style: flat;
 
     /*
      ОСНОВНОЙ НАКЛОН.
@@ -71,17 +70,18 @@
 ========================= */
 
 .order-card {
-    transform-style: preserve-3d;
+    transform-style: flat;
 
-    transform:
-        rotateX(2deg) rotateY(-8deg) rotateZ(-1deg);
-    filter: blur(0.18px) brightness(0.94);
+    min-height: calc(100vh - var(--order-section-header-offset, 78px) - (var(--order-section-padding, 24px) * 2));
+    max-height: calc(100vh - var(--order-section-header-offset, 78px) - (var(--order-section-padding, 24px) * 2));
+    display: flex;
+    flex-direction: column;
+    transform: none;
+    filter: none;
 
     transition:
-        transform 0.95s var(--order-card-hover-ease),
-        filter 0.95s var(--order-card-hover-ease),
-        box-shadow 0.95s var(--order-card-hover-ease),
-        border-color 0.5s ease;
+        box-shadow 0.25s ease,
+        border-color 0.25s ease;
 }
 
 /* =========================
@@ -91,11 +91,10 @@
 .order-card-scene--hover-ready .order-card,
 .order-card-scene:focus-within .order-card,
 .order-card-scene--guide-pinned .order-card {
-    transform:
-        rotateX(0deg) rotateY(0deg) rotateZ(0deg) translateY(-8px);
+    transform: none;
 
     transform-style: flat;
-    filter: blur(0) brightness(1);
+    filter: none;
 
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -109,6 +108,7 @@
 ========================================================= */
 
 .order-card-depth {
+    display: none;
     position: absolute;
 
     inset: 0;
@@ -117,11 +117,9 @@
 
     pointer-events: none;
 
-    transform-style: preserve-3d;
+    transform-style: flat;
 
-    transition:
-        transform 0.95s var(--order-card-hover-ease),
-        opacity 0.8s ease;
+    transition: none;
 }
 
 .platform-icon {
@@ -179,8 +177,7 @@
 
     border: 1px solid rgba(255, 255, 255, 0.08);
 
-    transform:
-        translate3d(10px, 4px, -20px) rotateX(2deg) rotateY(-8deg) rotateZ(-0.4deg);
+    transform: translate(5px, 5px);
 }
 
 
@@ -197,8 +194,7 @@
 
     border-right: 1px solid rgba(255, 191, 74, 0.25);
 
-    transform:
-        translate3d(20px, 8px, -40px) rotateX(2deg) rotateY(-8deg) rotateZ(-0.4deg);
+    transform: translate(10px, 10px);
 }
 
 
@@ -219,8 +215,7 @@
         20px 25px 70px rgba(0, 0, 0, 0.7),
         8px 0 30px rgba(244, 180, 64, 0.06);
 
-    transform:
-        translate3d(30px, 12px, -60px) rotateX(2deg) rotateY(-8deg) rotateZ(-0.4deg);
+    transform: translate(15px, 15px);
 }
 
 
@@ -232,20 +227,17 @@
 .order-card-scene--hover-ready .order-card-depth--one,
 .order-card-scene:focus-within .order-card-depth--one,
 .order-card-scene--guide-pinned .order-card-depth--one {
-    transform:
-        translate3d(5px, 5px, -20px) rotateX(0) rotateY(0) rotateZ(0);
+    transform: translate(5px, 5px);
 }
 
 .order-card-scene--hover-ready .order-card-depth--two,
 .order-card-scene:focus-within .order-card-depth--two,
 .order-card-scene--guide-pinned .order-card-depth--two {
-    transform:
-        translate3d(10px, 8px, -40px) rotateX(0) rotateY(0) rotateZ(0);
+    transform: translate(10px, 10px);
 }
 
 .order-card-scene--hover-ready .order-card-depth--three,
 .order-card-scene:focus-within .order-card-depth--three,
 .order-card-scene--guide-pinned .order-card-depth--three {
-    transform:
-        translate3d(15px, 11px, -60px) rotateX(0) rotateY(0) rotateZ(0);
+    transform: translate(15px, 15px);
 }
