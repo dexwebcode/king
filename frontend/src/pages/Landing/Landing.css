@@ -13,7 +13,7 @@
     --page-gutter: 100px;
 
     color: #f5f5f2;
-    background: #07080a;
+    background: #141517;
     font-synthesis: none;
 }
 
@@ -28,7 +28,7 @@ html {
 body {
     margin: 0;
     min-width: 320px;
-    background: #07080a;
+    background: #141517;
     font-size: 18px;
     line-height: 1.5;
 }
@@ -52,7 +52,93 @@ a {
     position: relative;
     overflow-x: hidden;
     min-height: 100vh;
-    background: #07080a;
+    background: #0f1011;
+}
+
+.page-shell::before,
+.page-shell::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.page-shell::before {
+    background-image: url("../../assets/background/stars.png");
+    background-position: top center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    opacity: 0.95;
+}
+
+.page-shell::after {
+    z-index: 1;
+    background-image:
+        url("../../assets/background/instagram.png"),
+        url("../../assets/background/telegram.png"),
+        url("../../assets/background/youtube.png"),
+        url("../../assets/background/tiktok.png"),
+        url("../../assets/background/vk.png"),
+        url("../../assets/background/x.png");
+    background-position:
+        12vw 8vh,
+        50vw 4vh,
+        86vw 3vh,
+        47vw 48vh,
+        1vw 70vh,
+        35vw 74vh;
+    background-size:
+        clamp(180px, 18vw, 310px) auto,
+        clamp(145px, 15vw, 250px) auto,
+        clamp(190px, 20vw, 340px) auto,
+        clamp(170px, 17vw, 290px) auto,
+        clamp(145px, 12.5vw, 205px) auto,
+        clamp(135px, 14vw, 235px) auto;
+    background-repeat: no-repeat;
+    opacity: 0.2;
+    filter: brightness(70%);
+    mix-blend-mode: screen;
+    animation: socialBackgroundReveal 1.35s cubic-bezier(0.2, 0.72, 0.18, 1) 0.15s both;
+}
+
+.page-shell>main,
+.page-shell>footer {
+    position: relative;
+    z-index: 2;
+}
+
+@keyframes socialBackgroundReveal {
+    0% {
+        opacity: 0;
+        background-position:
+            -18vw 8vh,
+            50vw -28vh,
+            112vw 3vh,
+            25vw 48vh,
+            -3vw 110vh,
+            35vw 112vh;
+    }
+
+    100% {
+            opacity: 0.2;
+        background-position:
+            12vw 8vh,
+            50vw 4vh,
+            86vw 3vh,
+            47vw 48vh,
+            1vw 70vh,
+            35vw 74vh;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-shell::after {
+        animation: none;
+    }
 }
 
 .container {
@@ -244,18 +330,22 @@ a {
 }
 
 .landing-order-card-section {
+    --order-section-header-offset: 78px;
+    --order-section-padding: clamp(18px, 3vh, 32px);
+    width: 100%;
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     align-items: center;
-    min-height: calc(100vh - 78px);
-    scroll-margin-top: 0;
-    padding-top: 0;
-    padding-bottom: 0;
+    min-height: calc(100vh - var(--order-section-header-offset));
+    margin-inline: 0;
+    scroll-margin-top: var(--order-section-header-offset);
+    padding: var(--order-section-padding);
 }
 
 .landing-order-card-section .order-card-scene {
     left: 0;
-    margin-right: clamp(20px, 2.5vw, 45px);
+    width: min(1440px, 100%);
+    margin: 0 auto;
 }
 
 .glass-card,
@@ -348,6 +438,10 @@ a {
 
     .landing-order-guide {
         inset: 66px 0 0;
+    }
+
+    .landing-order-card-section {
+        --order-section-header-offset: 66px;
     }
 
     .header-actions .button-ghost {

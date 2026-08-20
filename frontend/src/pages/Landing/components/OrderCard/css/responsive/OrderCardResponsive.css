@@ -47,20 +47,20 @@
 @media (max-width: 600px) {
 
     .order-card-scene {
-        width: calc(100% - 24px);
+        width: 100%;
 
-        margin: 40px auto;
+        margin: 0 auto;
 
-        perspective: 1200px;
+        perspective: none;
     }
 
     .order-card {
         padding: 18px;
 
         border-radius: 25px;
-
-        transform:
-            rotateX(1deg) rotateY(-3deg);
+        min-height: calc(100vh - var(--order-section-header-offset, 66px) - (var(--order-section-padding, 18px) * 2));
+        max-height: calc(100vh - var(--order-section-header-offset, 66px) - (var(--order-section-padding, 18px) * 2));
+        transform: none;
     }
 
     .order-card-header {

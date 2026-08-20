@@ -8,7 +8,9 @@
     width: 100%;
     min-height: 100%;
 
-    padding: 15px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
 
     border-radius: 25px;
 
@@ -100,7 +102,7 @@
 ========================================================= */
 
 .order-summary>h3 {
-    margin: 0 0 14px;
+    margin: 0 0 9px;
 
     color: rgba(255, 255, 255, 0.97);
 
@@ -143,7 +145,7 @@
 ========================================================= */
 
 .summary-row {
-    min-height: 38px;
+    min-height: 34px;
 
     padding: 0 15px;
 
@@ -211,7 +213,7 @@
 ========================================================= */
 
 .summary-price {
-    padding: 12px;
+    padding: 9px 12px;
 
     display: flex;
     align-items: flex-end;
@@ -302,14 +304,15 @@
 
     gap: 9px;
 
-    margin-top: 10px;
+    margin-top: 8px;
+    margin-bottom: auto;
 }
 
 
 .trust-card {
-    min-height: 48px;
+    min-height: 42px;
 
-    padding: 10px;
+    padding: 8px 10px;
 
     display: flex;
     align-items: center;

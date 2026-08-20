@@ -104,6 +104,16 @@ export default function Landing() {
             return 0;
         }
 
+        if (section.id === "quick-order") {
+            const header = document.querySelector(".site-header");
+            const headerHeight = header?.getBoundingClientRect().height || 0;
+
+            return Math.max(
+                0,
+                section.getBoundingClientRect().top + window.scrollY - headerHeight
+            );
+        }
+
         const scrollTop =
             targetTop - (window.innerHeight - targetRect.height) / 2;
         const scrollOffset = direction > 0 ? 50 : 0;
