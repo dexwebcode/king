@@ -64,7 +64,7 @@ a {
 
 .scroll-top-button {
     position: fixed;
-    top: 95px;
+    top: 105px;
     right: calc((var(--page-gutter) - 56px) / 2);
     z-index: 1100;
     width: 56px;
@@ -245,13 +245,17 @@ a {
 
 .landing-order-card-section {
     display: flex;
-    justify-content: center;
-    padding-top: 24px;
-    padding-bottom: 90px;
+    justify-content: flex-end;
+    align-items: center;
+    min-height: calc(100vh - 78px);
+    scroll-margin-top: 0;
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
 .landing-order-card-section .order-card-scene {
     left: 0;
+    margin-right: clamp(20px, 2.5vw, 45px);
 }
 
 .glass-card,

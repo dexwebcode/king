@@ -1,0 +1,461 @@
+/* =========================================================
+   MAIN LAYOUT
+========================================================= */
+
+.order-card-content {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.45fr);
+    gap: 18px;
+    align-items: stretch;
+}
+
+
+/* =========================================================
+   LEFT PANEL
+========================================================= */
+
+.order-settings {
+    padding: 15px;
+
+    border-radius: 26px;
+
+    background:
+        linear-gradient(145deg,
+            rgba(255, 255, 255, 0.025),
+            rgba(255, 255, 255, 0.008));
+
+    border: 1px solid rgba(255, 255, 255, 0.055);
+
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+
+.order-section {
+    margin-bottom: 14px;
+}
+
+
+.order-section:last-child {
+    margin-bottom: 0;
+}
+
+.speed-section {
+    max-height: none;
+    margin-bottom: 0;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+
+.order-section h3 {
+    margin: 0 0 14px;
+
+    color: #e4e4e7;
+
+    font-size: 16px;
+    font-weight: 550;
+}
+
+
+.order-section h3 span {
+    color: #cfcfd3;
+}
+
+
+/* =========================================================
+   PLATFORM BUTTONS
+========================================================= */
+
+.platform-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 12px;
+}
+
+
+.platform-button {
+    position: relative;
+
+    min-height: 54px;
+
+    padding: 10px 12px;
+
+    display: grid;
+    grid-template-columns: 29px minmax(0, 1fr) 18px;
+    align-items: center;
+
+    gap: 10px;
+
+    border-radius: 14px;
+
+    color: #dedee2;
+
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.2;
+    text-align: left;
+
+    cursor: pointer;
+
+    background:
+        linear-gradient(145deg,
+            rgba(255, 255, 255, 0.045),
+            rgba(255, 255, 255, 0.018));
+
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    transition:
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        background 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+.platform-button > span:not(.platform-icon):not(.selected-check) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.platform-button::after {
+    content: "";
+    width: 18px;
+    height: 18px;
+    grid-column: 3;
+}
+
+.platform-button.active::after {
+    display: none;
+}
+
+
+.platform-button:hover {
+    transform: translateY(-2px);
+
+    border-color: rgba(255, 255, 255, 0.2);
+
+    background: rgba(255, 255, 255, 0.055);
+}
+
+
+.platform-button.active {
+    color: #ffffff;
+
+    border-color: rgba(255, 205, 99, 0.9);
+
+    background:
+        radial-gradient(circle at 20% 30%,
+            rgba(255, 190, 60, 0.1),
+            transparent 60%),
+        rgba(255, 255, 255, 0.04);
+
+    box-shadow:
+        0 0 20px rgba(255, 187, 58, 0.06),
+        inset 0 0 20px rgba(255, 189, 60, 0.025);
+}
+
+
+.selected-check {
+    position: static;
+
+    width: 18px;
+    height: 18px;
+
+    display: grid;
+    place-items: center;
+    justify-self: end;
+
+    border-radius: 50%;
+
+    font-size: 13px;
+    line-height: 1;
+
+    color: #16120a;
+
+    background: #e4ae42;
+}
+
+
+/* =========================================================
+   SERVICE SELECT
+========================================================= */
+
+.service-select-wrapper {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+}
+
+
+.service-user-icon {
+    position: absolute;
+
+    left: 15px;
+
+    z-index: 2;
+
+    color: #9999a1;
+
+    pointer-events: none;
+}
+
+
+.service-select {
+    width: 100%;
+    height: 46px;
+
+    padding:
+        0 45px 0 44px;
+
+    appearance: none;
+
+    border-radius: 13px;
+
+    outline: none;
+
+    color: #dedee2;
+
+    font-family: inherit;
+    font-size: 14px;
+
+    cursor: pointer;
+
+    background:
+        linear-gradient(145deg,
+            rgba(255, 255, 255, 0.04),
+            rgba(255, 255, 255, 0.018));
+
+    border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+
+.service-select-wrapper::after {
+    content: "⌄";
+
+    position: absolute;
+
+    right: 18px;
+
+    color: #c4c4c8;
+
+    pointer-events: none;
+}
+
+
+.service-select option {
+    color: white;
+
+    background: #15151a;
+}
+
+
+/* =========================================================
+   QUANTITY
+========================================================= */
+
+.quantity-row {
+    display: flex;
+    align-items: center;
+
+    gap: 16px;
+}
+
+
+.quantity-control {
+    width: 240px;
+    height: 48px;
+
+    display: grid;
+
+    grid-template-columns:
+        50px 1fr 50px;
+
+    align-items: center;
+
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    background: rgba(255, 255, 255, 0.025);
+
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+
+.quantity-control button {
+    height: 100%;
+
+    border: 0;
+
+    color: #cfcfd3;
+
+    font-size: 21px;
+
+    cursor: pointer;
+
+    background: rgba(255, 255, 255, 0.018);
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+
+.quantity-control button:hover {
+    color: #ffc95e;
+
+    background: rgba(255, 255, 255, 0.05);
+}
+
+
+.quantity-control strong {
+    text-align: center;
+
+    color: #f3f3f5;
+
+    font-size: 18px;
+    font-weight: 500;
+}
+
+
+.discount-badge {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 10px 13px;
+
+    border-radius: 12px;
+
+    color: #9f9fa7;
+
+    background: rgba(255, 255, 255, 0.025);
+
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+
+.discount-badge strong {
+    padding: 7px 8px;
+
+    border-radius: 8px;
+
+    color: #f3d27a;
+
+    font-size: 14px;
+    font-weight: 500;
+
+    background:
+        rgba(255, 190, 67, 0.12);
+
+    border: 1px solid rgba(255, 190, 67, 0.22);
+}
+
+
+.discount-badge span {
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   SPEED
+========================================================= */
+
+.speed-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 11px;
+}
+
+
+.speed-button {
+    min-height: 54px;
+
+    padding: 9px 10px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    text-align: left;
+
+    border-radius: 14px;
+
+    cursor: pointer;
+
+    font-family: inherit;
+
+    color: #b8b8be;
+
+    background: rgba(255, 255, 255, 0.022);
+
+    border: 1px solid rgba(255, 255, 255, 0.07);
+
+    transition:
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        background 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+
+.speed-button:hover {
+    transform: translateY(-2px);
+
+    background: rgba(255, 255, 255, 0.04);
+}
+
+
+.speed-button.active {
+    color: #ffe0a0;
+
+    border-color: rgba(255, 196, 76, 0.85);
+
+    background:
+        radial-gradient(circle at 20% 30%,
+            rgba(255, 190, 60, 0.09),
+            transparent 70%),
+        rgba(255, 255, 255, 0.025);
+
+    box-shadow:
+        0 0 25px rgba(255, 180, 42, 0.04);
+}
+
+
+.speed-icon {
+    color: #e9b44e;
+
+    font-size: 23px;
+}
+
+
+.speed-content {
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+}
+
+
+.speed-content strong {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+
+.speed-content small {
+    color: #85858c;
+
+    font-size: 14px;
+}

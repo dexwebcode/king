@@ -11,7 +11,7 @@ import TestBanner from "./components/TestBanner/TestBanner";
 import Reliability from "./components/Reliability/Reliability";
 import FinalCTA from "./components/FinalCTA/FinalCTA";
 import Footer from "./components/Footer/Footer";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import "./Landing.css";
 
@@ -38,6 +38,56 @@ function scrollToTopFast() {
 export default function Landing() {
     const [isScrollTopVisible, setIsScrollTopVisible] = useState(false);
     const [authMode, setAuthMode] = useState("register");
+    const isOrderSnapLocked = useRef(false);
+    const snapUnlockTimer = useRef(null);
+
+    function unlockSnapAfterScroll() {
+        if (snapUnlockTimer.current) {
+            clearTimeout(snapUnlockTimer.current);
+        }
+
+        snapUnlockTimer.current = setTimeout(() => {
+            isOrderSnapLocked.current = false;
+            snapUnlockTimer.current = null;
+        }, 850);
+    }
+
+    function getSectionTarget(section) {
+        return section.querySelector(".order-card-scene") || section;
+    }
+
+    function getSectionScrollTop(section, direction) {
+        const target = getSectionTarget(section);
+        const targetRect = target.getBoundingClientRect();
+        const targetTop = targetRect.top + window.scrollY;
+
+        if (section === document.querySelector("main > section")) {
+            return 0;
+        }
+
+        const scrollTop =
+            targetTop - (window.innerHeight - targetRect.height) / 2;
+        const scrollOffset = direction > 0 ? 50 : 0;
+
+        return Math.max(0, scrollTop - scrollOffset);
+    }
+
+    function scrollToOrderCard() {
+        const orderSection = document.getElementById("quick-order");
+
+        if (!orderSection) {
+            return;
+        }
+
+        isOrderSnapLocked.current = true;
+
+        window.scrollTo({
+            top: getSectionScrollTop(orderSection, 1),
+            behavior: "smooth",
+        });
+
+        unlockSnapAfterScroll();
+    }
 
     useEffect(() => {
         function handleScroll() {
@@ -52,6 +102,74 @@ export default function Landing() {
         };
     }, []);
 
+    useEffect(() => {
+        function handleWheel(event) {
+            if (isOrderSnapLocked.current) {
+                event.preventDefault();
+                return;
+            }
+
+            const sections = Array.from(document.querySelectorAll("main > section"));
+
+            if (sections.length === 0) {
+                return;
+            }
+
+            const direction = Math.sign(event.deltaY);
+
+            if (direction === 0) {
+                return;
+            }
+
+            const viewportCenter = window.scrollY + window.innerHeight / 2;
+            const currentIndex = sections.reduce((closestIndex, section, index) => {
+                const target = getSectionTarget(section);
+                const targetRect = target.getBoundingClientRect();
+                const targetCenter =
+                    targetRect.top + window.scrollY + targetRect.height / 2;
+                const closestTarget = getSectionTarget(sections[closestIndex]);
+                const closestRect = closestTarget.getBoundingClientRect();
+                const closestCenter =
+                    closestRect.top + window.scrollY + closestRect.height / 2;
+
+                return Math.abs(targetCenter - viewportCenter) <
+                    Math.abs(closestCenter - viewportCenter)
+                    ? index
+                    : closestIndex;
+            }, 0);
+
+            const targetIndex = Math.max(
+                0,
+                Math.min(sections.length - 1, currentIndex + direction)
+            );
+
+            if (targetIndex === currentIndex) {
+                event.preventDefault();
+                return;
+            }
+
+            event.preventDefault();
+            isOrderSnapLocked.current = true;
+
+            window.scrollTo({
+                top: getSectionScrollTop(sections[targetIndex], direction),
+                behavior: "smooth",
+            });
+
+            unlockSnapAfterScroll();
+        }
+
+        window.addEventListener("wheel", handleWheel, { passive: false });
+
+        return () => {
+            if (snapUnlockTimer.current) {
+                clearTimeout(snapUnlockTimer.current);
+            }
+
+            window.removeEventListener("wheel", handleWheel);
+        };
+    }, []);
+
     return (
         <div className="page-shell">
             <div className="ambient ambient-one" />
@@ -60,7 +178,7 @@ export default function Landing() {
             <Header onAuthModeChange={setAuthMode} />
 
             <main id="top">
-                <Hero initialAuthMode={authMode} />
+                <Hero initialAuthMode={authMode} onQuickOrderClick={scrollToOrderCard} />
                 <section className="landing-order-card-section container" id="quick-order">
                     <OrderCard />
                 </section>

@@ -1,0 +1,51 @@
+/* =========================================================
+   ЭФФЕКТ СВЕТА ПО КРАЮ
+========================================================= */
+
+.order-card::before {
+    content: "";
+
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 0;
+
+    border-radius: inherit;
+
+    pointer-events: none;
+
+    background:
+        linear-gradient(115deg,
+            rgba(255, 255, 255, 0.04),
+            transparent 18%,
+            transparent 78%,
+            rgba(255, 255, 255, 0.03));
+
+    opacity: 0.45;
+}
+
+
+.order-card::after {
+    content: "";
+
+    position: absolute;
+
+    left: 8%;
+    right: 8%;
+    bottom: -50px;
+
+    height: 80px;
+
+    z-index: -1;
+
+    border-radius: 50%;
+
+    pointer-events: none;
+
+    background: rgba(0, 0, 0, 0.65);
+
+    filter: blur(35px);
+}
+
+

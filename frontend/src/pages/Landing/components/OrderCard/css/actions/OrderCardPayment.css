@@ -1,0 +1,94 @@
+/* =========================================================
+   PAYMENT BUTTON
+========================================================= */
+
+.payment-button {
+    width: 100%;
+    height: 48px;
+
+    margin-top: 40px;
+
+    padding: 0 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border: 0;
+
+    border-radius: 13px;
+
+    color: #211a0e;
+
+    font-family: inherit;
+
+    font-size: 16px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    background:
+        linear-gradient(135deg,
+            #ffd16b,
+            #e7a82d);
+
+    box-shadow:
+        0 10px 35px rgba(230, 164, 39, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.45);
+
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        filter 0.25s ease;
+}
+
+
+.payment-button:hover {
+    transform: translateY(-2px);
+
+    filter: brightness(1.06);
+
+    box-shadow:
+        0 15px 45px rgba(230, 164, 39, 0.26),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+
+.payment-button:active {
+    transform:
+        translateY(0) scale(0.99);
+}
+
+
+.payment-arrow {
+    font-size: 30px;
+
+    font-weight: 300;
+}
+
+
+/* =========================================================
+   TERMS
+========================================================= */
+
+.order-terms {
+    margin: 7px 0 0;
+
+    text-align: center;
+
+    color: rgba(255, 255, 255, 0.46);
+
+    font-size: 12px;
+
+    text-shadow:
+        0 1px 5px rgba(0, 0, 0, 0.45);
+}
+
+
+.order-terms a {
+    color: #d2aa5d;
+
+    text-decoration: none;
+}
+
+

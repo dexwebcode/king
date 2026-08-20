@@ -37,7 +37,17 @@ const heroBenefits = [
 export default function Hero({
     isOrderGuideActive = false,
     initialAuthMode = "register",
+    onQuickOrderClick,
 }) {
+    function handleQuickOrderClick(event) {
+        if (!onQuickOrderClick) {
+            return;
+        }
+
+        event.preventDefault();
+        onQuickOrderClick();
+    }
+
     return (
         <section className={`hero hero--left container ${isOrderGuideActive ? "hero--order-guide" : ""}`}>
             <div className="hero-content">
@@ -54,7 +64,11 @@ export default function Hero({
                     </p>
 
                     <div className="hero-actions">
-                        <a className="button button-gold hero-action-primary" href="#quick-order">
+                        <a
+                            className="button button-gold hero-action-primary"
+                            href="#quick-order"
+                            onClick={handleQuickOrderClick}
+                        >
                             <span className="button-label">Быстрый заказ</span>
                         </a>
 
