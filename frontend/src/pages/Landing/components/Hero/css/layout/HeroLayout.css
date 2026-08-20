@@ -6,11 +6,12 @@
     position: relative;
     --hero-top-offset: clamp(90px, 12vh, 150px);
     --hero-form-width: min(520px, calc(100vw - 48px));
-    --hero-form-right: clamp(28px, 6vw, 120px);
+    --hero-title-width: clamp(620px, 48vw, 840px);
     --hero-parts-gap: 150px;
     --hero-copy-shift: 50px;
-    --hero-copy-area: calc(100% - var(--hero-form-width) - var(--hero-form-right) - var(--hero-parts-gap));
-    --hero-copy-width: min(620px, var(--hero-copy-area));
+    --hero-auth-panel-height: 613px;
+    --hero-copy-area: calc(100% - var(--hero-form-width) - var(--hero-parts-gap));
+    --hero-copy-width: min(var(--hero-title-width), var(--hero-copy-area));
     margin-top: 100px;
     min-height: max(760px, calc(100vh - 70px));
 
@@ -40,12 +41,14 @@
 
     gap: 28px;
     width: var(--hero-copy-width);
+    height: var(--hero-auth-panel-height);
 }
 
 .hero--left {
     --hero-top-offset: clamp(70px, 9vh, 110px);
     --hero-parts-gap: 75px;
     --hero-copy-shift: 0px;
+    --hero-copy-width: var(--hero-title-width);
 }
 
 .hero--left .hero-content {

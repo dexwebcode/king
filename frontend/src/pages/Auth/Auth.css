@@ -270,11 +270,16 @@
     display: grid;
     place-items: center;
     flex-shrink: 0;
-    border-radius: 5px;
-    background: rgba(244, 183, 59, 0.12);
     color: #e7ae32;
     font-size: 13px;
     font-weight: 800;
+}
+
+.input-icon img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    display: block;
 }
 
 .Username-input,
@@ -295,14 +300,44 @@
 }
 
 .password-eye {
-    min-width: 66px;
-    height: 35px;
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
     border: 0;
     background: transparent;
-    color: #777;
-    font-size: 12px;
     cursor: pointer;
+    opacity: 0.72;
+    padding: 0;
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.password-eye:hover {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+.password-eye img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    display: block;
+}
+
+.password-eye--inline {
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+}
+
+.password-eye--inline img {
+    width: 24px;
+    height: 24px;
 }
 
 .Password-hint {
@@ -339,6 +374,22 @@
     color: #161616;
     font-size: 13px;
     font-weight: 800;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.remember-me input:not(:checked) + .custom-checkbox {
+    background: rgba(255, 255, 255, 0.025);
+    color: transparent;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.remember-me input:focus-visible + .custom-checkbox {
+    box-shadow:
+        0 0 0 3px rgba(244, 183, 59, 0.16),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.22);
 }
 
 .Buttons-container {

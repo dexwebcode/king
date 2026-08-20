@@ -9,6 +9,9 @@ import { validateEmail } from './validateEmail'
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import showIcon from '../../assets/icons/show.png'
+import dontShowIcon from '../../assets/icons/dont_show.png'
+import accountIcon from '../../assets/icons/accaunt.png'
 
 /// ------ Компонент формы регистрации ------ ///
 export default function RegisterForm({
@@ -154,7 +157,9 @@ export default function RegisterForm({
                 </label>
 
                 <div className="login-input-wrapper">
-                    <span className="input-icon" aria-hidden="true">@</span>
+                    <span className="input-icon" aria-hidden="true">
+                        <img src={accountIcon} alt="" />
+                    </span>
 
                     <input
                         id="register-email"
@@ -183,7 +188,18 @@ export default function RegisterForm({
                 </label>
 
                 <div className="login-input-wrapper">
-                    <span className="input-icon" aria-hidden="true">•</span>
+                    <button
+                        type="button"
+                        className="input-icon password-eye password-eye--inline"
+                        aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                        onClick={() => setShowPassword(!showPassword)}
+                    >
+                        <img
+                            src={showPassword ? dontShowIcon : showIcon}
+                            alt=""
+                            aria-hidden="true"
+                        />
+                    </button>
 
                     <input
                         id="register-password"
@@ -194,14 +210,6 @@ export default function RegisterForm({
                         onChange={handlePasswordChange}
                     />
 
-                    <button
-                        type="button"
-                        className="password-eye"
-                        aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                        onClick={() => setShowPassword(!showPassword)}
-                    >
-                        {showPassword ? 'Скрыть' : 'Показать'}
-                    </button>
                 </div>
             </div>
 
@@ -213,7 +221,18 @@ export default function RegisterForm({
                 </label>
 
                 <div className="login-input-wrapper">
-                    <span className="input-icon" aria-hidden="true">•</span>
+                    <button
+                        type="button"
+                        className="input-icon password-eye password-eye--inline"
+                        aria-label={showRepeatPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                        onClick={() => setShowRepeatPassword(!showRepeatPassword)}
+                    >
+                        <img
+                            src={showRepeatPassword ? dontShowIcon : showIcon}
+                            alt=""
+                            aria-hidden="true"
+                        />
+                    </button>
 
                     <input
                         id="register-repeat-password"
@@ -228,14 +247,6 @@ export default function RegisterForm({
                         }}
                     />
 
-                    <button
-                        type="button"
-                        className="password-eye"
-                        aria-label={showRepeatPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                        onClick={() => setShowRepeatPassword(!showRepeatPassword)}
-                    >
-                        {showRepeatPassword ? 'Скрыть' : 'Показать'}
-                    </button>
                 </div>
             </div>
 

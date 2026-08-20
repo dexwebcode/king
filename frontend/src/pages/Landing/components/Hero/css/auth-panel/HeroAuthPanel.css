@@ -1,0 +1,71 @@
+/* =========================================================
+   HERO AUTH PANEL
+========================================================= */
+
+.hero-auth-panel {
+    position: relative;
+    z-index: 4;
+    width: var(--hero-form-width);
+    padding: 38px 40px 34px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    background: linear-gradient(145deg, rgba(22, 24, 28, 0.94), rgba(8, 10, 13, 0.98));
+    box-shadow:
+        0 32px 80px rgba(0, 0, 0, 0.56),
+        0 0 0 1px rgba(255, 209, 90, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.hero-auth-panel-header {
+    margin-bottom: 28px;
+    text-align: left;
+}
+
+.hero-auth-panel-header h2 {
+    font-size: 28px;
+}
+
+.hero-auth-panel-header p {
+    font-size: 15px;
+}
+
+.hero-auth-panel .login-field {
+    margin-bottom: 18px;
+}
+
+.hero-auth-panel .login-input-wrapper {
+    height: 58px;
+}
+
+.hero-auth-panel .Buttons-container {
+    margin-top: 22px;
+}
+
+.hero-auth-panel .login-submit {
+    height: 54px;
+}
+
+@media (max-width: 1050px) {
+
+    .hero-auth-panel {
+        right: 0;
+        width: min(460px, var(--hero-form-width));
+        padding: 30px;
+    }
+
+}
+
+@media (max-width: 800px) {
+
+    .hero-auth-panel {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: 100%;
+        padding: 26px 22px;
+        transform: none;
+    }
+
+}

@@ -1,7 +1,12 @@
 // ------ Импорт API функции авторизации ------ //
 import { loginUser } from './authApi'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import showIcon from '../../assets/icons/show.png'
+import dontShowIcon from '../../assets/icons/dont_show.png'
+import accountIcon from '../../assets/icons/accaunt.png'
+
+const rememberedLoginKey = 'king_remembered_login'
 
 /// ------ Компонент формы авторизации ------ ///
 export default function LoginForm({
@@ -22,12 +27,24 @@ export default function LoginForm({
 
 }) {
     const [showPassword, setShowPassword] = useState(false)
+    const [rememberMe, setRememberMe] = useState(true)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
     const navigate = useNavigate()
 
+    useEffect(() => {
+        const rememberedLogin = localStorage.getItem(rememberedLoginKey)
+
+        if (rememberedLogin) {
+            setLogin(rememberedLogin)
+            setRememberMe(true)
+        }
+    }, [setLogin])
+
     // ------ Функция авторизации ------ //
-    async function handleLogin() {
+    async function handleLogin(event) {
+        event?.preventDefault()
+
         const normalizedLogin = login.trim().toLowerCase()
 
         if (!normalizedLogin || !password) {
@@ -48,6 +65,11 @@ export default function LoginForm({
 
             // ------ Если сервер вернул успешную авторизацию ------ //
             if (response.ok) {
+                if (rememberMe) {
+                    localStorage.setItem(rememberedLoginKey, normalizedLogin)
+                } else {
+                    localStorage.removeItem(rememberedLoginKey)
+                }
 
                 // ------ Изменяем глобальное состояние авторизации ------ //
                 setIsAuth(true)
@@ -70,7 +92,11 @@ export default function LoginForm({
     }
 
     return (
-        <>
+        <form
+            className="login-form"
+            autoComplete="on"
+            onSubmit={handleLogin}
+        >
 
             {/* ------ INPUT ЛОГИНА ------ */}
 
@@ -80,12 +106,16 @@ export default function LoginForm({
                 </label>
 
                 <div className="login-input-wrapper">
-                    <span className="input-icon" aria-hidden="true">@</span>
+                    <span className="input-icon" aria-hidden="true">
+                        <img src={accountIcon} alt="" />
+                    </span>
 
                     <input
                         id="auth-login"
+                        name="email"
                         className="Username-input"
                         type="email"
+                        autoComplete="username"
                         placeholder="Введите e-mail"
                         value={login}
 
@@ -115,12 +145,25 @@ export default function LoginForm({
                 </div>
 
                 <div className="login-input-wrapper">
-                    <span className="input-icon" aria-hidden="true">•</span>
+                    <button
+                        type="button"
+                        className="input-icon password-eye password-eye--inline"
+                        aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                        onClick={() => setShowPassword(!showPassword)}
+                    >
+                        <img
+                            src={showPassword ? dontShowIcon : showIcon}
+                            alt=""
+                            aria-hidden="true"
+                        />
+                    </button>
 
                     <input
                         id="auth-password"
+                        name="password"
                         className="Password-input"
                         type={showPassword ? 'text' : 'password'}
+                        autoComplete="current-password"
                         placeholder="Введите пароль"
                         value={password}
 
@@ -131,14 +174,6 @@ export default function LoginForm({
                         }}
                     />
 
-                    <button
-                        type="button"
-                        className="password-eye"
-                        aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                        onClick={() => setShowPassword(!showPassword)}
-                    >
-                        {showPassword ? 'Скрыть' : 'Показать'}
-                    </button>
                 </div>
             </div>
 
@@ -151,7 +186,8 @@ export default function LoginForm({
             <label className="remember-me">
                 <input
                     type="checkbox"
-                    defaultChecked
+                    checked={rememberMe}
+                    onChange={(event) => setRememberMe(event.target.checked)}
                 />
 
                 <span className="custom-checkbox">
@@ -171,9 +207,8 @@ export default function LoginForm({
 
                 <button
                     className="Login-button login-submit"
-                    type="button"
+                    type="submit"
                     disabled={isSubmitting}
-                    onClick={handleLogin}
                 >
                     <span>{isSubmitting ? 'Входим...' : 'Войти'}</span>
                     <span className="login-arrow">→</span>
@@ -197,6 +232,6 @@ export default function LoginForm({
                     Зарегистрироваться
                 </button>
             </div>
-        </>
+        </form>
     )
 }

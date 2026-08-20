@@ -8,38 +8,47 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
+    height: 100%;
 }
 
 .hero--left .hero-copy {
-    display: block;
+    display: flex;
+    align-items: flex-start;
     text-align: left;
 }
 
-.eyebrow,
 .hero h1,
 .hero-subtitle,
 .hero-actions,
-.hero-order-card {
-    animation: heroRevealUp 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.eyebrow {
-    animation-delay: 0.05s;
+.hero-benefits,
+.hero-platforms {
+    animation-name: heroRevealUp;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    animation-fill-mode: both;
 }
 
 .hero h1 {
+    animation-duration: 0.78s;
     animation-delay: 0.14s;
 }
 
 .hero-subtitle {
+    animation-duration: 0.9s;
     animation-delay: 0.26s;
 }
 
 .hero-actions {
+    animation-duration: 0.72s;
     animation-delay: 0.36s;
 }
 
-.hero-order-card {
+.hero-benefits {
+    animation-duration: 0.95s;
+    animation-delay: 0.52s;
+}
+
+.hero-platforms {
+    animation-duration: 1.08s;
     animation-delay: 0.72s;
 }
 
@@ -59,33 +68,12 @@
 
 @media (prefers-reduced-motion: reduce) {
 
-    .eyebrow,
     .hero h1,
     .hero-subtitle,
     .hero-actions,
-    .hero-order-card {
+    .hero-benefits,
+    .hero-platforms {
         animation: none;
     }
 
-}
-
-.eyebrow {
-    display: inline-flex;
-
-    margin: 0 0 16px;
-
-    padding: 8px 15px;
-
-    border: 1px solid rgba(255, 255, 255, 0.42);
-    border-radius: 999px;
-
-    background: rgba(255, 255, 255, 0.035);
-
-    color: #ffffff;
-
-    font-size: 15px;
-    font-weight: 600;
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.05),
-        0 0 24px rgba(255, 255, 255, 0.06);
 }

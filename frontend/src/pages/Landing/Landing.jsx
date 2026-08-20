@@ -11,19 +11,56 @@ import TestBanner from "./components/TestBanner/TestBanner";
 import Reliability from "./components/Reliability/Reliability";
 import FinalCTA from "./components/FinalCTA/FinalCTA";
 import Footer from "./components/Footer/Footer";
+import { useEffect, useState } from "react";
 
 import "./Landing.css";
 
+function scrollToTopFast() {
+    const start = window.scrollY;
+    const duration = 320;
+    const startTime = performance.now();
+
+    function animateScroll(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+        window.scrollTo(0, start * (1 - easedProgress));
+
+        if (progress < 1) {
+            requestAnimationFrame(animateScroll);
+        }
+    }
+
+    requestAnimationFrame(animateScroll);
+}
+
 export default function Landing() {
+    const [isScrollTopVisible, setIsScrollTopVisible] = useState(false);
+    const [authMode, setAuthMode] = useState("register");
+
+    useEffect(() => {
+        function handleScroll() {
+            setIsScrollTopVisible(window.scrollY > 420);
+        }
+
+        handleScroll();
+        window.addEventListener("scroll", handleScroll, { passive: true });
+
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+        };
+    }, []);
+
     return (
         <div className="page-shell">
             <div className="ambient ambient-one" />
             <div className="ambient ambient-two" />
 
-            <Header />
+            <Header onAuthModeChange={setAuthMode} />
 
             <main id="top">
-                <Hero />
+                <Hero initialAuthMode={authMode} />
                 <section className="landing-order-card-section container" id="quick-order">
                     <OrderCard />
                 </section>
@@ -39,6 +76,15 @@ export default function Landing() {
             </main>
 
             <Footer />
+
+            <button
+                type="button"
+                className={`scroll-top-button ${isScrollTopVisible ? "scroll-top-button--visible" : ""}`}
+                aria-label="Вернуться наверх"
+                onClick={scrollToTopFast}
+            >
+                ⌃
+            </button>
         </div>
     );
 }

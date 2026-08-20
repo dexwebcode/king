@@ -20,28 +20,15 @@
     position: absolute;
     z-index: 4;
     top: var(--hero-top-offset);
-    right: var(--hero-form-right);
-    width: var(--hero-form-width);
+    right: 0;
+    left: var(--hero-title-width);
+    width: auto;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 24px;
+    transform: translateX(100px);
     pointer-events: auto;
-}
-
-.hero-register-card {
-    position: relative;
-    z-index: 4;
-    width: 100%;
-    padding: 38px 40px 34px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 24px;
-    background: linear-gradient(145deg, rgba(22, 24, 28, 0.94), rgba(8, 10, 13, 0.98));
-    box-shadow:
-        0 32px 80px rgba(0, 0, 0, 0.56),
-        0 0 0 1px rgba(255, 209, 90, 0.04),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
 }
 
 .hero-decor-icon {
@@ -99,52 +86,6 @@
     width: 128px;
     height: 128px;
     transform: rotate(-14deg);
-}
-
-.hero-register-header {
-    margin-bottom: 28px;
-    text-align: left;
-}
-
-.hero-register-header h2 {
-    font-size: 28px;
-}
-
-.hero-register-header p {
-    font-size: 15px;
-}
-
-.hero-register-card .login-field {
-    margin-bottom: 18px;
-}
-
-.hero-register-card .login-input-wrapper {
-    height: 58px;
-}
-
-.hero-register-card .Buttons-container {
-    margin-top: 22px;
-}
-
-.hero-register-card .login-submit {
-    height: 54px;
-}
-
-.hero-visual .hero-order-card {
-    position: absolute;
-    z-index: 12;
-
-    top: calc(50% - 40px);
-    right: clamp(390px, 24vw, 470px);
-
-    width: max-content;
-    padding: 0;
-
-    border-radius: 36px;
-
-    transform: translateY(-50%);
-
-    pointer-events: auto;
 }
 
 .hero-visual .social-icon {
@@ -262,12 +203,6 @@
         drop-shadow(0 25px 35px rgba(0, 0, 0, 0.56)) drop-shadow(0 0 24px rgba(255, 190, 45, 0.11));
 }
 
-.hero-visual:has(.order-card-scene--hover-ready) .social-icon,
-.hero-visual:has(.order-card-scene:focus-within) .social-icon {
-    filter:
-        saturate(1.08) brightness(0.82) drop-shadow(0 22px 34px rgba(0, 0, 0, 0.42));
-}
-
 @keyframes heroVisualItemReveal {
     from {
         opacity: 0;
@@ -297,12 +232,6 @@
 
     .hero-visual {
         inset: 0;
-    }
-
-    .hero-register-card {
-        right: 24px;
-        width: min(460px, calc(100vw - 48px));
-        padding: 30px;
     }
 
     .hero-decor-icon {
@@ -348,15 +277,8 @@
         position: relative;
         top: auto;
         right: auto;
+        left: auto;
         width: 100%;
-    }
-
-    .hero-register-card {
-        position: relative;
-        top: auto;
-        right: auto;
-        width: 100%;
-        padding: 26px 22px;
         transform: none;
     }
 

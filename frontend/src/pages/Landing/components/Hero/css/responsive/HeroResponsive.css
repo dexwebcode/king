@@ -19,11 +19,6 @@
         max-width: 480px;
     }
 
-    .hero-order-card {
-        top: 92px;
-        right: 18px;
-    }
-
 }
 
 /* =========================================================
@@ -49,11 +44,34 @@
         position: relative;
         top: auto;
         left: auto;
+        height: auto;
         max-width: none;
+    }
+
+    .hero-copy {
+        height: auto;
+    }
+
+    .hero--left .hero-platforms--left {
+        margin: 30px 0 0;
+    }
+
+    .hero--left .hero-main-title {
+        width: auto;
+        max-width: 100%;
+    }
+
+    .hero--left .hero-main-title span {
+        white-space: normal;
     }
 
     .hero-benefits {
         grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .hero-benefit + .hero-benefit::before {
+        display: none;
     }
 
     .hero-platforms {
@@ -62,15 +80,6 @@
 
     .hero-platform-list {
         flex-wrap: wrap;
-    }
-
-    .hero-order-card {
-        position: relative;
-        top: auto;
-        left: auto;
-
-        width: 100%;
-        margin-top: 12px;
     }
 
     .hero-visual {

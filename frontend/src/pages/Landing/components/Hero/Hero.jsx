@@ -6,7 +6,7 @@ import "./css/content/HeroSubtitle.css";
 import "./css/actions/HeroActions.css";
 import "./css/benefits/HeroBenefits.css";
 import "./css/platforms/HeroPlatforms.css";
-import "./css/order-card/HeroOrderCard.css";
+import "./css/auth-panel/HeroAuthPanel.css";
 import "./css/responsive/HeroResponsive.css";
 import "./css/Visual.css";
 import instagram from "../../../../assets/social_icons/instagram.svg";
@@ -15,39 +15,40 @@ import tiktok from "../../../../assets/social_icons/tiktok.svg";
 import telegram from "../../../../assets/social_icons/telegram.svg";
 import vk from "../../../../assets/social_icons/vk.svg";
 import x from "../../../../assets/social_icons/x.svg";
+import startIcon from "../../../../assets/icons/start.png";
+import helpIcon from "../../../../assets/icons/help.png";
+import securityIcon from "../../../../assets/icons/security.png";
 
 const supportedPlatforms = [
     { name: "Instagram", icon: instagram },
-    { name: "YouTube", icon: youtube },
-    { name: "TikTok", icon: tiktok },
-    { name: "Telegram", icon: telegram },
     { name: "VK", icon: vk },
     { name: "X", icon: x },
+    { name: "TikTok", icon: tiktok },
+    { name: "Telegram", icon: telegram },
+    { name: "YouTube", icon: youtube },
 ];
 
 const heroBenefits = [
-    { icon: "₽", text: "Старт от 100 рублей" },
-    { icon: "24/7", text: "Поддержка 24/7" },
-    { icon: "✓", text: "Безопасность и надежность" },
+    { icon: startIcon, text: "Старт от 100 рублей" },
+    { icon: helpIcon, text: "Поддержка 24/7" },
+    { icon: securityIcon, text: "Безопасность и надежность" },
 ];
 
 export default function Hero({
     isOrderGuideActive = false,
+    initialAuthMode = "register",
 }) {
     return (
         <section className={`hero hero--left container ${isOrderGuideActive ? "hero--order-guide" : ""}`}>
             <div className="hero-content">
                 <div className="hero-copy">
-                    <div className="eyebrow">
-                        Продвижение в социальных сетях
-                    </div>
-
                     <h1 className="hero-main-title">
-                        Продвигайте свои социальные сети с KING PROMOTION
+                        <span>Продвигайте ваши</span>
+                        <span>социальные сети быстрее </span>
+                        <span>дешевле и эффективнее</span>
                     </h1>
 
                     <p className="hero-subtitle">
-                        Продвигайте аккаунты быстрее без сложных настроек.
                         Тысячи клиентов уже получают подписчиков,
                         просмотры и активность с нами.
                     </p>
@@ -65,9 +66,7 @@ export default function Hero({
                     <div className="hero-benefits" aria-label="Преимущества">
                         {heroBenefits.map((benefit) => (
                             <div className="hero-benefit" key={benefit.text}>
-                                <span className="hero-benefit-icon" aria-hidden="true">
-                                    {benefit.icon}
-                                </span>
+                                <img className="hero-benefit-icon" src={benefit.icon} alt="" aria-hidden="true" />
                                 <span>{benefit.text}</span>
                             </div>
                         ))}
@@ -89,7 +88,7 @@ export default function Hero({
 
             <div className="hero-visual">
                 <div className="hero-form-column">
-                    <HeroRegisterForm initialMode="register" />
+                    <HeroRegisterForm initialMode={initialAuthMode} />
                 </div>
             </div>
         </section>

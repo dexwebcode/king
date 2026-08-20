@@ -7,7 +7,7 @@
     position: relative;
     --order-card-hover-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
 
-    width: min(620px, calc(100vw - 48px));
+    width: min(1040px, calc(100vw - 48px));
     margin: 0;
     /* СДВИГАЕМ ВЕСЬ КОМПЛЕКС ВПРАВО */
     left: 75px;
@@ -19,13 +19,6 @@
         transform 0.9s var(--order-card-hover-ease);
 
 }
-
-.order-card-scene--hover-ready,
-.order-card-scene:focus-within,
-.order-card-scene--guide-pinned {
-    transform: translateX(-100px);
-}
-
 
 /* =========================================================
    ОСНОВНАЯ КАРТОЧКА
@@ -83,9 +76,11 @@
 
     transform:
         rotateX(2deg) rotateY(-8deg) rotateZ(-1deg);
+    filter: blur(0.7px) brightness(0.88);
 
     transition:
         transform 0.95s var(--order-card-hover-ease),
+        filter 0.95s var(--order-card-hover-ease),
         box-shadow 0.95s var(--order-card-hover-ease),
         border-color 0.5s ease;
 }
@@ -101,6 +96,7 @@
         rotateX(0deg) rotateY(0deg) rotateZ(0deg) translateY(-8px);
 
     transform-style: flat;
+    filter: blur(0) brightness(1);
 
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -365,7 +361,10 @@
 .order-card-content {
     position: relative;
     z-index: 2;
-    display: block;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.45fr);
+    gap: 18px;
+    align-items: stretch;
 }
 
 
@@ -802,14 +801,11 @@
    ORDER SUMMARY — LIQUID GLASS
 ========================================================= */
 .order-summary {
-    position: absolute;
+    position: relative;
     z-index: 12;
 
-    top: 0;
-    left: calc(100% + 30px);
-
-    width: 400px;
-    height: 500px;
+    width: 100%;
+    min-height: 100%;
 
     padding: 15px;
 
@@ -830,14 +826,9 @@
         0 36px 90px rgba(0, 0, 0, 0.48),
         inset 0 1px 0 rgba(255, 255, 255, 0.16);
 
-    opacity: 0;
-    pointer-events: none;
+    opacity: 1;
+    pointer-events: auto;
 
-    transform: translateX(calc(-100% - 60px));
-
-    transition:
-        opacity 0.8s ease,
-        transform 0.9s var(--order-card-hover-ease);
     background: #090909;
     backdrop-filter: blur(30px) saturate(1.4);
     -webkit-backdrop-filter: blur(30px) saturate(1.4);
@@ -900,18 +891,6 @@
     z-index: 1;
 }
 
-
-/* =========================================================
-   ПОЯВЛЕНИЕ ПРИ НАВЕДЕНИИ
-========================================================= */
-.order-card-scene--hover-ready .order-summary,
-.order-card-scene:focus-within .order-summary,
-.order-card-scene--guide-pinned .order-summary {
-    opacity: 1;
-    pointer-events: auto;
-
-    transform: translateX(0);
-}
 
 /* =========================================================
    ЗАГОЛОВОК

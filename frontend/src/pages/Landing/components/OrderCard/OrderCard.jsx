@@ -228,89 +228,89 @@ export default function OrderCard({ isGuidePinned = false, onGuidePanelHover }) 
               </div>
             </div>
           </section>
-        </div>
-      </article>
 
-      {/* RIGHT */}
-      <aside className="order-summary">
-        <h3>Ваш заказ</h3>
+          {/* RIGHT */}
+          <aside className="order-summary">
+            <h3>Ваш заказ</h3>
 
-        <div className="summary-table">
-          <div className="summary-row">
-            <span>Площадка</span>
+            <div className="summary-table">
+              <div className="summary-row">
+                <span>Площадка</span>
 
-            <strong className="summary-platform">
-              <span className="platform-icon">
-                <img
-                  src={currentPlatform.icon}
-                  alt={currentPlatform.name}
-                  className="platform-icon-image"
-                />
-              </span>
+                <strong className="summary-platform">
+                  <span className="platform-icon">
+                    <img
+                      src={currentPlatform.icon}
+                      alt={currentPlatform.name}
+                      className="platform-icon-image"
+                    />
+                  </span>
 
-              {currentPlatform.name}
-            </strong>
-          </div>
+                  {currentPlatform.name}
+                </strong>
+              </div>
 
-          <div className="summary-row">
-            <span>Услуга</span>
-            <strong>{service}</strong>
-          </div>
+              <div className="summary-row">
+                <span>Услуга</span>
+                <strong>{service}</strong>
+              </div>
 
-          <div className="summary-row">
-            <span>Количество</span>
-            <strong>{formattedQuantity}</strong>
-          </div>
+              <div className="summary-row">
+                <span>Количество</span>
+                <strong>{formattedQuantity}</strong>
+              </div>
 
-          <div className="summary-row">
-            <span>Скорость</span>
-            <strong>{currentSpeed.title}</strong>
-          </div>
+              <div className="summary-row">
+                <span>Скорость</span>
+                <strong>{currentSpeed.title}</strong>
+              </div>
 
-          <div className="summary-price">
-            <div>
-              <span>Итого к оплате</span>
+              <div className="summary-price">
+                <div>
+                  <span>Итого к оплате</span>
 
-              <div className="price-line">
-                <strong>1190 ₽</strong>
-                <del>1320 ₽</del>
+                  <div className="price-line">
+                    <strong>1190 ₽</strong>
+                    <del>1320 ₽</del>
+                  </div>
+                </div>
+
+                <div className="saving-badge">
+                  Экономия 130 ₽
+                </div>
               </div>
             </div>
 
-            <div className="saving-badge">
-              Экономия 130 ₽
+            <div className="trust-grid">
+              <div className="trust-card">
+                <span className="trust-icon purple">♢</span>
+
+                <div>
+                  <strong>Гарантия качества</strong>
+                </div>
+              </div>
+
+              <div className="trust-card">
+                <span className="trust-icon gold">✧</span>
+
+                <div>
+                  <strong>Безопасный заказ</strong>
+                </div>
+              </div>
             </div>
-          </div>
+
+            <button type="button" className="payment-button">
+              <span>Перейти к оплате</span>
+              <span className="payment-arrow">›</span>
+            </button>
+
+            <p className="order-terms">
+              Нажимая кнопку, Вы соглашаетесь с{" "}
+              <a href="#rules">правилами сервиса</a>
+            </p>
+          </aside>
         </div>
-
-        <div className="trust-grid">
-          <div className="trust-card">
-            <span className="trust-icon purple">♢</span>
-
-            <div>
-              <strong>Гарантия качества</strong>
-            </div>
-          </div>
-
-          <div className="trust-card">
-            <span className="trust-icon gold">✧</span>
-
-            <div>
-              <strong>Безопасный заказ</strong>
-            </div>
-          </div>
-        </div>
-
-        <button type="button" className="payment-button">
-          <span>Перейти к оплате</span>
-          <span className="payment-arrow">›</span>
-        </button>
-
-        <p className="order-terms">
-          Нажимая кнопку, Вы соглашаетесь с{" "}
-          <a href="#rules">правилами сервиса</a>
-        </p>
-      </aside>
+      </article>
     </div>
   );
 }

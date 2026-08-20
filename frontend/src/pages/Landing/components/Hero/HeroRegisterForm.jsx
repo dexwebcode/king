@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import LoginForm from "../../../Auth/LoginForm";
 import RegisterForm from "../../../Auth/RegisterForm";
 import "../../../Auth/Auth.css";
@@ -11,9 +11,13 @@ export default function HeroRegisterForm({ initialMode = "register" }) {
     const [emailHint, setEmailHint] = useState("");
     const [passwordHint, setPasswordHint] = useState("");
 
+    useEffect(() => {
+        setMode(initialMode);
+    }, [initialMode]);
+
     return (
-        <div className="hero-register-card">
-            <div className="login-card-header hero-register-header">
+        <div className="hero-auth-panel">
+            <div className="login-card-header hero-auth-panel-header">
                 <h2>{mode === "login" ? "Вход в аккаунт" : "Регистрация"}</h2>
                 <p>
                     {mode === "login"
