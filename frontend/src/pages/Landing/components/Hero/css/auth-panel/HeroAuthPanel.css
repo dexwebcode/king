@@ -24,11 +24,20 @@
 }
 
 .hero-auth-panel-header h2 {
+    margin: 0;
     font-size: 28px;
+    font-weight: 750;
+    letter-spacing: 0;
 }
 
 .hero-auth-panel-header p {
+    margin: 10px 0 0;
+    color: #92959b;
     font-size: 15px;
+}
+
+.hero-auth-panel .Registration-content {
+    display: block;
 }
 
 .hero-auth-panel .login-field {

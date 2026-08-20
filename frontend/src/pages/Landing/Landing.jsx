@@ -11,7 +11,8 @@ import TestBanner from "./components/TestBanner/TestBanner";
 import Reliability from "./components/Reliability/Reliability";
 import FinalCTA from "./components/FinalCTA/FinalCTA";
 import Footer from "./components/Footer/Footer";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import "./Landing.css";
 
@@ -36,10 +37,48 @@ function scrollToTopFast() {
 }
 
 export default function Landing() {
+    const location = useLocation();
     const [isScrollTopVisible, setIsScrollTopVisible] = useState(false);
-    const [authMode, setAuthMode] = useState("register");
+    const [authMode, setAuthMode] = useState(
+        location.state?.authMode === "login" ? "login" : "register"
+    );
     const isOrderSnapLocked = useRef(false);
     const snapUnlockTimer = useRef(null);
+
+    useLayoutEffect(() => {
+        function resetScrollToTop() {
+            if (window.location.hash) {
+                window.history.replaceState(
+                    null,
+                    "",
+                    `${window.location.pathname}${window.location.search}`
+                );
+            }
+
+            window.scrollTo({
+                top: 0,
+                left: 0,
+                behavior: "auto",
+            });
+        }
+
+        if ("scrollRestoration" in window.history) {
+            window.history.scrollRestoration = "manual";
+        }
+
+        resetScrollToTop();
+
+        const animationFrameId = requestAnimationFrame(resetScrollToTop);
+        const timeoutId = window.setTimeout(resetScrollToTop, 80);
+
+        window.addEventListener("pageshow", resetScrollToTop);
+
+        return () => {
+            cancelAnimationFrame(animationFrameId);
+            window.clearTimeout(timeoutId);
+            window.removeEventListener("pageshow", resetScrollToTop);
+        };
+    }, []);
 
     function unlockSnapAfterScroll() {
         if (snapUnlockTimer.current) {

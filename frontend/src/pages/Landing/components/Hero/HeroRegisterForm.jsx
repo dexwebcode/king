@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import LoginForm from "../../../Auth/LoginForm";
-import RegisterForm from "../../../Auth/RegisterForm";
-import "../../../Auth/Auth.css";
+import LoginForm from "./auth/LoginForm";
+import RegisterForm from "./auth/RegisterForm";
+import "./css/auth-panel/HeroAuthForm.css";
 
 export default function HeroRegisterForm({ initialMode = "register" }) {
     const [mode, setMode] = useState(initialMode);

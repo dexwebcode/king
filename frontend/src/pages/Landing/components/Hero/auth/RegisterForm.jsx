@@ -9,9 +9,9 @@ import { validateEmail } from './validateEmail'
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import showIcon from '../../assets/icons/show.png'
-import dontShowIcon from '../../assets/icons/dont_show.png'
-import accountIcon from '../../assets/icons/accaunt.png'
+import showIcon from '../../../../../assets/icons/show.png'
+import dontShowIcon from '../../../../../assets/icons/dont_show.png'
+import accountIcon from '../../../../../assets/icons/accaunt.png'
 
 /// ------ Компонент формы регистрации ------ ///
 export default function RegisterForm({
