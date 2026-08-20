@@ -1,5 +1,3 @@
-import { useState } from "react";
-import ExperimentBar from "../../components/ExperimentBar/ExperimentBar";
 import Header from "./components/Header/Header";
 import Hero from "./components/Hero/Hero";
 import OrderCard from "./components/OrderCard/OrderCard";
@@ -16,22 +14,16 @@ import Footer from "./components/Footer/Footer";
 
 import "./Landing.css";
 
-export default function Landing({ variant = "variant-1" }) {
-    const [isExperimentBarOpen, setIsExperimentBarOpen] = useState(false);
-
+export default function Landing() {
     return (
-        <div className={`page-shell page-shell--${variant}`}>
+        <div className="page-shell">
             <div className="ambient ambient-one" />
             <div className="ambient ambient-two" />
 
-            <Header
-                isExperimentBarOpen={isExperimentBarOpen}
-                onToggleExperimentBar={() => setIsExperimentBarOpen((isOpen) => !isOpen)}
-            />
-            <ExperimentBar isOpen={isExperimentBarOpen} />
+            <Header />
 
             <main id="top">
-                <Hero variant={variant} />
+                <Hero />
                 <section className="landing-order-card-section container" id="quick-order">
                     <OrderCard />
                 </section>

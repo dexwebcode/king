@@ -1,6 +1,6 @@
 import { popular } from "../../landingData";
 import { ImagePlaceholder, SectionTitle } from "../../shared";
-import "./PopularServices.css";
+import "./css/PopularServices.css";
 
 export default function PopularServices() {
     return (

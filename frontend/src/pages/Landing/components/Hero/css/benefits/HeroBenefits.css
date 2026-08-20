@@ -1,0 +1,71 @@
+/* =========================================================
+   HERO BENEFITS
+========================================================= */
+
+.hero-benefits {
+    width: min(100%, 640px);
+    max-width: 640px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin: 28px 0 0;
+}
+
+.hero-benefit {
+    min-height: 116px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.025);
+    color: #e5e5df;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.hero-benefit-icon {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 48px;
+    border-radius: 10px;
+    background: rgba(255, 209, 90, 0.12);
+    color: var(--gold);
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.hero-benefit-icon img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+.hero--left .hero-benefits {
+    width: auto;
+    gap: 10px;
+    margin: 22px 0 0;
+}
+
+.hero--left .hero-benefit {
+    min-height: 58px;
+    padding: 10px 12px;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 10px;
+    text-align: left;
+}
+
+.hero--left .hero-benefit-icon {
+    width: 35px;
+    height: 35px;
+    flex: 0 0 35px;
+    border-radius: 8px;
+}

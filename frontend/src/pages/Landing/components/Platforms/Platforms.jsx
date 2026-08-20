@@ -1,6 +1,6 @@
 import { platforms } from "../../landingData";
 import { ImagePlaceholder, SectionTitle } from "../../shared";
-import "./Platforms.css";
+import "./css/Platforms.css";
 
 export default function Platforms() {
     return (

@@ -1,5 +1,5 @@
 import { ImagePlaceholder } from "../../shared";
-import "./TestBanner.css";
+import "./css/TestBanner.css";
 
 export default function TestBanner() {
     return (

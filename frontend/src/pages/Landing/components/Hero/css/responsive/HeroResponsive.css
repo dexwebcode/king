@@ -1,0 +1,117 @@
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1050px) {
+
+    .hero {
+        grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+
+        gap: 25px;
+    }
+
+    .hero h1 {
+        font-size: clamp(42px, 6vw, 60px);
+    }
+
+    .hero-visual img {
+        width: 115%;
+        max-width: 480px;
+    }
+
+    .hero-order-card {
+        top: 92px;
+        right: 18px;
+    }
+
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 800px) {
+
+    .hero {
+        --hero-copy-width: 100%;
+        --hero-copy-shift: 0px;
+        min-height: auto;
+
+        grid-template-columns: 1fr;
+
+        padding-top: 50px;
+        padding-bottom: 50px;
+
+        overflow: visible;
+    }
+
+    .hero-content {
+        position: relative;
+        top: auto;
+        left: auto;
+        max-width: none;
+    }
+
+    .hero-benefits {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-platforms {
+        margin-top: 34px;
+    }
+
+    .hero-platform-list {
+        flex-wrap: wrap;
+    }
+
+    .hero-order-card {
+        position: relative;
+        top: auto;
+        left: auto;
+
+        width: 100%;
+        margin-top: 12px;
+    }
+
+    .hero-visual {
+        grid-row: 2;
+
+        min-height: 400px;
+        z-index: 1;
+    }
+
+    .hero-visual img {
+        width: min(100%, 450px);
+
+        max-height: none;
+    }
+
+}
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 550px) {
+
+    .hero h1 {
+        font-size: 44px;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+    }
+
+    .platform-grid.compact {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .service-pills {
+        grid-template-columns: 1fr;
+    }
+
+    .steps-line {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}

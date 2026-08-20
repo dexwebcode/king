@@ -1,5 +1,5 @@
 import { ImagePlaceholder } from "../../shared";
-import "./FinalCTA.css";
+import "./css/FinalCTA.css";
 
 export default function FinalCTA() {
     return (

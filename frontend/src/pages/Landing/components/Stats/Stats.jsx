@@ -1,5 +1,5 @@
 import { stats } from "../../landingData";
-import "./Stats.css";
+import "./css/Stats.css";
 
 export default function Stats() {
     return (

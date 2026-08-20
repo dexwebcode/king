@@ -224,15 +224,6 @@
     font-size: 14px;
 }
 
-.header-actions .header-pages-button {
-    min-width: 104px;
-}
-
-.header-pages-button--active {
-    border-color: rgba(255, 209, 90, 0.75);
-    background: rgba(255, 209, 90, 0.12);
-}
-
 .button-large {
     padding: 0 28px;
 }

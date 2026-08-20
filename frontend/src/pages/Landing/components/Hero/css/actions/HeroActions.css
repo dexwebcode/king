@@ -1,0 +1,40 @@
+/* =========================================================
+   HERO ACTIONS
+========================================================= */
+
+.hero-actions {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    width: 100%;
+    margin-top: 24px;
+}
+
+.hero-actions .button {
+    width: auto;
+    min-width: 168px;
+    min-height: 46px;
+
+    padding-inline: 22px;
+}
+
+.hero-actions .hero-action-primary {
+    border-color: #ffd15d;
+    background: linear-gradient(135deg, #ffd15d, #f2ad25);
+    color: #131313;
+    box-shadow: 0 12px 30px rgba(235, 170, 35, 0.18);
+}
+
+.hero-actions .hero-action-primary::before {
+    opacity: 1;
+}
+
+.hero-actions .hero-action-primary .button-label {
+    color: #131313;
+}
+
+.hero--left .hero-actions {
+    justify-content: flex-start;
+    gap: 10px;
+    width: auto;
+}

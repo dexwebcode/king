@@ -1,0 +1,63 @@
+/* =========================================================
+   HERO PLATFORMS
+========================================================= */
+
+.hero-platforms {
+    margin: 46px auto 0;
+    max-width: 580px;
+}
+
+.hero-platforms--under-form {
+    width: 100%;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.hero--left .hero-platforms--left {
+    margin: 34px 0 0;
+}
+
+.hero--left .hero-platforms--left h2 {
+    margin: 0 0 14px;
+    text-align: left;
+}
+
+.hero--left .hero-platform-list {
+    justify-content: flex-start;
+}
+
+.hero-platforms h2 {
+    margin: 14px 0 0;
+    color: #e8e8e4;
+    font-size: 18px;
+    font-weight: 650;
+}
+
+.hero-platform-list {
+    display: flex;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 12px;
+}
+
+.hero-platform-item {
+    width: 75px;
+    height: 75px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 75px;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.035);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 14px 28px rgba(0, 0, 0, 0.18);
+}
+
+.hero-platform-item img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}

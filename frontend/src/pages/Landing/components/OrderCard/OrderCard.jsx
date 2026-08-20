@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import "./OrderCard.css";
+import "./css/OrderCard.css";
 import youtube from "../../../../assets/social_icons/youtube.svg";
 import telegram from "../../../../assets/social_icons/telegram.svg";
 import tiktok from "../../../../assets/social_icons/tiktok.svg";

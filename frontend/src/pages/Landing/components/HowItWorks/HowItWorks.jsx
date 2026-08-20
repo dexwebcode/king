@@ -1,5 +1,5 @@
 import { SectionTitle } from "../../shared";
-import "./HowItWorks.css";
+import "./css/HowItWorks.css";
 
 export default function HowItWorks() {
     return (

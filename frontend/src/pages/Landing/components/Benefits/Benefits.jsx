@@ -1,6 +1,6 @@
 import { benefits } from "../../landingData";
 import { ImagePlaceholder, SectionTitle } from "../../shared";
-import "./Benefits.css";
+import "./css/Benefits.css";
 
 export default function Benefits() {
     return (

@@ -1,10 +1,7 @@
 import logo from "../../../../assets/logo.png";
-import "./Header.css";
+import "./css/Header.css";
 
-export default function Header({
-    isExperimentBarOpen = false,
-    onToggleExperimentBar = () => {},
-}) {
+export default function Header() {
     function goToAuth(path) {
         window.location.assign(path);
     }
@@ -58,20 +55,6 @@ export default function Header({
 
             </nav>
             <div className="header-actions">
-                <button
-                    type="button"
-                    className={
-                        isExperimentBarOpen
-                            ? "button button-outline header-pages-button header-pages-button--active"
-                            : "button button-outline header-pages-button"
-                    }
-                    onClick={onToggleExperimentBar}
-                >
-                    <span className="button-label">
-                        Страницы
-                    </span>
-                </button>
-
                 <button
                     type="button"
                     className="button button-ghost"

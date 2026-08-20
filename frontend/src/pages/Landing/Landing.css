@@ -11,7 +11,6 @@
     --gold: #ffd15a;
     --gold-2: #e9a91a;
     --page-gutter: 100px;
-    --experiment-bar-height: 46px;
 
     color: #f5f5f2;
     background: #07080a;
@@ -70,11 +69,6 @@ a {
 .hero.container {
     z-index: 1;
 }
-
-/* Стили для сохраненных вариантов лендинга можно добавлять так:
-   .page-shell--variant-2 { ... }
-   .page-shell--variant-3 { ... }
-*/
 
 .page-shell--order-guide .hero.container {
     z-index: 1301;

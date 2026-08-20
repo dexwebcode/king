@@ -1,0 +1,43 @@
+/* =========================================================
+   HERO TITLE
+========================================================= */
+
+.hero h1 {
+    margin: 0;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+
+    font-size: clamp(74px, 7.6vw, 118px);
+
+    line-height: 0.9;
+
+    letter-spacing: 0;
+
+    font-weight: 800;
+}
+
+.hero h1 span {
+    display: block;
+}
+
+.hero-title-king {
+    transform: none;
+}
+
+.hero-title-promotion {
+    text-align: center;
+}
+
+.hero--left .hero-main-title {
+    display: block;
+    max-width: 760px;
+    font-size: clamp(42px, 4.6vw, 70px);
+    letter-spacing: 0;
+    line-height: 1.05;
+}
+
+.hero--left .hero-title-king,
+.hero--left .hero-title-promotion {
+    text-align: left;
+}

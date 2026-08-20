@@ -1,5 +1,5 @@
 import { SectionTitle } from "../../shared";
-import "./QuickOrder.css";
+import "./css/QuickOrder.css";
 
 export default function QuickOrder() {
     return (

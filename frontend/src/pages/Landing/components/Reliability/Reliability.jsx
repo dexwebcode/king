@@ -1,6 +1,6 @@
 import { reliability } from "../../landingData";
 import { SectionTitle } from "../../shared";
-import "./Reliability.css";
+import "./css/Reliability.css";
 
 export default function Reliability() {
     return (
