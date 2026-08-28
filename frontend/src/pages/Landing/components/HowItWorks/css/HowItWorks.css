@@ -1,45 +1,262 @@
+.panel-section#how>.section-heading {
+    margin-bottom: clamp(26px, 4vw, 48px);
+    text-align: center;
+}
+
+.panel-section#how>.section-heading h2 {
+    font-size: clamp(34px, 4.5vw, 56px);
+    line-height: 1.05;
+    letter-spacing: -.035em;
+}
+
+.panel-section#how>.section-heading p {
+    margin-top: 12px;
+    font-size: clamp(16px, 1.6vw, 20px);
+}
+
 .how-grid {
+    position: relative;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-
     gap: 18px;
+    padding-top: 30px;
+}
+
+.how-grid::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, #ffd15a 10%, #e9a91a 90%, transparent);
+    box-shadow: 0 0 18px rgba(255, 196, 56, .48);
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: left center;
 }
 
 .how-step {
+    --step-delay: .16s;
+    --step-fade-delay: 2.05s;
+    --step-reveal-delay: .24s;
+    position: relative;
     display: flex;
     align-items: center;
-
     gap: 14px;
+    min-height: 104px;
+    padding: 18px;
+    overflow: hidden;
+    border: 1px solid transparent;
+    border-radius: 18px;
+    background: transparent;
+    font-size: 16px;
+    opacity: 0;
+}
 
-    font-size: 14px;
+.how-step:nth-child(2) {
+    --step-delay: .42s;
+    --step-fade-delay: 2.27s;
+    --step-reveal-delay: .46s;
+}
+
+.how-step:nth-child(3) {
+    --step-delay: .68s;
+    --step-fade-delay: 2.49s;
+    --step-reveal-delay: .68s;
+}
+
+.how-step:nth-child(4) {
+    --step-delay: .94s;
+    --step-fade-delay: 2.71s;
+    --step-reveal-delay: .9s;
 }
 
 .how-step>span {
+    position: relative;
+    z-index: 1;
     width: 44px;
     height: 44px;
-
+    flex: 0 0 44px;
     display: grid;
     place-items: center;
-
     border-radius: 50%;
-
     border: 1px solid rgba(255, 209, 90, .28);
-
     background: #17181b;
-
     font-weight: 700;
-
     box-shadow: 0 0 24px rgba(255, 198, 44, .08);
+}
+
+.how-step>div {
+    position: relative;
+    z-index: 1;
 }
 
 .how-step h3 {
     margin: 0 0 5px;
+    font-size: clamp(17px, 1.4vw, 21px);
+    line-height: 1.2;
 }
 
 .how-step p {
     margin: 0;
 
     color: var(--muted);
-
+    font-size: 15px;
     line-height: 1.45;
+}
+
+#how.landing-section-reveal--visible .how-grid::before {
+    animation: howLineDraw 1.15s cubic-bezier(.16, 1, .3, 1) .08s both;
+}
+
+#how.landing-section-reveal--visible .how-step {
+    animation:
+        howStepGlow .7s cubic-bezier(.16, 1, .3, 1) var(--step-delay) both,
+        howStepFadeOut .65s cubic-bezier(.4, 0, .2, 1) var(--step-fade-delay) forwards,
+        howStepReveal .72s cubic-bezier(.16, 1, .3, 1) var(--step-reveal-delay) both;
+}
+
+#how.landing-section-reveal--visible .how-step>span {
+    animation:
+        howStepNumberGlow .7s cubic-bezier(.16, 1, .3, 1) var(--step-delay) both,
+        howStepNumberFadeOut .65s cubic-bezier(.4, 0, .2, 1) var(--step-fade-delay) forwards;
+}
+
+#how.landing-section-reveal--visible .how-step h3 {
+    animation:
+        howStepTitleGlow .7s cubic-bezier(.16, 1, .3, 1) var(--step-delay) both,
+        howStepTitleFadeOut .65s cubic-bezier(.4, 0, .2, 1) var(--step-fade-delay) forwards;
+}
+
+@keyframes howLineDraw {
+    from {
+        opacity: 0;
+        transform: scaleX(0);
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 1;
+        transform: scaleX(1);
+    }
+}
+
+@keyframes howStepReveal {
+    from {
+        opacity: 0;
+        filter: blur(7px);
+        transform: translateX(-42px) scale(.96);
+    }
+
+    to {
+        opacity: 1;
+        filter: blur(0);
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes howStepGlow {
+    from {
+        border-color: transparent;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    to {
+        border-color: rgba(255, 209, 90, .48);
+        background: linear-gradient(135deg, rgba(255, 209, 90, .13), rgba(255, 209, 90, .025));
+        box-shadow: 0 18px 42px rgba(0, 0, 0, .2), inset 0 0 28px rgba(255, 196, 56, .045);
+    }
+}
+
+@keyframes howStepFadeOut {
+    from {
+        border-color: rgba(255, 209, 90, .48);
+        background: linear-gradient(135deg, rgba(255, 209, 90, .13), rgba(255, 209, 90, .025));
+        box-shadow: 0 18px 42px rgba(0, 0, 0, .2), inset 0 0 28px rgba(255, 196, 56, .045);
+    }
+
+    to {
+        border-color: transparent;
+        background: transparent;
+        box-shadow: none;
+    }
+}
+
+@keyframes howStepNumberGlow {
+    from {
+        color: #f5f5f2;
+        border-color: rgba(255, 209, 90, .28);
+        background: #17181b;
+        box-shadow: 0 0 24px rgba(255, 198, 44, .08);
+        transform: scale(1);
+    }
+
+    to {
+        color: #18130b;
+        border-color: #ffd15a;
+        background: linear-gradient(135deg, #ffe789, #e9a91a);
+        box-shadow: 0 0 0 5px rgba(255, 209, 90, .08), 0 0 30px rgba(255, 196, 56, .36);
+        transform: scale(1.08);
+    }
+}
+
+@keyframes howStepNumberFadeOut {
+    from {
+        color: #18130b;
+        border-color: #ffd15a;
+        background: linear-gradient(135deg, #ffe789, #e9a91a);
+        box-shadow: 0 0 0 5px rgba(255, 209, 90, .08), 0 0 30px rgba(255, 196, 56, .36);
+        transform: scale(1.08);
+    }
+
+    to {
+        color: #f5f5f2;
+        border-color: rgba(255, 209, 90, .28);
+        background: #17181b;
+        box-shadow: 0 0 24px rgba(255, 198, 44, .08);
+        transform: scale(1);
+    }
+}
+
+@keyframes howStepTitleGlow {
+    from {
+        color: #f5f5f2;
+    }
+
+    to {
+        color: #ffe187;
+    }
+}
+
+@keyframes howStepTitleFadeOut {
+    from {
+        color: #ffe187;
+    }
+
+    to {
+        color: #f5f5f2;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .how-grid::before {
+        opacity: 1;
+        transform: scaleX(1);
+        animation: none !important;
+    }
+
+    .how-step,
+    .how-step>span,
+    .how-step h3 {
+        opacity: 1;
+        filter: none;
+        transform: none;
+        animation: none !important;
+    }
 }

@@ -6,12 +6,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 # ЛОКАЛЬНЫЕ ИМПОРТЫ
-from .config import DATABASE_URL
+from .config import DATABASE_ECHO, DATABASE_URL
 
 # Создание движка SQLAlchemy с использованием URL базы данных из конфигурации
 engine = create_engine(
     DATABASE_URL,
-    echo=True,
+    echo=DATABASE_ECHO,
     pool_pre_ping=True,
 )
 

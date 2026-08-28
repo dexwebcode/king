@@ -4,7 +4,7 @@ import "./css/Reliability.css";
 
 export default function Reliability() {
     return (
-        <section className="container panel-section">
+        <section className="container panel-section reliability-section" id="reliability">
             <SectionTitle title="Надёжность и безопасность" subtitle="Мы гарантируем безопасность ваших данных и качество услуг" />
             <div className="reliability-grid">
                 {reliability.map(([title, text]) => (

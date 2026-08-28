@@ -2,79 +2,341 @@
    HERO BENEFITS
 ========================================================= */
 
-.hero-benefits {
-    width: min(100%, 640px);
-    max-width: 640px;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0;
-    margin: 5px 0 30px;
+.hero-benefit-rotator {
+    position: relative;
+    grid-column: 1 / 3;
+    grid-row: 1 / span 2;
+    --hero-benefit-title-row: 54px;
+    --hero-benefit-description-gap: 12px;
+    width: 100%;
+    max-width: none;
+    min-height: 150px;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    pointer-events: none;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
 }
 
-.hero-benefit {
-    position: relative;
-    min-height: 97px;
-    padding: 0 22px;
+.hero-benefit-rotator::before {
+    display: none;
+}
+
+.hero-benefit-rotator::after {
+    display: none;
+}
+
+.hero-benefit-slide {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-rows: var(--hero-benefit-title-row) auto;
+    column-gap: 22px;
+    row-gap: var(--hero-benefit-description-gap);
+    align-items: center;
+    color: #e5e5df;
+    opacity: 0;
+}
+
+.hero-benefit-slide:nth-child(1) {
+    animation: heroBenefitSlideFirst 30s ease-in-out infinite;
+}
+
+.hero-benefit-slide:nth-child(2) {
+    animation: heroBenefitSlideSecond 30s ease-in-out infinite;
+}
+
+.hero-benefit-slide:nth-child(3) {
+    animation: heroBenefitSlideThird 30s ease-in-out infinite;
+}
+
+.hero-benefit-heading {
+    grid-column: 2;
+    grid-row: 1;
     display: flex;
-    flex-direction: row;
     align-items: center;
     justify-content: flex-start;
-    gap: 14px;
+    gap: 12px;
     color: #e5e5df;
     font-size: 17px;
-    font-weight: 400;
-    line-height: 1.3;
-    text-align: left;
+    font-weight: 650;
+    line-height: 1.2;
+    white-space: pre-line;
 }
 
-.hero-benefit + .hero-benefit::before {
-    content: "";
+.hero-benefit-slide p {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin: 0;
+    min-height: 76px;
+    padding: 0 18px 0 0;
+    display: flex;
+    align-items: center;
+    color: #b8b9bd;
+    font-size: 18px;
+    line-height: 1.48;
+    text-align: left;
+    transform: translateY(-10px);
+}
+
+@keyframes heroBenefitSlideFirst {
+
+    0%,
+    18% {
+        opacity: 1;
+        filter: brightness(100%);
+        transform: translateY(0);
+    }
+
+    21%,
+    77.999% {
+        opacity: 0;
+        transform: translateY(-16px);
+    }
+
+    78% {
+        opacity: 0;
+        filter: brightness(60%);
+        transform: translateY(-16px);
+    }
+
+    81%,
+    100% {
+        opacity: 1;
+        filter: brightness(100%);
+        transform: translateY(0);
+    }
+}
+
+@keyframes heroBenefitSlideSecond {
+
+    0%,
+    17.999% {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    18% {
+        opacity: 0;
+        filter: brightness(60%);
+        transform: translateY(16px);
+    }
+
+    21%,
+    38% {
+        opacity: 1;
+        filter: brightness(100%);
+        transform: translateY(0);
+    }
+
+    41%,
+    57.999% {
+        opacity: 0;
+        transform: translateY(-16px);
+    }
+
+    58% {
+        opacity: 0;
+        filter: brightness(60%);
+        transform: translateY(-16px);
+    }
+
+    61%,
+    78% {
+        opacity: 1;
+        filter: brightness(100%);
+        transform: translateY(0);
+    }
+
+    81%,
+    100% {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+}
+
+@keyframes heroBenefitSlideThird {
+
+    0%,
+    37.999% {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    38% {
+        opacity: 0;
+        filter: brightness(60%);
+        transform: translateY(16px);
+    }
+
+    41%,
+    58% {
+        opacity: 1;
+        filter: brightness(100%);
+        transform: translateY(0);
+    }
+
+    61%,
+    100% {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+}
+
+.hero-benefit-indicator {
     position: absolute;
-    top: 6px;
-    bottom: 6px;
-    left: 0;
-    width: 1px;
-    background: linear-gradient(
-        to bottom,
-        rgba(255, 255, 255, 0),
-        rgba(255, 255, 255, 0.42) 28%,
-        rgba(255, 255, 255, 0.42) 72%,
-        rgba(255, 255, 255, 0)
-    );
+    z-index: 3;
+    top: 8px;
+    right: -24px;
+    bottom: 8px;
+    width: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    pointer-events: none;
+}
+
+.hero-benefit-indicator span {
+    width: 3px;
+    height: 17px;
+    border-radius: 999px;
+    background: #ffffff;
+    opacity: 0.62;
+}
+
+.hero-benefit-indicator span:nth-child(1) {
+    animation: heroBenefitIndicatorTop 30s ease-in-out infinite;
+}
+
+.hero-benefit-indicator span:nth-child(2) {
+    animation: heroBenefitIndicatorMiddle 30s ease-in-out infinite;
+}
+
+.hero-benefit-indicator span:nth-child(3) {
+    animation: heroBenefitIndicatorBottom 30s ease-in-out infinite;
+}
+
+@keyframes heroBenefitIndicatorTop {
+
+    0%,
+    18% {
+        height: 72px;
+    }
+
+    22%,
+    78% {
+        height: 17px;
+    }
+
+    82%,
+    100% {
+        height: 72px;
+    }
+}
+
+@keyframes heroBenefitIndicatorMiddle {
+
+    0%,
+    18% {
+        height: 17px;
+    }
+
+    22%,
+    38% {
+        height: 72px;
+    }
+
+    42%,
+    58% {
+        height: 17px;
+    }
+
+    62%,
+    78% {
+        height: 72px;
+    }
+
+    82%,
+    100% {
+        height: 17px;
+    }
+}
+
+@keyframes heroBenefitIndicatorBottom {
+
+    0%,
+    38% {
+        height: 17px;
+    }
+
+    42%,
+    58% {
+        height: 72px;
+    }
+
+    62%,
+    100% {
+        height: 17px;
+    }
 }
 
 .hero-benefit-icon {
-    width: 52px;
-    height: 52px;
-    flex: 0 0 52px;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
     object-fit: contain;
 }
 
-.hero--left .hero-benefits {
-    width: min(100%, 640px);
-    gap: 0;
-    margin: 5px 0 30px;
-}
-
-.hero--left .hero-benefit {
-    min-height: 87px;
-    padding: 0 18px;
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 14px;
-    text-align: left;
-}
-
-.hero--left .hero-benefit:first-child {
-    padding-left: 0;
-}
-
-.hero--left .hero-benefit:last-child {
-    padding-right: 0;
+.hero--left .hero-benefit-rotator {
+    width: 100%;
+    margin: 0;
 }
 
 .hero--left .hero-benefit-icon {
-    width: 48px;
-    height: 48px;
-    flex: 0 0 48px;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .hero-benefit-slide {
+        animation: none;
+    }
+
+    .hero-benefit-slide:first-child {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+
+}
+
+@media (max-width: 550px) {
+    .hero-benefit-rotator {
+        grid-row: 2;
+        min-height: 132px;
+    }
+
+    .hero-benefit-rotator::before {
+        top: 46px;
+        min-height: 78px;
+    }
+
+    .hero-benefit-slide {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
+        row-gap: 8px;
+    }
+
+    .hero-benefit-heading,
+    .hero-benefit-slide p {
+        grid-column: 1;
+    }
 }

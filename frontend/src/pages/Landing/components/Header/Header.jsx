@@ -88,21 +88,11 @@ export default function Header({ onAuthModeChange }) {
             <div className="header-actions">
                 <button
                     type="button"
-                    className="button button-ghost"
-                    onClick={() => goToAuth("register")}
-                >
-                    <span className="button-label">
-                        Регистрация
-                    </span>
-                </button>
-
-                <button
-                    type="button"
                     className="button button-gold"
-                    onClick={() => goToAuth("login")}
+                    onClick={() => goToAuth("auth")}
                 >
                     <span className="button-label">
-                        Вход
+                        Авторизация
                     </span>
                 </button>
 

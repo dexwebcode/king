@@ -3,15 +3,69 @@
 ========================================================= */
 
 .hero-actions {
-    display: flex;
+    transform: translateY(30px);
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
     justify-content: center;
-    gap: 24px;
-    width: 100%;
+    gap: 12px;
+    width: min(100%, 1050px);
     margin: 30px 0;
+    padding: 0;
+}
+
+.hero-actions-top {
+    position: relative;
+    display: grid;
+    grid-template-columns: 220px minmax(240px, 1fr) minmax(420px, 480px);
+    grid-template-rows: 54px 96px auto;
+    column-gap: 46px;
+    row-gap: 12px;
+    align-items: stretch;
+    overflow: visible;
+}
+
+.hero-supported-platforms {
+    grid-column: 1 / 3;
+    grid-row: 3;
+    margin-top: 6px;
+    transform: none;
+    margin-top: 0;
+    align-self: start;
+    transform: translateY(-5px);
+}
+
+.hero-supported-platforms-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 58px);
+    gap: 10px;
+}
+
+.hero-supported-platform {
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.045);
+    box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.hero-supported-platform img {
+    width: 35px;
+    height: 35px;
+    object-fit: contain;
+    display: block;
 }
 
 .hero-actions .button {
-    width: auto;
+    width: 100%;
     min-width: 168px;
     min-height: 46px;
 
@@ -19,10 +73,23 @@
 }
 
 .hero-actions .hero-action-primary {
+    width: 220px;
+    height: 54px;
+    min-height: 54px;
+    position: relative;
+    z-index: 2;
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    align-self: center;
     border-color: #ffd15d;
     background: linear-gradient(135deg, #ffd15d, #f2ad25);
     color: #131313;
     box-shadow: 0 12px 30px rgba(235, 170, 35, 0.18);
+}
+
+.hero-actions .hero-action-primary .button-label {
+    font-size: 17px;
 }
 
 .hero-actions .hero-action-primary::before {
@@ -35,6 +102,23 @@
 
 .hero--left .hero-actions {
     justify-content: flex-start;
-    gap: 10px;
-    width: min(100%, 640px);
+    width: min(100%, 1050px);
+}
+
+.hero-advantages-text {
+    min-height: 58px;
+    padding: 12px 16px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.028);
+}
+
+.hero-advantages-text p {
+    margin: 0;
+    color: #c7c8cc;
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: center;
 }

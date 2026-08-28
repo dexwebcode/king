@@ -1,59 +1,238 @@
-/* =========================================================
-   HERO PLATFORMS
-========================================================= */
-
-.hero-platforms {
-    margin: 30px auto;
-    max-width: 580px;
-}
-
-.hero-platforms--under-form {
+.hero-reviews {
+    position: relative;
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    align-self: start;
+    margin: 0;
     width: 100%;
-    margin: 0 auto;
-    text-align: center;
+    min-height: 190px;
+    display: grid;
+    gap: 12px;
+    transform: translateX(20px);
 }
 
-.hero--left .hero-platforms--left {
-    margin: auto 0 0;
-    width: min(100%, 640px);
+.hero-review-card {
+    position: relative;
+    transform: translateY(-5px);
+    min-height: 176px;
+    padding: 22px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.035);
+    box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition:
+        min-height 0.32s ease,
+        box-shadow 0.25s ease;
 }
 
-.hero--left .hero-platforms--left h2 {
-    margin: 0 0 14px;
-    text-align: left;
+.hero-review-card-header {
+    display: grid;
+    grid-template-columns: minmax(84px, 1fr) auto minmax(84px, 1fr);
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
 }
 
-.hero--left .hero-platform-list {
-    justify-content: flex-start;
+.hero-review-card-header h2,
+.hero-review-number-control span,
+.hero-review-author {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
 }
 
-.hero-platforms h2 {
-    margin: 14px 0 0;
+.hero-review-card-header h2 {
+    justify-self: start;
     color: #e8e8e4;
-    font-size: 18px;
-    font-weight: 400;
-    text-transform: uppercase;
 }
 
-.hero-platform-list {
-    display: flex;
-    justify-content: center;
-    flex-wrap: nowrap;
-    gap: 25px;
-}
-
-.hero-platform-item {
-    width: 43px;
-    height: 43px;
-    padding: 0;
+.hero-review-number-control {
+    justify-self: center;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    flex: 0 0 43px;
+    gap: 8px;
+    color: #ffd15a;
 }
 
-.hero-platform-item img {
-    width: 43px;
-    height: 43px;
+.hero-review-number-control span {
+    color: #e8e8e4;
+}
+
+.hero-review-author {
+    justify-self: end;
+    color: #ffd15a;
+    font-size: 14px;
+}
+
+.hero-review-card p {
+    margin: 3px 0 0;
+    max-width: none;
+    color: #c7c8cc;
+    font-size: 14px;
+    line-height: 1.55;
+    overflow: hidden;
+    max-height: 108px;
+    scrollbar-width: none;
+    transition:
+        max-height 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+        color 0.25s ease;
+}
+
+.hero-review-card:hover p,
+.hero-review-card--expanded p {
+    max-height: 205px;
+    overflow-y: auto;
+    padding-right: 14px;
+}
+
+.hero-review-card p::-webkit-scrollbar {
+    display: none;
+}
+
+.hero-review-custom-scroll {
+    position: absolute;
+    right: 10px;
+    top: 72px;
+    bottom: 22px;
+    width: 12px;
+    opacity: 0;
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: none;
+    transition: opacity 0.18s ease;
+}
+
+.hero-review-custom-scroll span {
+    --review-scroll-progress: 0;
+    position: absolute;
+    top: calc((100% - 42px) * var(--review-scroll-progress));
+    left: 50%;
+    width: 3px;
+    height: 42px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.66);
+    transform: translateX(-50%);
+}
+
+.hero-review-card:hover .hero-review-custom-scroll {
+    opacity: 1;
+}
+
+.hero-review-card:hover,
+.hero-review-card--expanded {
+    position: relative;
+    z-index: 6;
+    min-height: 285px;
+    box-shadow:
+        0 28px 72px rgba(0, 0, 0, 0.34),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.hero-supported-platforms h2 {
+    font-size: 23px;
+    margin-bottom: 10px;
+}
+
+.hero-supported-platform {
+    width: 50px;
+    height: 50px;
+    transform: translateY(10px);
+}
+
+.hero-supported-platform img {
+    width: 35px;
+    height: 35px;
+}
+
+
+.hero-supported-platforms-grid {
+    grid-template-columns: repeat(16, 42px);
+    grid-auto-rows: 42px;
+    gap: 27px;
+    align-items: stretch;
+}
+
+.hero-supported-platform {
+    width: 58px;
+    height: 58px;
+    box-sizing: border-box;
+    animation: platformIconsReveal 0.8s ease-out both;
+}
+
+.hero-supported-platform img {
+    width: 40px;
+    height: 40px;
     object-fit: contain;
+    display: block;
+}
+
+.hero-supported-platform {
+    animation: platformIconsReveal 0.8s ease-out both;
+}
+
+.hero-supported-platform:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.hero-supported-platform:nth-child(2) {
+    animation-delay: 0.25s;
+}
+
+.hero-supported-platform:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+.hero-supported-platform:nth-child(4) {
+    animation-delay: 0.55s;
+}
+
+.hero-supported-platform:nth-child(5) {
+    animation-delay: 0.7s;
+}
+
+.hero-supported-platform:nth-child(6) {
+    animation-delay: 0.85s;
+}
+
+.hero-supported-platform:nth-child(7) {
+    animation-delay: 1s;
+}
+
+.hero-supported-platform:nth-child(8) {
+    animation-delay: 1.15s;
+}
+
+.hero-supported-platform:nth-child(9) {
+    animation-delay: 1.3s;
+}
+
+.hero-supported-platform:nth-child(10) {
+    animation-delay: 1.45s;
+}
+
+.hero-supported-platform:nth-child(11) {
+    animation-delay: 1.6s;
+}
+
+.hero-supported-platform:nth-child(12) {
+    animation-delay: 1.75s;
+}
+
+@keyframes platformIconsReveal {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(10px) scale(1);
+    }
 }

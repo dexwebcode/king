@@ -224,6 +224,21 @@
     font-size: 14px;
 }
 
+.header-actions .button-gold {
+    border-color: #ffd15d;
+    background: linear-gradient(135deg, #ffd15d, #f2ad25);
+    color: #131313;
+    box-shadow: 0 12px 30px rgba(235, 170, 35, 0.18);
+}
+
+.header-actions .button-gold::before {
+    display: none;
+}
+
+.header-actions .button-gold .button-label {
+    color: #131313;
+}
+
 .button-large {
     padding: 0 28px;
 }

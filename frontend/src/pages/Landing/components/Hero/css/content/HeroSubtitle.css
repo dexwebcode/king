@@ -5,17 +5,22 @@
 .hero-subtitle {
     margin: 18px 0 20px;
 
-    max-width: 570px;
+    max-width: none;
 
     color: var(--muted);
 
-    font-size: 18px;
+    font-size: 21px;
 
     line-height: 1.55;
     text-align: center;
+    white-space: nowrap;
 }
 
 .hero--left .hero-subtitle {
     margin: 18px 0 20px;
     text-align: left;
+}
+
+.hero-subtitle-nowrap {
+    white-space: nowrap;
 }

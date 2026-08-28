@@ -15,9 +15,9 @@ def get_user_by_login_or_email(
     result = session.execute(
         text("""
             SELECT id, login, mail, password
-            FROM users
-            WHERE login = :value
-               OR mail = :value
+            FROM migration_temp.users
+            WHERE LOWER(login) = LOWER(:value)
+               OR LOWER(mail) = LOWER(:value)
             LIMIT 1
         """),
         {
@@ -36,7 +36,7 @@ def get_user_by_id(
     result = session.execute(
         text("""
             SELECT id, login, mail
-            FROM users
+            FROM migration_temp.users
             WHERE id = :user_id
             LIMIT 1
         """),
@@ -58,7 +58,7 @@ def create_user(
     try:
         result = session.execute(
             text("""
-                INSERT INTO users (
+                INSERT INTO migration_temp.users (
                     login,
                     mail,
                     password

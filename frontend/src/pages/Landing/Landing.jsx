@@ -1,9 +1,6 @@
 import Header from "./components/Header/Header";
 import Hero from "./components/Hero/Hero";
 import OrderCard from "./components/OrderCard/OrderCard";
-import Stats from "./components/Stats/Stats";
-import QuickOrder from "./components/QuickOrder/QuickOrder";
-import Platforms from "./components/Platforms/Platforms";
 import HowItWorks from "./components/HowItWorks/HowItWorks";
 import Benefits from "./components/Benefits/Benefits";
 import PopularServices from "./components/PopularServices/PopularServices";
@@ -11,7 +8,7 @@ import TestBanner from "./components/TestBanner/TestBanner";
 import Reliability from "./components/Reliability/Reliability";
 import FinalCTA from "./components/FinalCTA/FinalCTA";
 import Footer from "./components/Footer/Footer";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import "./Landing.css";
@@ -42,8 +39,6 @@ export default function Landing() {
     const [authMode, setAuthMode] = useState(
         location.state?.authMode === "login" ? "login" : "register"
     );
-    const isOrderSnapLocked = useRef(false);
-    const snapUnlockTimer = useRef(null);
 
     useLayoutEffect(() => {
         function resetScrollToTop() {
@@ -80,45 +75,53 @@ export default function Landing() {
         };
     }, []);
 
-    function unlockSnapAfterScroll() {
-        if (snapUnlockTimer.current) {
-            clearTimeout(snapUnlockTimer.current);
+    useLayoutEffect(() => {
+        const sections = Array.from(
+            document.querySelectorAll(".page-shell > main > section, .page-shell > footer")
+        );
+        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        sections.forEach((section) => section.classList.add("landing-section-reveal"));
+
+        if (prefersReducedMotion) {
+            sections.forEach((section) => section.classList.add("landing-section-reveal--visible"));
+            return undefined;
         }
 
-        snapUnlockTimer.current = setTimeout(() => {
-            isOrderSnapLocked.current = false;
-            snapUnlockTimer.current = null;
-        }, 850);
-    }
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) {
+                        return;
+                    }
 
-    function getSectionTarget(section) {
-        return section.querySelector(".order-card-scene") || section;
-    }
+                    entry.target.classList.add("landing-section-reveal--visible");
+                    observer.unobserve(entry.target);
+                });
+            },
+            {
+                threshold: 0.12,
+                rootMargin: "0px 0px -8% 0px",
+            }
+        );
 
-    function getSectionScrollTop(section, direction) {
-        const target = getSectionTarget(section);
-        const targetRect = target.getBoundingClientRect();
-        const targetTop = targetRect.top + window.scrollY;
+        sections.forEach((section) => observer.observe(section));
 
-        if (section === document.querySelector("main > section")) {
-            return 0;
+        return () => {
+            observer.disconnect();
+        };
+    }, []);
+
+    function getLayoutTop(element) {
+        let top = 0;
+        let currentElement = element;
+
+        while (currentElement) {
+            top += currentElement.offsetTop;
+            currentElement = currentElement.offsetParent;
         }
 
-        if (section.id === "quick-order") {
-            const header = document.querySelector(".site-header");
-            const headerHeight = header?.getBoundingClientRect().height || 0;
-
-            return Math.max(
-                0,
-                section.getBoundingClientRect().top + window.scrollY - headerHeight
-            );
-        }
-
-        const scrollTop =
-            targetTop - (window.innerHeight - targetRect.height) / 2;
-        const scrollOffset = direction > 0 ? 50 : 0;
-
-        return Math.max(0, scrollTop - scrollOffset);
+        return top;
     }
 
     function scrollToOrderCard() {
@@ -128,14 +131,19 @@ export default function Landing() {
             return;
         }
 
-        isOrderSnapLocked.current = true;
+        const header = document.querySelector(".site-header");
+        const headerHeight = header?.getBoundingClientRect().height || 0;
 
         window.scrollTo({
-            top: getSectionScrollTop(orderSection, 1),
+            top: Math.max(0, getLayoutTop(orderSection) - headerHeight),
             behavior: "smooth",
         });
+    }
 
-        unlockSnapAfterScroll();
+    function handlePopularServiceSelect(preset) {
+        localStorage.setItem("king_order_prefill", JSON.stringify(preset));
+        window.dispatchEvent(new CustomEvent("king:order-prefill", { detail: preset }));
+        scrollToOrderCard();
     }
 
     useEffect(() => {
@@ -151,74 +159,6 @@ export default function Landing() {
         };
     }, []);
 
-    useEffect(() => {
-        function handleWheel(event) {
-            if (isOrderSnapLocked.current) {
-                event.preventDefault();
-                return;
-            }
-
-            const sections = Array.from(document.querySelectorAll("main > section"));
-
-            if (sections.length === 0) {
-                return;
-            }
-
-            const direction = Math.sign(event.deltaY);
-
-            if (direction === 0) {
-                return;
-            }
-
-            const viewportCenter = window.scrollY + window.innerHeight / 2;
-            const currentIndex = sections.reduce((closestIndex, section, index) => {
-                const target = getSectionTarget(section);
-                const targetRect = target.getBoundingClientRect();
-                const targetCenter =
-                    targetRect.top + window.scrollY + targetRect.height / 2;
-                const closestTarget = getSectionTarget(sections[closestIndex]);
-                const closestRect = closestTarget.getBoundingClientRect();
-                const closestCenter =
-                    closestRect.top + window.scrollY + closestRect.height / 2;
-
-                return Math.abs(targetCenter - viewportCenter) <
-                    Math.abs(closestCenter - viewportCenter)
-                    ? index
-                    : closestIndex;
-            }, 0);
-
-            const targetIndex = Math.max(
-                0,
-                Math.min(sections.length - 1, currentIndex + direction)
-            );
-
-            if (targetIndex === currentIndex) {
-                event.preventDefault();
-                return;
-            }
-
-            event.preventDefault();
-            isOrderSnapLocked.current = true;
-
-            window.scrollTo({
-                top: getSectionScrollTop(sections[targetIndex], direction),
-                behavior: "smooth",
-            });
-
-            unlockSnapAfterScroll();
-        }
-
-        window.addEventListener("wheel", handleWheel, { passive: false });
-
-        return () => {
-            if (snapUnlockTimer.current) {
-                clearTimeout(snapUnlockTimer.current);
-            }
-
-            window.removeEventListener("wheel", handleWheel);
-        };
-    }, []);
-
     return (
         <div className="page-shell">
             <div className="ambient ambient-one" />
@@ -231,12 +171,9 @@ export default function Landing() {
                 <section className="landing-order-card-section container" id="quick-order">
                     <OrderCard />
                 </section>
-                <Stats />
-                <QuickOrder />
-                <Platforms />
                 <HowItWorks />
                 <Benefits />
-                <PopularServices />
+                <PopularServices onSelectService={handlePopularServiceSelect} />
                 <TestBanner />
                 <Reliability />
                 <FinalCTA />

@@ -12,22 +12,21 @@
     height: 100%;
 
     pointer-events: none;
-
-    animation: heroRevealUp 0.95s cubic-bezier(0.22, 1, 0.36, 1) 0.48s both;
 }
 
 .hero-form-column {
     position: absolute;
     z-index: 4;
-    top: var(--hero-top-offset);
-    right: 0;
+    top: clamp(24px, calc(50% - 356px), 110px);
+    right: -130px;
     left: var(--hero-title-width);
     width: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 24px;
-    transform: translateX(100px);
+    margin-left: 150px;
+    transform: translateX(-30px) translateY(40px);
     pointer-events: auto;
 }
 
@@ -279,6 +278,7 @@
         right: auto;
         left: auto;
         width: 100%;
+        margin-left: 0;
         transform: none;
     }
 

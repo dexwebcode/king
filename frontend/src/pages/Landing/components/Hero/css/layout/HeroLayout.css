@@ -31,9 +31,10 @@
 ========================================================= */
 
 .hero-content {
+    transform: translateY(40px);
     position: absolute;
     top: var(--hero-top-offset);
-    left: max(0px, calc((var(--hero-copy-area) - var(--hero-copy-width)) / 2 + var(--hero-copy-shift)));
+    left: max(0, calc((var(--hero-copy-area) - var(--hero-copy-width)) / 2 + var(--hero-copy-shift)));
     z-index: 6;
 
     display: flex;
@@ -47,7 +48,7 @@
 .hero--left {
     --hero-top-offset: clamp(70px, 9vh, 110px);
     --hero-parts-gap: 75px;
-    --hero-copy-shift: 0px;
+    --hero-copy-shift: 0;
     --hero-copy-width: var(--hero-title-width);
 }
 

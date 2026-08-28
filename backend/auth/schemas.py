@@ -109,3 +109,55 @@ class RegisterRequest(EmailRequest):
 # Схема проверки электронной почты
 class CheckEmailRequest(EmailRequest):
     pass
+
+
+# Схема привязки Telegram через токен из ссылки /start
+class TelegramStartRequest(BaseModel):
+
+    token: str
+    telegram_id: int
+    telegram_username: str | None = None
+
+
+class TelegramCompleteRegisterRequest(BaseModel):
+
+    token: str
+    login: str
+    password: str
+
+    @field_validator("login")
+    @classmethod
+    def validate_telegram_login(cls, value: str) -> str:
+        login = value.strip()
+
+        if len(login) < 3:
+            raise ValueError(
+                "Логин должен содержать минимум 3 символа"
+            )
+
+        if len(login) > 50:
+            raise ValueError(
+                "Логин слишком длинный"
+            )
+
+        if any(symbol.isspace() for symbol in login):
+            raise ValueError(
+                "Логин не должен содержать пробелы"
+            )
+
+        return login.lower()
+
+    @field_validator("password")
+    @classmethod
+    def validate_telegram_password(cls, value: str) -> str:
+        return RegisterRequest.validate_register_password(value)
+
+
+class TelegramLinkExistingRequest(LoginRequest):
+
+    token: str
+
+
+class VkLoginRequest(BaseModel):
+
+    access_token: str

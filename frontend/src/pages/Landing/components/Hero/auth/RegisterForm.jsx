@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom'
 import showIcon from '../../../../../assets/icons/show.png'
 import dontShowIcon from '../../../../../assets/icons/dont_show.png'
 import accountIcon from '../../../../../assets/icons/accaunt.png'
+import SocialAuthPrompt from './SocialAuthPrompt'
 
 /// ------ Компонент формы регистрации ------ ///
 export default function RegisterForm({
@@ -271,7 +272,6 @@ export default function RegisterForm({
                     onClick={handleRegister}
                 >
                     <span>{isSubmitting ? 'Создаем...' : 'Создать аккаунт'}</span>
-                    <span className="login-arrow">→</span>
                 </button>
 
             </section>
@@ -294,6 +294,8 @@ export default function RegisterForm({
                     </button>
                 </div>
             )}
+
+            <SocialAuthPrompt />
 
         </>
     )

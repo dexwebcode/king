@@ -20,8 +20,7 @@
 .hero h1,
 .hero-subtitle,
 .hero-actions,
-.hero-benefits,
-.hero-platforms {
+.hero-reviews {
     animation-name: heroRevealUp;
     animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
     animation-fill-mode: both;
@@ -42,12 +41,7 @@
     animation-delay: 0.36s;
 }
 
-.hero-benefits {
-    animation-duration: 0.95s;
-    animation-delay: 0.52s;
-}
-
-.hero-platforms {
+.hero-reviews {
     animation-duration: 1.08s;
     animation-delay: 0.72s;
 }
@@ -71,8 +65,7 @@
     .hero h1,
     .hero-subtitle,
     .hero-actions,
-    .hero-benefits,
-    .hero-platforms {
+    .hero-reviews {
         animation: none;
     }
 

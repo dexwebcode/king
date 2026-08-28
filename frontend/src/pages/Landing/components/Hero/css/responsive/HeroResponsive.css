@@ -29,7 +29,7 @@
 
     .hero {
         --hero-copy-width: 100%;
-        --hero-copy-shift: 0px;
+        --hero-copy-shift: 0;
         min-height: auto;
 
         grid-template-columns: 1fr;
@@ -52,8 +52,32 @@
         height: auto;
     }
 
-    .hero--left .hero-platforms--left {
-        margin: 30px 0 0;
+    .hero-actions {
+        width: 100%;
+    }
+
+    .hero-actions-top {
+        grid-template-columns: 220px minmax(0, 1fr);
+    }
+
+    .hero-actions .hero-action-primary {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .hero-benefit-rotator {
+        grid-column: 1 / -1;
+    }
+
+    .hero-reviews {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        margin: 18px 0 0;
+    }
+
+    .hero-supported-platforms {
+        grid-column: 1 / -1;
+        grid-row: 4;
     }
 
     .hero--left .hero-main-title {
@@ -65,21 +89,8 @@
         white-space: normal;
     }
 
-    .hero-benefits {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    .hero-benefit + .hero-benefit::before {
-        display: none;
-    }
-
-    .hero-platforms {
-        margin-top: 34px;
-    }
-
-    .hero-platform-list {
-        flex-wrap: wrap;
+    .hero-subtitle {
+        white-space: normal;
     }
 
     .hero-visual {
@@ -108,7 +119,41 @@
     }
 
     .hero-actions {
-        flex-direction: column;
+        width: 100%;
+    }
+
+    .hero-actions-top {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-actions .hero-action-primary {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .hero-benefit-rotator {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .hero-reviews {
+        grid-column: 1;
+        grid-row: 3;
+    }
+
+    .hero-supported-platforms {
+        grid-column: 1;
+        grid-row: 4;
+    }
+
+    .hero-supported-platforms-grid {
+        grid-template-columns: repeat(6, 52px);
+        gap: 8px;
+    }
+
+    .hero-supported-platform {
+        width: 52px;
+        height: 52px;
     }
 
     .platform-grid.compact {

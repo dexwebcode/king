@@ -1,13 +1,14 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || '';
+const AUTH_CHANGED_EVENT = 'king-auth-changed';
 
-async function sendRequest(endpoint, method = 'GET', body = null) {
+async function sendRequest(endpoint, method = 'GET', body = null, useAuth = true) {
 
     const token = localStorage.getItem("token")
     const headers = {
         'Content-Type': 'application/json'
     }
 
-    if (token) {
+    if (useAuth && token) {
         headers['Authorization'] = `Bearer ${token}`
     }
 
@@ -34,21 +35,74 @@ export async function loginUser(email, password) {
     const result = await sendRequest('/auth/login', 'POST', {
         email,
         password
-    })
+    }, false)
 
-    if (result.ok && result.data.token) {
+    if (result.ok && result.data?.token) {
 
         localStorage.setItem("token", result.data.token)
+        window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
     }
 
     return result
 }
 
-export function registerUser(email, password) {
-    return sendRequest('/auth/register', 'POST', {
+function saveAuthResult(result) {
+    if (result.ok && result.data?.token) {
+        localStorage.setItem("token", result.data.token)
+        window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
+    }
+
+    return result
+}
+
+export async function registerUser(email, password) {
+    const result = await sendRequest('/auth/register', 'POST', {
         email,
         password
-    })
+    }, false)
+
+    return saveAuthResult(result)
+}
+
+export function createTelegramGuestSession() {
+    return sendRequest('/auth/telegram/guest/session', 'POST', null, false)
+}
+
+export function getTelegramGuestStatus(token) {
+    return sendRequest(
+        `/auth/telegram/guest/status?token=${encodeURIComponent(token)}`,
+        'GET',
+        null,
+        false
+    )
+}
+
+export async function completeTelegramRegister(token, login, password) {
+    const result = await sendRequest('/auth/telegram/complete-register', 'POST', {
+        token,
+        login,
+        password
+    }, false)
+
+    return saveAuthResult(result)
+}
+
+export async function linkTelegramExisting(token, login, password) {
+    const result = await sendRequest('/auth/telegram/link-existing', 'POST', {
+        token,
+        login,
+        password
+    }, false)
+
+    return saveAuthResult(result)
+}
+
+export async function loginWithVk(accessToken) {
+    const result = await sendRequest('/auth/vk/login', 'POST', {
+        access_token: accessToken,
+    }, false)
+
+    return saveAuthResult(result)
 }
 
 export function checkToken() {
@@ -57,7 +111,10 @@ export function checkToken() {
 
 export function logoutUser() {
     localStorage.removeItem("token")
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
 }
+
+export { AUTH_CHANGED_EVENT }
 
 export async function isAuth() {
 
