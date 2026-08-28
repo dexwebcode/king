@@ -1,17 +1,12 @@
 from decimal import Decimal
 
-from urllib.error import HTTPError, URLError
-from urllib.parse import urlparse
-from urllib.request import Request, urlopen
-
-from yookassa import Configuration, Payment, Webhook
+from yookassa import Configuration, Payment
 from yookassa.domain.exceptions import BadRequestError
 
 from backend.core.config import (
     YOOKASSA_RETURN_URL,
     YOOKASSA_SECRET_KEY,
     YOOKASSA_SHOP_ID,
-    YOOKASSA_WEBHOOK_URL,
 )
 
 
@@ -81,44 +76,3 @@ def create_yookassa_payment(
 def get_yookassa_payment(payment_id: str):
     configure_yookassa()
     return Payment.find_one(payment_id)
-
-
-def sync_yookassa_webhooks() -> list[str]:
-    configure_yookassa()
-    parsed_url = urlparse(YOOKASSA_WEBHOOK_URL)
-    if parsed_url.scheme != "https" or not parsed_url.netloc:
-        raise YooKassaNotConfiguredError(
-            "YOOKASSA_WEBHOOK_URL должен быть публичным HTTPS URL"
-        )
-    if parsed_url.path.rstrip("/") != "/api/payments/yookassa/webhook":
-        raise YooKassaNotConfiguredError(
-            "YOOKASSA_WEBHOOK_URL должен оканчиваться на "
-            "/api/payments/yookassa/webhook"
-        )
-
-    required_events = {"payment.succeeded", "payment.canceled"}
-    configured = {
-        (str(item.event), str(item.url))
-        for item in (Webhook.list().items or [])
-    }
-    added = []
-    for event in sorted(required_events):
-        if (event, YOOKASSA_WEBHOOK_URL) in configured:
-            continue
-        Webhook.add({"event": event, "url": YOOKASSA_WEBHOOK_URL})
-        added.append(event)
-    return added
-
-
-def is_yookassa_webhook_reachable() -> bool:
-    if not YOOKASSA_WEBHOOK_URL:
-        return False
-    request = Request(YOOKASSA_WEBHOOK_URL, method="GET")
-    request.add_header("ngrok-skip-browser-warning", "1")
-    try:
-        with urlopen(request, timeout=8) as response:
-            return response.status in {200, 405}
-    except HTTPError as error:
-        return error.code == 405
-    except (URLError, TimeoutError, OSError):
-        return False

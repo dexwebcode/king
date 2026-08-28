@@ -33,16 +33,17 @@
 
 .hero--left .hero-main-title {
     display: block;
-    width: var(--hero-title-width);
+    width: 100%;
     max-width: 100%;
-    font-size: clamp(44px, 3.75vw, 64px);
+    font-size: clamp(1vw, 3vw, 5vw);
     letter-spacing: 0;
     line-height: 1;
 }
 
 .hero--left .hero-main-title span {
     display: block;
-    white-space: nowrap;
+    white-space: normal;
+    text-wrap: balance;
 }
 
 .hero--left .hero-title-king,

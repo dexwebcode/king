@@ -133,7 +133,7 @@ export default function RegisterForm({
 
             // ------ Изменяем состояние авторизации ------ //
             setIsAuth(true)
-            navigate('/main')
+            navigate('/catalog')
 
         } catch (error) {
 

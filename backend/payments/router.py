@@ -66,8 +66,10 @@ def create_order_endpoint(
     except PaymentConflictError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
     except YooKassaNotConfiguredError as error:
+        logger.warning("YooKassa configuration error: %s", error)
         raise HTTPException(status_code=503, detail=str(error)) from error
     except YooKassaPaymentMethodUnavailableError as error:
+        logger.warning("YooKassa SBP is unavailable: %s", error)
         raise HTTPException(status_code=503, detail=str(error)) from error
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error

@@ -10,14 +10,17 @@
     --muted: #9a9da4;
     --gold: #ffd15a;
     --gold-2: #e9a91a;
-    --page-gutter: 100px;
+    --container-max: 1440px;
+    --page-gutter: clamp(16px, 4vw, 64px);
 
     color: #f5f5f2;
     background: #141517;
     font-synthesis: none;
 }
 
-* {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
 }
 
@@ -31,6 +34,25 @@ body {
     background: #141517;
     font-size: 18px;
     line-height: 1.5;
+}
+
+html,
+body,
+#root {
+    width: 100%;
+    min-height: 100%;
+}
+
+img,
+svg {
+    max-width: 100%;
+}
+
+input,
+select,
+textarea,
+button {
+    min-width: 0;
 }
 
 button,
@@ -50,9 +72,9 @@ a {
 
 .page-shell {
     position: relative;
-    overflow-x: hidden;
+    overflow-x: clip;
     min-height: 100vh;
-    background: #0f1011;
+    background: #080809;
 }
 
 .page-shell::before,
@@ -163,7 +185,7 @@ a {
 }
 
 .container {
-    width: calc(100% - (var(--page-gutter) * 2));
+    width: 85%;
     margin-inline: auto;
     position: relative;
     z-index: 2;
@@ -353,18 +375,19 @@ a {
 .landing-order-card-section {
     --order-section-header-offset: 78px;
     --order-section-padding: clamp(18px, 3vh, 32px);
-    width: 100%;
+    width: min(calc(100% - (var(--page-gutter) * 2)), 1500px);
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: calc(100vh - var(--order-section-header-offset));
     margin-inline: 0;
     scroll-margin-top: var(--order-section-header-offset);
-    padding: var(--order-section-padding);
+    padding: var(--order-section-padding) 0;
 }
 
 .landing-order-card-section .order-card-scene {
     left: 0;
+    top: -50px;
     width: min(1440px, 100%);
     margin: 0 auto;
 }
@@ -483,15 +506,19 @@ a {
     .platform-cards {
         grid-template-columns: repeat(3, 1fr);
     }
+
+    .footer {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .footer-brand {
+        grid-column: 1 / -1;
+    }
 }
 
 @media (max-width: 640px) {
     :root {
-        --page-gutter: 12px;
-    }
-
-    .container {
-        width: calc(100% - (var(--page-gutter) * 2));
+        --page-gutter: 14px;
     }
 
     .site-header {
@@ -570,7 +597,7 @@ a {
     }
 
     .footer {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .footer-brand {

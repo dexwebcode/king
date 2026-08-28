@@ -47,7 +47,3 @@ FRONTEND_URL = os.getenv(
 YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID", "").strip()
 YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY", "").strip()
 YOOKASSA_RETURN_URL = os.getenv("YOOKASSA_RETURN_URL", "").strip()
-YOOKASSA_WEBHOOK_URL = os.getenv("YOOKASSA_WEBHOOK_URL", "").strip()
-YOOKASSA_AUTO_REGISTER_WEBHOOK = (
-    os.getenv("YOOKASSA_AUTO_REGISTER_WEBHOOK", "true").lower() == "true"
-)

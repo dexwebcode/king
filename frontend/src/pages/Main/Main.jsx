@@ -113,19 +113,19 @@ export default function Main() {
                     service_id: draft.service_id,
                     quantity: draft.quantity,
                     recipient_link: draft.recipient_link,
-                    payment_method: "yookassa",
+                    payment_method: "sbp",
                     idempotence_key: crypto.randomUUID(),
                 }),
             });
             const data = await response.json();
-            if (!response.ok || !data?.order_id) {
+            if (!response.ok || !data?.order_id || !data?.confirmation_url) {
                 throw new Error(apiError(data, "Не удалось создать платёж"));
             }
 
             localStorage.removeItem(ORDER_DRAFT_KEY);
             setDraft(null);
             localStorage.setItem("pending_order_id", String(data.order_id));
-            window.location.assign(data.confirmation_url || "/payment/success");
+            window.location.assign(data.confirmation_url);
         } catch (paymentError) {
             setError(paymentError.message || "Не удалось создать платёж");
             setPaymentLoading(false);
@@ -164,8 +164,8 @@ export default function Main() {
                         </div>
                         <div className="draft-summary">
                             <div><span>Площадка</span><strong>{draft.platform_name || draft.platform}</strong></div>
-                            <div><span>Услуга</span><strong>{draft.service_name || draft.service_type}</strong></div>
-                            <div><span>Скорость</span><strong>{draft.speed_name || draft.speed}</strong></div>
+                            <div><span>Вид накрутки</span><strong>{draft.service_type_name || draft.service_type}</strong></div>
+                            <div><span>Услуга</span><strong>{draft.service_name || `#${draft.service_id}`}</strong></div>
                             <div><span>Количество</span><strong>{draft.quantity}</strong></div>
                             <div><span>Ссылка</span><strong>{draft.recipient_link}</strong></div>
                             <div className="draft-total"><span>К оплате</span><strong>{draft.display_total} ₽</strong></div>

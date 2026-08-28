@@ -8,6 +8,12 @@ import tiktokIcon from "../../../../../assets/social_icons/tiktok.svg";
 import telegramIcon from "../../../../../assets/social_icons/telegram.svg";
 import vkIcon from "../../../../../assets/social_icons/vk.svg";
 import xIcon from "../../../../../assets/social_icons/x.svg";
+import twitchIcon from "../../../../../assets/social_icons/twich.png";
+import rutubeIcon from "../../../../../assets/social_icons/Icon_RUTUBE_dark_color.svg";
+import dzenIcon from "../../../../../assets/social_icons/dzen.svg";
+import maxIcon from "../../../../../assets/social_icons/max.svg";
+import spotifyIcon from "../../../../../assets/social_icons/Spotify.png";
+import appleMusicIcon from "../../../../../assets/social_icons/Apple_Musikl.png";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 const ORDER_PREFILL_KEY = "king_order_prefill";
@@ -61,88 +67,38 @@ const platforms = [
     placeholder: "X",
     icon: xIcon,
   },
+  { id: "twitch", name: "Twitch", placeholder: "TW", icon: twitchIcon },
+  { id: "rutube", name: "RuTube", placeholder: "RT", icon: rutubeIcon },
+  { id: "dzen", name: "Дзен", placeholder: "ДЗ", icon: dzenIcon },
+  { id: "max", name: "MAX", placeholder: "MAX", icon: maxIcon },
+  { id: "spotify", name: "Spotify", placeholder: "SP", icon: spotifyIcon },
+  { id: "apple_music", name: "Apple Music", placeholder: "AM", icon: appleMusicIcon },
 ];
 
-const services = [
-  {
-    id: "followers",
-    name: "Подписчики",
-    description: "Живые подписчики",
-    icon: "◎",
-  },
-  {
-    id: "likes",
-    name: "Лайки",
-    description: "Активность на посты",
-    icon: "♡",
-  },
-  {
-    id: "views",
-    name: "Просмотры",
-    description: "Просмотры видео",
-    icon: "◉",
-  },
-  {
-    id: "complex",
-    name: "Комплексное",
-    description: "Подписчики + лайки",
-    icon: "↗",
-  },
-];
-
-const speeds = [
-  {
-    id: "standard",
-    name: "Обычная",
-    description: "1-2 дня",
-  },
-  {
-    id: "fast",
-    name: "Быстрая",
-    description: "До 12 часов",
-  },
-  {
-    id: "instant",
-    name: "Мгновенная",
-    description: "До 2 часов",
-  },
-];
-
-const speedLayoutOrder = ["fast", "standard", "instant"];
+const serviceTypeNames = {
+  followers: "Подписчики",
+  likes: "Лайки",
+  views: "Просмотры",
+  comments: "Комментарии",
+  reactions: "Реакции",
+  reposts: "Репосты",
+  stories: "Истории",
+  auto: "Автоуслуги",
+  statistics: "Статистика",
+  saves: "Сохранения",
+  polls: "Опросы",
+  friends: "Друзья",
+  livestream: "Прямой эфир",
+  premium: "Telegram Premium / Stars",
+  referrals: "Рефералы",
+  listenings: "Прослушивания",
+  podcasts: "Подкасты",
+};
 
 const orderSteps = [
   { id: "services", number: 1, label: "Услуги" },
   { id: "recipient", number: 2, label: "Оплата" },
 ];
-
-const serviceMatchers = {
-  followers: (item) => item.type === "followers",
-  likes: (item) => item.type === "likes",
-  views: (item) => item.type === "views",
-  complex: (item) => {
-    const name = String(item.name || "").toLowerCase();
-
-    return name.includes("+");
-  },
-};
-
-const speedMatchers = {
-  standard: (item) => {
-    const name = String(item.name || "").toLowerCase();
-
-    return name.includes("стандарт");
-  },
-  fast: (item) => {
-    const name = String(item.name || "").toLowerCase();
-
-    return name.includes("быстр");
-  },
-  instant: (item) => {
-    const name = String(item.name || "").toLowerCase();
-
-    return name.includes("турбо") || name.includes("мгнов");
-  },
-};
 
 function getServiceRate(serviceItem) {
   const rawRate = serviceItem?.price_per_1000 ?? serviceItem?.rate;
@@ -160,33 +116,37 @@ function getCompareServiceRate(serviceItem) {
   return Number.isFinite(rate) ? rate : getServiceRate(serviceItem);
 }
 
-function findOrderPrice(prices, platform, service, speed) {
-  if (!platform || !service || !speed) {
+function providerServiceId(item) {
+  return String(item?.provider_service_id ?? item?.id ?? item?.service ?? "");
+}
+
+function itemServiceType(item) {
+  return String(item?.service_type || item?.type || "").toLowerCase();
+}
+
+function cleanServiceName(value) {
+  return String(value || "Услуга продвижения")
+    .replace(/[\u26A1\u2B50\u2605\uFE0F]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function findOrderPrice(prices, platform, serviceType, serviceId) {
+  if (!platform || !serviceType || !serviceId) {
     return null;
   }
 
-  const serviceMatcher = serviceMatchers[service];
-  const speedMatcher = speedMatchers[speed];
-
-  if (!serviceMatcher || !speedMatcher) {
-    return null;
-  }
-
-  const baseMatches = prices
-    .filter((item) => item.soc === platform && serviceMatcher(item))
-    .sort((left, right) => getServiceRate(left) - getServiceRate(right));
-
-  if (baseMatches.length === 0) {
-    return null;
-  }
-
-  return baseMatches.find(speedMatcher) || baseMatches[0];
+  return prices.find((item) => (
+    (item.platform || item.soc) === platform
+    && itemServiceType(item) === serviceType
+    && providerServiceId(item) === String(serviceId)
+  )) || null;
 }
 
 function OrderPage({ onDraftSaved }) {
   const [platform, setPlatform] = useState(null);
   const [service, setService] = useState(null);
-  const [quantity, setQuantity] = useState(1000);
+  const [quantity, setQuantity] = useState(0);
   const [isQuantitySelected, setIsQuantitySelected] = useState(false);
   const [speed, setSpeed] = useState(null);
   const [activeStep, setActiveStep] = useState("services");
@@ -228,24 +188,19 @@ function OrderPage({ onDraftSaved }) {
         return;
       }
 
-      const hasPlatform = platforms.some((item) => item.id === preset.platform);
-      const hasService = services.some((item) => item.id === preset.service);
-      const hasSpeed = speeds.some((item) => item.id === preset.speed);
+      const presetServiceType = preset.service_type || preset.service;
+      const presetServiceId = preset.service_id;
       const presetQuantity = Number(preset.quantity);
 
-      if (!hasPlatform || !hasService || !hasSpeed) {
+      if (!preset.platform || !presetServiceType) {
         return;
       }
 
       setPlatform(preset.platform);
-      setService(preset.service);
-      setSpeed(preset.speed);
-      setQuantity(
-        Number.isFinite(presetQuantity)
-          ? Math.min(10000, Math.max(100, presetQuantity))
-          : 100
-      );
-      setIsQuantitySelected(true);
+      setService(presetServiceType);
+      setSpeed(presetServiceId ? String(presetServiceId) : null);
+      setQuantity(Number.isFinite(presetQuantity) ? presetQuantity : 0);
+      setIsQuantitySelected(Number.isFinite(presetQuantity));
       setActiveStep("services");
     }
 
@@ -303,21 +258,55 @@ function OrderPage({ onDraftSaved }) {
     };
   }, []);
 
-  const selectedPlatform = platforms.find(
-    (item) => item.id === platform
+  const availablePlatformIds = [...new Set(
+    prices.map((item) => String(item.platform || item.soc || "")).filter(Boolean)
+  )];
+  const availablePlatforms = availablePlatformIds.map((platformId) => (
+    platforms.find((item) => item.id === platformId) || {
+      id: platformId,
+      name: platformId.charAt(0).toUpperCase() + platformId.slice(1),
+      placeholder: platformId.slice(0, 2).toUpperCase(),
+      icon: null,
+    }
+  ));
+  const selectedPlatform = availablePlatforms.find((item) => item.id === platform);
+  const platformPrices = prices.filter(
+    (item) => String(item.platform || item.soc || "") === platform
   );
-
-  const selectedService = services.find(
-    (item) => item.id === service
-  );
-
-  const selectedSpeed = speeds.find(
-    (item) => item.id === speed
-  );
+  const services = [...new Set(platformPrices.map(itemServiceType).filter(Boolean))]
+    .map((serviceType) => ({
+      id: serviceType,
+      name: serviceTypeNames[serviceType]
+        || serviceType.charAt(0).toUpperCase() + serviceType.slice(1),
+      description: `${platformPrices.filter((item) => itemServiceType(item) === serviceType).length} услуг`,
+      icon: "•",
+    }));
+  const selectedService = services.find((item) => item.id === service);
+  const concreteServices = platformPrices
+    .filter((item) => itemServiceType(item) === service)
+    .sort((left, right) => getServiceRate(left) - getServiceRate(right));
 
   const selectedOrderPrice = useMemo(() => {
     return findOrderPrice(prices, platform, service, speed);
   }, [prices, platform, service, speed]);
+  const selectedSpeed = selectedOrderPrice ? {
+    id: providerServiceId(selectedOrderPrice),
+    name: cleanServiceName(selectedOrderPrice.name),
+  } : null;
+  const quantityMin = Number(selectedOrderPrice?.min ?? 0);
+  const quantityMax = Number(selectedOrderPrice?.max ?? 0);
+  const quantityStep = quantityMax - quantityMin >= 1000 ? 100 : 1;
+
+  useEffect(() => {
+    if (!selectedOrderPrice) {
+      return;
+    }
+
+    setQuantity((current) => (
+      current >= quantityMin && current <= quantityMax ? current : quantityMin
+    ));
+    setIsQuantitySelected(true);
+  }, [selectedOrderPrice, quantityMin, quantityMax]);
 
   const hasVolumeDiscount = quantity >= 1000;
 
@@ -344,24 +333,29 @@ function OrderPage({ onDraftSaved }) {
   }, [selectedOrderPrice, quantity, total]);
 
   const economy = hasVolumeDiscount ? Math.max(oldPrice - total, 0) : 0;
-  const quantityProgress = ((quantity - 100) / (10000 - 100)) * 100;
+  const quantityProgress = quantityMax > quantityMin
+    ? ((quantity - quantityMin) / (quantityMax - quantityMin)) * 100
+    : 0;
   const activeStepIndex = orderSteps.findIndex(
     (item) => item.id === activeStep
   );
   const isServicesComplete = Boolean(
     platform && service && speed && selectedOrderPrice && !pricesLoading
+      && quantity >= quantityMin && quantity <= quantityMax
       && recipientLink.trim()
   );
   const canContinue = activeStep === "services" ? isServicesComplete : true;
 
   const decreaseQuantity = () => {
+    if (!selectedOrderPrice) return;
     setIsQuantitySelected(true);
-    setQuantity((prev) => Math.max(100, prev - 100));
+    setQuantity((prev) => Math.max(quantityMin, prev - quantityStep));
   };
 
   const increaseQuantity = () => {
+    if (!selectedOrderPrice) return;
     setIsQuantitySelected(true);
-    setQuantity((prev) => Math.min(10000, prev + 100));
+    setQuantity((prev) => Math.min(quantityMax, prev + quantityStep));
   };
 
   const formatNumber = (value) => {
@@ -381,16 +375,15 @@ function OrderPage({ onDraftSaved }) {
     }
 
     if (activeStep === "services") {
-      const selectedServiceId = selectedOrderPrice?.id ?? selectedOrderPrice?.service;
+      const selectedServiceId = providerServiceId(selectedOrderPrice);
       const draft = {
-        version: 1,
+        version: 2,
         service_id: selectedServiceId,
         platform,
         platform_name: selectedPlatform?.name,
         service_type: service,
-        service_name: selectedService?.name,
-        speed,
-        speed_name: selectedSpeed?.name,
+        service_type_name: selectedService?.name,
+        service_name: selectedSpeed?.name,
         quantity,
         recipient_link: normalizeRecipientLink(recipientLink),
         display_total: formatMoney(total),
@@ -483,7 +476,7 @@ function OrderPage({ onDraftSaved }) {
                   </div>
 
                   <div className="platform-grid">
-                    {platforms.map((item) => {
+                    {availablePlatforms.map((item) => {
                       const isActive = platform === item.id;
 
                       return (
@@ -493,13 +486,18 @@ function OrderPage({ onDraftSaved }) {
                           className={`platform-card ${isActive ? "active" : ""
                             }`}
                           onClick={() => {
-                            setPlatform((current) =>
-                              current === item.id ? null : item.id
-                            );
+                            const nextPlatform = platform === item.id ? null : item.id;
+                            setPlatform(nextPlatform);
+                            setService(null);
+                            setSpeed(null);
+                            setQuantity(0);
+                            setIsQuantitySelected(false);
                           }}
                         >
                           <div className="platform-placeholder">
-                            <img src={item.icon} alt="" aria-hidden="true" />
+                            {item.icon
+                              ? <img src={item.icon} alt="" aria-hidden="true" />
+                              : <span>{item.placeholder}</span>}
                           </div>
 
                           <span className="platform-name">
@@ -508,13 +506,16 @@ function OrderPage({ onDraftSaved }) {
                         </button>
                       );
                     })}
+                    {!pricesLoading && availablePlatforms.length === 0 && (
+                      <p className="order-options-empty">Доступных площадок пока нет</p>
+                    )}
                   </div>
                 </div>
 
                 <div className="form-section">
                   <div className="section-heading">
-                    <h2>2. Выберите услугу</h2>
-                    <p>Укажите тип продвижения</p>
+                    <h2>2. Вид накрутки</h2>
+                    <p>Показаны только доступные виды для выбранной площадки</p>
                   </div>
 
                   <div className="services-grid">
@@ -528,9 +529,11 @@ function OrderPage({ onDraftSaved }) {
                           className={`service-card ${isActive ? "active" : ""
                             }`}
                           onClick={() => {
-                            setService((current) =>
-                              current === item.id ? null : item.id
-                            );
+                            const nextService = service === item.id ? null : item.id;
+                            setService(nextService);
+                            setSpeed(null);
+                            setQuantity(0);
+                            setIsQuantitySelected(false);
                           }}
                         >
                           <span className="service-icon">
@@ -549,32 +552,43 @@ function OrderPage({ onDraftSaved }) {
 
                 <div className="form-section speed-section">
                   <div className="section-heading">
-                    <h2>3. Выберите скорость</h2>
-                    <p>Настройте срок выполнения заказа</p>
+                    <h2>3. Выберите конкретную услугу</h2>
+                    <p>Цена и ограничения загружены из актуального каталога</p>
                   </div>
 
                   <div className="speed-grid">
-                    {speedLayoutOrder.map((speedId) => {
-                      const item = speeds.find((speedItem) => speedItem.id === speedId);
-                      const isActive = speed === item.id;
+                    {concreteServices.map((item) => {
+                      const itemId = providerServiceId(item);
+                      const isActive = speed === itemId;
 
                       return (
                         <button
                           type="button"
-                          key={item.id}
-                          className={`speed-card speed-card--${item.id} ${isActive ? "active" : ""
+                          key={itemId}
+                          className={`speed-card ${isActive ? "active" : ""
                             }`}
                           onClick={() => {
-                            setSpeed((current) =>
-                              current === item.id ? null : item.id
-                            );
+                            if (isActive) {
+                              setSpeed(null);
+                              setQuantity(0);
+                              setIsQuantitySelected(false);
+                              return;
+                            }
+
+                            const minimum = Number(item.min || 1);
+                            setSpeed(itemId);
+                            setQuantity(minimum);
+                            setIsQuantitySelected(true);
                           }}
                         >
-                          <strong>{item.name}</strong>
-                          <span>{item.description}</span>
+                          <strong>{cleanServiceName(item.name)}</strong>
+                          <span>{formatMoney(getServiceRate(item))} ₽ за 1 000 · #{itemId}</span>
                         </button>
                       );
                     })}
+                    {service && concreteServices.length === 0 && (
+                      <p className="order-options-empty">Услуг этого вида пока нет</p>
+                    )}
                   </div>
                 </div>
 
@@ -597,7 +611,7 @@ function OrderPage({ onDraftSaved }) {
                       </button>
 
                       <div className="quantity-value">
-                        {formatNumber(quantity)}
+                        {selectedOrderPrice ? formatNumber(quantity) : "—"}
                       </div>
 
                       <button
@@ -616,10 +630,11 @@ function OrderPage({ onDraftSaved }) {
                     <div className="range-wrapper">
                       <input
                         type="range"
-                        min="100"
-                        max="10000"
-                        step="100"
-                        value={quantity}
+                        min={quantityMin || 0}
+                        max={quantityMax || 1}
+                        step={quantityStep}
+                        value={quantity || 0}
+                        disabled={!selectedOrderPrice}
                         style={{ "--quantity-progress": `${quantityProgress}%` }}
                         onChange={(event) => {
                           setIsQuantitySelected(true);
@@ -628,8 +643,8 @@ function OrderPage({ onDraftSaved }) {
                       />
 
                       <div className="range-labels">
-                        <span>100</span>
-                        <span>10 000</span>
+                        <span>{selectedOrderPrice ? formatNumber(quantityMin) : "—"}</span>
+                        <span>{selectedOrderPrice ? formatNumber(quantityMax) : "—"}</span>
                       </div>
                     </div>
                   </div>
@@ -665,7 +680,7 @@ function OrderPage({ onDraftSaved }) {
 
 
             <div className="summary-row">
-              <span>Услуга</span>
+              <span>Вид накрутки</span>
               <strong>
                 {selectedService?.name || "—"}
               </strong>
@@ -679,7 +694,7 @@ function OrderPage({ onDraftSaved }) {
             </div>
 
             <div className="summary-row">
-              <span>Скорость</span>
+              <span>Услуга</span>
               <strong>{selectedSpeed?.name || "—"}</strong>
             </div>
 
@@ -720,11 +735,9 @@ function OrderPage({ onDraftSaved }) {
                 <div className="recipient-input-wrapper">
                   <div className="recipient-platform">
                     {selectedPlatform && (
-                      <img
-                        src={selectedPlatform.icon}
-                        alt=""
-                        aria-hidden="true"
-                      />
+                      selectedPlatform.icon
+                        ? <img src={selectedPlatform.icon} alt="" aria-hidden="true" />
+                        : <span>{selectedPlatform.placeholder}</span>
                     )}
                   </div>
 
@@ -819,29 +832,33 @@ function OrderPage({ onDraftSaved }) {
                   <span>Площадка</span>
                   <strong className="order-auth-summary-platform">
                     {selectedPlatform && (
-                      <img src={selectedPlatform.icon} alt="" aria-hidden="true" />
+                      selectedPlatform.icon
+                        ? <img src={selectedPlatform.icon} alt="" aria-hidden="true" />
+                        : <span>{selectedPlatform.placeholder}</span>
                     )}
                     {selectedPlatform?.name || "—"}
                   </strong>
                 </div>
                 <div className="summary-row">
-                  <span>Услуга</span>
+                  <span>Вид накрутки</span>
                   <strong>{selectedService?.name || "—"}</strong>
+                </div>
+                <div className="summary-row">
+                  <span>Услуга</span>
+                  <strong>{selectedSpeed?.name || "—"}</strong>
                 </div>
                 <div className="summary-row">
                   <span>Количество</span>
                   <strong>{formatNumber(quantity)} шт.</strong>
-                </div>
-                <div className="summary-row">
-                  <span>Скорость</span>
-                  <strong>{selectedSpeed?.name || "—"}</strong>
                 </div>
                 <div className="summary-row order-auth-summary-link">
                   <span>Ссылка</span>
                   <strong>
                     {normalizeRecipientLink(recipientLink)}
                     {selectedPlatform && (
-                      <img src={selectedPlatform.icon} alt={selectedPlatform.name} />
+                      selectedPlatform.icon
+                        ? <img src={selectedPlatform.icon} alt={selectedPlatform.name} />
+                        : <span>{selectedPlatform.placeholder}</span>
                     )}
                   </strong>
                 </div>

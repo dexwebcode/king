@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 import Landing from "./pages/Landing/Landing";
+import Catalog from "./pages/Catalog/Catalog";
 import Main from "./pages/Main/Main";
 import Payment from "./pages/Payment/Payment";
 import TelegramAuth from "./pages/TelegramAuth/TelegramAuth";
@@ -54,14 +55,15 @@ export default function App() {
         <Routes>
             <Route
                 path="/"
-                element={<Landing />}
+                element={isAuthenticated ? <Navigate to="/catalog" replace /> : <Landing />}
             />
+            <Route path="/catalog" element={<Catalog />} />
             <Route path="/login" element={<Navigate to="/" replace state={{ authMode: "login" }} />} />
             <Route path="/register" element={<Navigate to="/" replace />} />
             <Route path="/payment/success" element={<Payment />} />
             <Route
                 path="/telegram-auth"
-                element={isAuthenticated ? <Navigate to="/main" replace /> : <TelegramAuth />}
+                element={isAuthenticated ? <Navigate to="/catalog" replace /> : <TelegramAuth />}
             />
             <Route
                 path="/main"

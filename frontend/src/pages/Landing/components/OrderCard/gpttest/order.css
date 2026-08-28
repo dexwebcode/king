@@ -40,7 +40,7 @@
     --order-summary-extra-offset: 50px;
     --summary-gap: clamp(8px, 1.1vh, 12px);
     width: min(1500px, 100%);
-    height: min(800px, calc(100vh - var(--order-section-header-offset, 78px) - (var(--order-section-padding, 24px) * 2) + 20px));
+    height: min(800px, calc(100dvh - var(--order-section-header-offset, 78px) - (var(--order-section-padding, 24px) * 2) + 20px));
     min-height: 640px;
 
     display: grid;
@@ -661,6 +661,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 10px;
     row-gap: 10px;
+    max-height: 260px;
+    overflow-y: auto;
 }
 
 .order-page .service-card {
@@ -923,6 +925,17 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+    max-height: 310px;
+    padding-right: 4px;
+    overflow-y: auto;
+}
+
+.order-page .order-options-empty {
+    grid-column: 1 / -1;
+    margin: 18px 0;
+    color: rgba(255, 255, 255, 0.42);
+    text-align: center;
+    font-size: 13px;
 }
 
 .order-page .speed-section .section-heading {
@@ -1627,7 +1640,17 @@
     .order-page .order-summary {
         margin-top: 0;
         height: auto;
+        max-height: none;
         min-height: auto;
+    }
+
+    .order-page .order-main,
+    .order-page .order-config {
+        height: auto;
+    }
+
+    .order-page .order-config--services {
+        grid-template-rows: repeat(2, auto);
     }
 
     .order-page .platform-grid {
@@ -1647,7 +1670,10 @@
     }
 
     .order-page .order-header {
+        height: auto;
+        min-height: 112px;
         flex-direction: column;
+        justify-content: center;
     }
 
     .order-page .order-steps {
@@ -1658,6 +1684,11 @@
 
     .order-page .order-config--services {
         display: flex;
+    }
+
+    .order-page .order-config--services::before,
+    .order-page .order-config--services::after {
+        display: none;
     }
 
     .order-page .platform-grid {
@@ -1738,6 +1769,7 @@
 .order-auth-modal {
     position: relative;
     width: min(1120px, 100%);
+    min-width: 0;
     padding: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1948,6 +1980,11 @@
 
     .order-auth-summary {
         min-height: 440px;
+    }
+
+    .order-auth-close {
+        top: 6px;
+        right: 6px;
     }
 
 }

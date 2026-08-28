@@ -9,7 +9,7 @@ class CreateOrderRequest(BaseModel):
     service_id: str | int
     quantity: int = Field(ge=100, le=10000, multiple_of=100)
     recipient_link: AnyHttpUrl
-    payment_method: Literal["yookassa"]
+    payment_method: Literal["sbp"]
     idempotence_key: UUID
 
     @field_validator("recipient_link", mode="before")

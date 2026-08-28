@@ -1,5 +1,5 @@
 import HeroRegisterForm from "./HeroRegisterForm";
-import { useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import Stats from "../Stats/Stats";
 import "./css/layout/HeroLayout.css";
 import "./css/content/HeroCopy.css";
@@ -12,9 +12,6 @@ import "./css/auth-panel/HeroAuthPanel.css";
 import "./css/responsive/HeroResponsive.css";
 import "./css/Visual.css";
 
-import startIcon from "../../../../assets/icons/start.png";
-import helpIcon from "../../../../assets/icons/help.png";
-import securityIcon from "../../../../assets/icons/security.png";
 import instagramIcon from "../../../../assets/social_icons/instagram.svg";
 import telegramIcon from "../../../../assets/social_icons/telegram.svg";
 import tiktokIcon from "../../../../assets/social_icons/tiktok.svg";
@@ -24,27 +21,9 @@ import rutubeIcon from "../../../../assets/social_icons/Icon_RUTUBE_dark_color.s
 import spotifyIcon from "../../../../assets/social_icons/Spotify.png";
 import dzenIcon from "../../../../assets/social_icons/dzen.svg";
 import maxIcon from "../../../../assets/social_icons/max.svg";
-import soundcloudIcon from "../../../../assets/social_icons/soundcloud.png";
+import vkMusicIcon from "../../../../assets/social_icons/vk-music.svg";
 import twitchIcon from "../../../../assets/social_icons/twich.png";
-import yandexMusicIcon from "../../../../assets/social_icons/yandex-music.png";
-
-const heroBenefits = [
-    {
-        icon: startIcon,
-        text: "Старт от 100 ₽",
-        description: "Минимальная сумма заказа подходит для быстрого теста продвижения.",
-    },
-    {
-        icon: helpIcon,
-        text: "Поддержка\nкруглосуточно",
-        description: "Помогаем разобраться с заказом и подскажем лучший вариант услуги.",
-    },
-    {
-        icon: securityIcon,
-        text: "Безопасность и надежность",
-        description: "Заказы проходят аккуратно, а статус можно отслеживать после оформления.",
-    },
-];
+import appleMusicIcon from "../../../../assets/social_icons/Apple_Musikl.png";
 
 const heroPlatforms = [
     { name: "Instagram", icon: instagramIcon },
@@ -56,9 +35,15 @@ const heroPlatforms = [
     { name: "Dzen", icon: dzenIcon },
     { name: "MAX", icon: maxIcon },
     { name: "Spotify", icon: spotifyIcon },
-    { name: "SoundCloud", icon: soundcloudIcon },
+    { name: "VK Музыка", icon: vkMusicIcon },
     { name: "Twitch", icon: twitchIcon },
-    { name: "Yandex Music", icon: yandexMusicIcon },
+    { name: "Apple Music", icon: appleMusicIcon },
+];
+
+const heroBenefitCopy = [
+    "Минимальная сумма заказа подходит для быстрого теста продвижения.",
+    "Помогаем разобраться с заказом и подскажем лучший вариант услуги.",
+    "Заказы проходят аккуратно, а статус можно отслеживать после оформления.",
 ];
 
 export default function Hero({
@@ -66,9 +51,6 @@ export default function Hero({
     initialAuthMode = "register",
     onQuickOrderClick,
 }) {
-    const reviewTextRef = useRef(null);
-    const [reviewScrollProgress, setReviewScrollProgress] = useState(0);
-
     function handleQuickOrderClick(event) {
         if (!onQuickOrderClick) {
             return;
@@ -76,50 +58,6 @@ export default function Hero({
 
         event.preventDefault();
         onQuickOrderClick();
-    }
-
-    function handleReviewScroll(event) {
-        const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
-        const maxScroll = scrollHeight - clientHeight;
-
-        setReviewScrollProgress(maxScroll > 0 ? scrollTop / maxScroll : 0);
-    }
-
-    function scrollReviewFromPointer(clientY, trackElement) {
-        const reviewText = reviewTextRef.current;
-
-        if (!reviewText) {
-            return;
-        }
-
-        const track = trackElement.getBoundingClientRect();
-        const thumbHeight = 42;
-        const maxThumbTop = Math.max(track.height - thumbHeight, 1);
-        const pointerTop = event.clientY - track.top - thumbHeight / 2;
-        const progress = Math.min(Math.max(pointerTop / maxThumbTop, 0), 1);
-        const maxScroll = reviewText.scrollHeight - reviewText.clientHeight;
-
-        reviewText.scrollTop = maxScroll * progress;
-        setReviewScrollProgress(progress);
-    }
-
-    function handleReviewScrollPointerDown(event) {
-        event.preventDefault();
-        const trackElement = event.currentTarget;
-
-        scrollReviewFromPointer(event.clientY, trackElement);
-
-        function handlePointerMove(moveEvent) {
-            scrollReviewFromPointer(moveEvent.clientY, trackElement);
-        }
-
-        function handlePointerUp() {
-            window.removeEventListener("pointermove", handlePointerMove);
-            window.removeEventListener("pointerup", handlePointerUp);
-        }
-
-        window.addEventListener("pointermove", handlePointerMove);
-        window.addEventListener("pointerup", handlePointerUp);
     }
 
     return (
@@ -155,18 +93,15 @@ export default function Hero({
                             >
                                 <span className="button-label">Быстрый заказ</span>
                             </a>
-
-                            <div className="hero-benefit-rotator" aria-label="Преимущества">
-                                {heroBenefits.map((benefit) => (
-                                    <div className="hero-benefit-slide" key={benefit.text}>
-                                        <div className="hero-benefit-heading">
-                                            <img className="hero-benefit-icon" src={benefit.icon} alt="" aria-hidden="true" />
-                                            <span>{benefit.text}</span>
-                                        </div>
-                                        <p>{benefit.description}</p>
+                            <Link className="button hero-action-catalog" to="/catalog">
+                                <span className="button-label">Каталог услуг</span>
+                            </Link>
+                            <div className="hero-benefit-rotator hero-benefit-rotator--copy" aria-label="Преимущества">
+                                {heroBenefitCopy.map((text) => (
+                                    <div className="hero-benefit-slide" key={text}>
+                                        <p>{text}</p>
                                     </div>
                                 ))}
-
                                 <div className="hero-benefit-indicator" aria-hidden="true">
                                     <span />
                                     <span />

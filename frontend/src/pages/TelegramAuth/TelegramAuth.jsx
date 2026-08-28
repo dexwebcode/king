@@ -5,6 +5,59 @@ import telegramIcon from "../../assets/social_icons/telegram.svg";
 import { completeTelegramRegister } from "../Landing/components/Hero/auth/authApi";
 import "./TelegramAuth.css";
 
+function getApiErrorMessage(data, fallback) {
+    if (typeof data?.detail === "string") {
+        return data.detail;
+    }
+
+    if (Array.isArray(data?.detail)) {
+        const messages = data.detail
+            .map((error) => error?.msg)
+            .filter(Boolean);
+
+        if (messages.length) {
+            return messages.join(". ");
+        }
+    }
+
+    return fallback;
+}
+
+function getLoginValidationMessage(value) {
+    if (value.length < 3 || value.length > 50) {
+        return "Логин должен содержать от 3 до 50 символов";
+    }
+
+    if (/\s/u.test(value)) {
+        return "Логин не должен содержать пробелы";
+    }
+
+    return "";
+}
+
+function getPasswordValidationMessage(value) {
+    if (value.length < 6) {
+        return "Пароль должен содержать минимум 6 символов";
+    }
+
+    if (!/\p{Ll}/u.test(value)) {
+        return "Пароль должен содержать строчную букву";
+    }
+
+    if (!/\p{Lu}/u.test(value)) {
+        return "Пароль должен содержать заглавную букву";
+    }
+
+    if (!/\d/u.test(value)) {
+        return "Пароль должен содержать цифру";
+    }
+
+    if (/\s/u.test(value)) {
+        return "Пароль не должен содержать пробелы";
+    }
+
+    return "";
+}
 
 export default function TelegramAuth() {
     const location = useLocation();
@@ -27,9 +80,22 @@ export default function TelegramAuth() {
 
     async function handleSubmit(event) {
         event.preventDefault();
+        const normalizedLogin = login.trim();
 
-        if (!login.trim() || !password) {
+        if (!normalizedLogin || !password) {
             setMessage("Введите логин и пароль");
+            return;
+        }
+
+        const loginError = getLoginValidationMessage(normalizedLogin);
+        if (loginError) {
+            setMessage(loginError);
+            return;
+        }
+
+        const passwordError = getPasswordValidationMessage(password);
+        if (passwordError) {
+            setMessage(passwordError);
             return;
         }
 
@@ -44,16 +110,16 @@ export default function TelegramAuth() {
 
             const response = await completeTelegramRegister(
                 token,
-                login.trim(),
+                normalizedLogin,
                 password
             );
 
             if (!response.ok) {
-                setMessage(response.data?.detail || "Не удалось завершить вход");
+                setMessage(getApiErrorMessage(response.data, "Не удалось завершить вход"));
                 return;
             }
 
-            navigate("/main", { replace: true });
+            navigate("/catalog", { replace: true });
 
         } catch (error) {
             console.log("Ошибка завершения Telegram авторизации:", error);
@@ -72,12 +138,12 @@ export default function TelegramAuth() {
                 </div>
 
                 {suggestedLogin && (
-                    <p className="telegram-auth-eyebrow">
+                    <div className="telegram-auth-eyebrow">
                         <p className="telegram-auth-login-hint">
                             Ваш аккаунт в Telegram {suggestedLogin}
                             <span> подтвержден</span>
                         </p>
-                    </p>
+                    </div>
                 )}
 
                 <p className="telegram-auth-note">

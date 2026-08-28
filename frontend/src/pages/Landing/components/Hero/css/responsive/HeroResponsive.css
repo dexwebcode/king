@@ -1,171 +1,152 @@
-/* =========================================================
-   TABLET
-========================================================= */
-
-@media (max-width: 1050px) {
-
+@media (max-width: 1100px) {
     .hero {
-        grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
-
-        gap: 25px;
-    }
-
-    .hero h1 {
-        font-size: clamp(42px, 6vw, 60px);
-    }
-
-    .hero-visual img {
-        width: 115%;
-        max-width: 480px;
-    }
-
-}
-
-/* =========================================================
-   MOBILE
-========================================================= */
-
-@media (max-width: 800px) {
-
-    .hero {
-        --hero-copy-width: 100%;
-        --hero-copy-shift: 0;
         min-height: auto;
-
-        grid-template-columns: 1fr;
-
-        padding-top: 50px;
-        padding-bottom: 50px;
-
-        overflow: visible;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "copy"
+            "stats"
+            "form";
+        gap: 28px;
+        padding-block: clamp(42px, 7vw, 70px);
     }
 
-    .hero-content {
-        position: relative;
-        top: auto;
-        left: auto;
-        height: auto;
-        max-width: none;
+    .hero-content,
+    .hero-visual,
+    .stats {
+        width: min(760px, 100%);
+        margin-inline: auto;
     }
 
-    .hero-copy {
-        height: auto;
+    .hero-auth-panel {
+        right: auto;
+        width: min(560px, 100%);
     }
 
-    .hero-actions {
-        width: 100%;
+    .hero--left .hero-main-title,
+    .hero--left .hero-subtitle {
+        text-align: center;
     }
 
-    .hero-actions-top {
-        grid-template-columns: 220px minmax(0, 1fr);
-    }
-
-    .hero-actions .hero-action-primary {
-        grid-column: 1;
-        grid-row: 1;
-    }
-
-    .hero-benefit-rotator {
-        grid-column: 1 / -1;
-    }
-
-    .hero-reviews {
-        grid-column: 1 / -1;
-        grid-row: 3;
-        margin: 18px 0 0;
-    }
-
-    .hero-supported-platforms {
-        grid-column: 1 / -1;
-        grid-row: 4;
-    }
-
-    .hero--left .hero-main-title {
-        width: auto;
-        max-width: 100%;
-    }
-
-    .hero--left .hero-main-title span {
-        white-space: normal;
-    }
-
-    .hero-subtitle {
-        white-space: normal;
-    }
-
-    .hero-visual {
-        grid-row: 2;
-
-        min-height: 400px;
-        z-index: 1;
-    }
-
-    .hero-visual img {
-        width: min(100%, 450px);
-
-        max-height: none;
-    }
-
-}
-
-/* =========================================================
-   SMALL MOBILE
-========================================================= */
-
-@media (max-width: 550px) {
-
-    .hero h1 {
-        font-size: 44px;
-    }
-
-    .hero-actions {
-        width: 100%;
+    .hero--left .hero-copy {
+        align-items: center;
+        text-align: center;
     }
 
     .hero-actions-top {
-        grid-template-columns: 1fr;
-    }
-
-    .hero-actions .hero-action-primary {
-        grid-column: 1;
-        grid-row: 1;
-    }
-
-    .hero-benefit-rotator {
-        grid-column: 1;
-        grid-row: 2;
-    }
-
-    .hero-reviews {
-        grid-column: 1;
-        grid-row: 3;
-    }
-
-    .hero-supported-platforms {
-        grid-column: 1;
-        grid-row: 4;
+        justify-content: center;
     }
 
     .hero-supported-platforms-grid {
-        grid-template-columns: repeat(6, 52px);
-        gap: 8px;
+        justify-content: center;
+    }
+
+    .stats {
+        justify-self: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero {
+        margin-top: 66px;
+        padding-block: 36px 48px;
+    }
+
+    .hero-content {
+        gap: 18px;
+    }
+
+    .hero--left .hero-main-title {
+        font-size: clamp(36px, 9vw, 50px);
+    }
+
+    .hero-subtitle {
+        margin-block: 14px 10px;
+        font-size: 17px;
+    }
+
+    .hero-actions {
+        width: 100%;
+    }
+
+    .hero-actions-top {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: auto auto;
+    }
+
+    .hero-actions .hero-action-primary,
+    .hero-actions .hero-action-catalog {
+        width: 100%;
+    }
+
+    .hero-benefit-rotator--copy {
+        width: 100%;
+        transform: none;
+    }
+
+    .hero-supported-platforms-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        width: 100%;
     }
 
     .hero-supported-platform {
-        width: 52px;
-        height: 52px;
+        width: 100%;
+        max-width: 58px;
+        height: auto;
+        aspect-ratio: 1;
+        justify-self: center;
     }
 
-    .platform-grid.compact {
-        grid-template-columns: repeat(2, 1fr);
+    .hero-supported-platform img {
+        width: 68%;
+        height: 68%;
     }
 
-    .service-pills {
+    .hero-visual {
+        min-height: 0;
+        margin-top: 0;
+    }
+}
+
+@media (max-width: 520px) {
+    .hero--left .hero-main-title {
+        font-size: clamp(32px, 10vw, 42px);
+    }
+
+    .hero-actions-top {
         grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
     }
 
-    .steps-line {
-        grid-template-columns: repeat(2, 1fr);
+    .hero-actions .hero-action-primary {
+        grid-column: 1;
+        grid-row: 1;
     }
 
+    .hero-actions .hero-action-catalog {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .hero-benefit-rotator--copy {
+        grid-column: 1;
+        grid-row: 3;
+        min-height: 112px;
+    }
+
+    .hero-benefit-rotator--copy .hero-benefit-slide p {
+        padding-inline: 10px 22px;
+        font-size: 15px;
+    }
+
+    .hero-benefit-rotator--copy .hero-benefit-indicator {
+        right: 2px;
+    }
+
+    .hero-supported-platforms-grid {
+        gap: 7px;
+    }
+
+    .hero-auth-panel {
+        padding: 24px 18px;
+    }
 }

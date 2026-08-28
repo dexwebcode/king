@@ -1,72 +1,135 @@
-# ФАЙЛ: backend/services/get_price.py
-# КОМЕНТАРИЙ: Сервис для полчения прайсов
-
-# PYTHON ИПОРТЫ
+import json
 import urllib.parse
 import urllib.request
-import json
 from decimal import Decimal, ROUND_HALF_UP
 
-# ЛОКАЛЬНЫЕ ИМПОРТЫ
 from backend.core.config import (
     KINGPROMOTION_API_KEY,
     KINGPROMOTION_API_URL,
     KINGPROMOTION_MARKUP_PERCENT,
 )
 
-OTHER_PLATFORMS = {
-    "dzen",
-    "max",
-    "music",
-    "rutube",
-    "tiktok",
-    "twitch",
-    "wibes",
-}
 
 COMPARE_MARKUP_PERCENT = Decimal("75")
+PROVIDER_PLATFORM_TYPES = {
+    "dzen": "dzen",
+    "max": "max",
+    "rutube": "rutube",
+    "tiktok": "tiktok",
+    "twitch": "twitch",
+    "twich": "twitch",
+    "wibes": "wibes",
+}
+DIRECT_SERVICE_TYPES = {
+    "auto": "auto",
+    "comments": "comments",
+    "custom comment": "comments",
+    "followers": "followers",
+    "friends": "friends",
+    "likes": "likes",
+    "livestream": "livestream",
+    "poll": "polls",
+    "premium": "premium",
+    "reaction": "reactions",
+    "views": "views",
+}
 
 
 def _money(value: Decimal) -> str:
-    return str(
-        value.quantize(
-            Decimal("0.01"),
-            rounding=ROUND_HALF_UP,
-        )
-    )
+    return str(value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
-def normalize_service(service: dict) -> dict:
-    normalized = dict(service)
+def _music_platform(name: str) -> str | None:
+    if name.startswith("vk ") or name.startswith("вк ") or "вконтакте" in name:
+        return "vk"
+    if "spotify" in name:
+        return "spotify"
+    if "apple music" in name:
+        return "apple_music"
+    if "shazam" in name:
+        return "shazam"
+    return None
 
-    if service.get("soc") != "other":
-        return normalized
 
-    supplier_type = service.get("type")
+def _platform(service: dict, provider_type: str, name: str) -> str | None:
+    provider_soc = str(service.get("soc") or "").strip().lower()
+    if provider_soc and provider_soc != "other":
+        return provider_soc
+    if provider_type == "music":
+        return _music_platform(name)
+    return PROVIDER_PLATFORM_TYPES.get(provider_type)
 
-    if supplier_type not in OTHER_PLATFORMS:
-        return normalized
 
-    name = str(service.get("name", "")).lower()
-
-    normalized["soc"] = supplier_type
-
+def _service_type_from_name(name: str) -> str | None:
+    if "stories" in name or "истори" in name:
+        return "stories"
+    if "реферал" in name:
+        return "referrals"
+    if "прослуш" in name:
+        return "listenings"
+    if "подкаст" in name:
+        return "podcasts"
+    if "комментар" in name:
+        return "comments"
+    if "реакц" in name:
+        return "reactions"
+    if "репост" in name:
+        return "reposts"
+    if "голосован" in name or "опрос" in name:
+        return "polls"
+    if "сохран" in name or "избран" in name:
+        return "saves"
+    if "посещен" in name or "статистик" in name or "охват" in name:
+        return "statistics"
     if "подпис" in name:
-        normalized["type"] = "followers"
-    elif "лайк" in name:
-        normalized["type"] = "likes"
-    elif "просмотр" in name or "показ" in name or "дочитыван" in name:
-        normalized["type"] = "views"
-    elif "комментар" in name:
-        normalized["type"] = "comments"
-    elif "реакц" in name:
-        normalized["type"] = "reaction"
-    elif "репост" in name:
-        normalized["type"] = "reposts"
-    else:
-        normalized["type"] = "other"
+        return "followers"
+    if "лайк" in name:
+        return "likes"
+    if (
+        "просмотр" in name
+        or "показ" in name
+        or "дочитыван" in name
+        or "зрител" in name
+    ):
+        return "views"
+    if "в топ" in name:
+        return "statistics"
+    return None
 
-    return normalized
+
+def _service_type(provider_type: str, name: str) -> str | None:
+    if provider_type == "music" or provider_type in PROVIDER_PLATFORM_TYPES:
+        return _service_type_from_name(name)
+    if provider_type == "other":
+        return _service_type_from_name(name)
+    return DIRECT_SERVICE_TYPES.get(provider_type)
+
+
+def normalize_service(service: dict) -> dict | None:
+    """Separate provider classification from the public catalog taxonomy."""
+    provider_soc = str(service.get("soc") or "").strip().lower()
+    provider_type = str(service.get("type") or "").strip().lower()
+    provider_category = str(service.get("category") or "").strip()
+    name = str(service.get("name") or "").strip().lower()
+    platform = _platform(service, provider_type, name)
+    service_type = _service_type(provider_type, name)
+
+    # Keep ambiguous provider services out of the public catalog.
+    if not platform or not service_type:
+        return None
+
+    return {
+        **service,
+        "provider_service_id": service.get("service"),
+        "provider_soc": provider_soc,
+        "provider_type": str(service.get("type") or "").strip(),
+        "provider_category": provider_category,
+        "platform": platform,
+        "service_type": service_type,
+        # Existing order code still reads soc/type, so keep normalized aliases.
+        "soc": platform,
+        "type": service_type,
+    }
 
 
 def add_markup_to_service(service: dict) -> dict:
@@ -93,38 +156,49 @@ def add_markup_to_service(service: dict) -> dict:
     }
 
 
-def get_price():
+def _load_provider_services() -> list[dict]:
     if not KINGPROMOTION_API_KEY:
-        raise RuntimeError(
-            "KINGPROMOTION_API_KEY не задан в backend/.env"
-        )
+        raise RuntimeError("KINGPROMOTION_API_KEY не задан в backend/.env")
 
     params = urllib.parse.urlencode({
         "action": "services",
         "key": KINGPROMOTION_API_KEY,
     })
-
     url = f"{KINGPROMOTION_API_URL}?{params}"
 
     with urllib.request.urlopen(url, timeout=15) as response:
-        raw_data = response.read().decode("utf-8")
+        data = json.loads(response.read().decode("utf-8"))
 
-    data = json.loads(raw_data)
+    if not isinstance(data, list):
+        raise RuntimeError("Поставщик вернул некорректный каталог услуг")
+    return data
 
-    return [
-        add_markup_to_service(normalize_service(service))
-        for service in data
-    ]
+
+def normalize_catalog(services: list[dict]) -> list[dict]:
+    catalog = []
+    for service in services:
+        normalized = normalize_service(service)
+        if normalized is not None:
+            catalog.append(add_markup_to_service(normalized))
+    return catalog
+
+
+def get_price(platform: str | None = None) -> list[dict]:
+    catalog = normalize_catalog(_load_provider_services())
+    if not platform:
+        return catalog
+
+    expected_platform = platform.strip().lower()
+    return [item for item in catalog if item["platform"] == expected_platform]
 
 
 def get_service_by_id(service_id: str | int) -> dict | None:
     expected_id = str(service_id)
-
     return next(
         (
             service
             for service in get_price()
-            if str(service.get("id", service.get("service"))) == expected_id
+            if str(service.get("provider_service_id")) == expected_id
         ),
         None,
     )
@@ -133,7 +207,6 @@ def get_service_by_id(service_id: str | int) -> dict | None:
 def validate_service_quantity(service: dict, quantity: int) -> None:
     minimum = int(service.get("min", 100))
     maximum = int(service.get("max", 10000))
-
     if quantity < minimum or quantity > maximum:
         raise ValueError(
             f"Для этой услуги допустимо количество от {minimum} до {maximum}"
@@ -141,13 +214,8 @@ def validate_service_quantity(service: dict, quantity: int) -> None:
 
 
 def calculate_order_amount(service: dict, quantity: int) -> Decimal:
-    rate_key = (
-        "price_per_1000"
-        if quantity >= 1000
-        else "compare_price_per_1000"
-    )
+    rate_key = "price_per_1000" if quantity >= 1000 else "compare_price_per_1000"
     rate = Decimal(str(service[rate_key]))
-
     return (rate * Decimal(quantity) / Decimal("1000")).quantize(
         Decimal("0.01"),
         rounding=ROUND_HALF_UP,

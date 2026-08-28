@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from backend.payments.service import (
     PaymentConflictError,
     PaymentVerificationError,
+    _payment_method_type,
     _validate_idempotent_attempt,
     _validate_payment,
     process_verified_payment,
@@ -30,7 +31,7 @@ class FakeSession:
         pass
 
 
-def payment(*, amount="100.00", currency="RUB", status="succeeded"):
+def payment(*, amount="100.00", currency="RUB", status="succeeded", method="sbp"):
     return SimpleNamespace(
         id="test-payment-id",
         status=status,
@@ -40,6 +41,7 @@ def payment(*, amount="100.00", currency="RUB", status="succeeded"):
             "order_id": "601",
             "user_id": "151",
         },
+        payment_method=SimpleNamespace(type=method),
         confirmation=None,
     )
 
@@ -61,7 +63,7 @@ class PaymentValidationTests(unittest.TestCase):
             service_id=10,
             quantity=1000,
             recipient_link="instagram.com/example",
-            payment_method="yookassa",
+            payment_method="sbp",
             idempotence_key="00000000-0000-0000-0000-000000000001",
         )
         self.assertEqual(str(request.recipient_link), "https://instagram.com/example")
@@ -71,6 +73,10 @@ class PaymentValidationTests(unittest.TestCase):
             _validate_payment(payment(), attempt()),
             Decimal("100.00"),
         )
+
+    def test_reads_sbp_payment_method_from_provider_response(self):
+        self.assertEqual(_payment_method_type(payment()), "sbp")
+        self.assertEqual(_payment_method_type(payment(method="bank_card")), "bank_card")
 
     def test_rejects_changed_amount(self):
         with self.assertRaises(PaymentVerificationError):

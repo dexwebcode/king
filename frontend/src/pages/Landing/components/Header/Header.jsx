@@ -22,7 +22,7 @@ function scrollToTopFast() {
     requestAnimationFrame(animateScroll);
 }
 
-export default function Header({ onAuthModeChange }) {
+export default function Header({ onAuthModeChange, showAuthButton = false }) {
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -85,18 +85,19 @@ export default function Header({ onAuthModeChange }) {
                 </a>
 
             </nav>
-            <div className="header-actions">
-                <button
-                    type="button"
-                    className="button button-gold"
-                    onClick={() => goToAuth("auth")}
-                >
-                    <span className="button-label">
-                        Авторизация
-                    </span>
-                </button>
-
-            </div>
+            {showAuthButton && (
+                <div className="header-actions">
+                    <button
+                        type="button"
+                        className="button button-gold"
+                        onClick={() => goToAuth("auth")}
+                    >
+                        <span className="button-label">
+                            Авторизация
+                        </span>
+                    </button>
+                </div>
+            )}
 
         </header>
     );

@@ -102,7 +102,7 @@ export default function LoginForm({
             if (response.data.action === 'login' && response.data.token) {
                 localStorage.setItem('token', response.data.token)
                 window.dispatchEvent(new Event('king-auth-changed'))
-                navigate('/main', { replace: true })
+                navigate('/catalog', { replace: true })
                 return
             }
 
@@ -171,7 +171,7 @@ export default function LoginForm({
 
                 // ------ Изменяем глобальное состояние авторизации ------ //
                 setIsAuth(true)
-                navigate('/main')
+                navigate('/catalog')
                 return
             }
 
@@ -267,7 +267,7 @@ export default function LoginForm({
                 return
             }
 
-            navigate('/main', { replace: true })
+            navigate('/catalog', { replace: true })
 
         } catch (error) {
             console.log('Ошибка VK ID авторизации:', error)

@@ -5,7 +5,8 @@
 .hero-auth-panel {
     position: relative;
     z-index: 4;
-    width: min(560px, calc(100vw - 48px));
+    width: min(500px, 100%);
+    min-width: 0;
     padding: 46px 48px 42px;
     border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 24px;
@@ -76,7 +77,7 @@
 
     .hero-auth-panel {
         right: 0;
-        width: min(500px, var(--hero-form-width));
+        width: min(500px, 100%);
         padding: 36px;
     }
 

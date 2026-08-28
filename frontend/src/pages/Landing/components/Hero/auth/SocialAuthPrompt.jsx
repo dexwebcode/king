@@ -64,7 +64,7 @@ export default function SocialAuthPrompt({ onEmailClick, footerText = '' }) {
             if (response.data.action === 'login' && response.data.token) {
                 localStorage.setItem('token', response.data.token)
                 window.dispatchEvent(new Event('king-auth-changed'))
-                navigate('/main', { replace: true })
+                navigate('/catalog', { replace: true })
                 return
             }
 
@@ -179,7 +179,7 @@ export default function SocialAuthPrompt({ onEmailClick, footerText = '' }) {
                 return
             }
 
-            navigate('/main', { replace: true })
+            navigate('/catalog', { replace: true })
 
         } catch (error) {
             console.log('Ошибка VK ID авторизации:', error)

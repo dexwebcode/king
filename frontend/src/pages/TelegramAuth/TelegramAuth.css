@@ -1,5 +1,5 @@
 .telegram-auth-page {
-    min-height: 100vh;
+    min-height: 100dvh;
     display: grid;
     place-items: center;
     padding: 24px;
@@ -10,6 +10,7 @@
 
 .telegram-auth-card {
     width: min(100%, 430px);
+    min-width: 0;
     padding: 34px;
     border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 14px;
@@ -98,6 +99,8 @@
 }
 
 .telegram-auth-card input {
+    width: 100%;
+    min-width: 0;
     height: 52px;
     padding: 0 16px;
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -130,6 +133,10 @@
 }
 
 @media (max-width: 520px) {
+    .telegram-auth-page {
+        padding: 14px;
+    }
+
     .telegram-auth-card {
         padding: 26px 18px;
     }

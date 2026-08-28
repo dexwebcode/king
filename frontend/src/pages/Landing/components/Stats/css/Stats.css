@@ -1,9 +1,9 @@
 .stats {
-    position: absolute;
-    top: 505px;
-    left: 570px;
-
-    width: 300px;
+    position: relative;
+    grid-area: stats;
+    top: auto;
+    left: auto;
+    width: min(300px, 100%);
     height: 130px;
     margin: 0;
     overflow: hidden;

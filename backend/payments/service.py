@@ -76,6 +76,11 @@ def _confirmation_url(payment) -> str | None:
     return getattr(confirmation, "confirmation_url", None)
 
 
+def _payment_method_type(payment) -> str:
+    payment_method = getattr(payment, "payment_method", None)
+    return str(getattr(payment_method, "type", ""))
+
+
 def _payment_response(attempt) -> dict:
     confirmation_url = attempt.get("confirmation_url")
     if attempt.get("processed_at") is not None and not confirmation_url:
@@ -189,7 +194,7 @@ def create_order_payment(
     payment_method: str,
     idempotence_key: str,
 ) -> dict:
-    if payment_method != "yookassa":
+    if payment_method != "sbp":
         raise ValueError("Неподдерживаемый способ оплаты")
 
     service = get_service_by_id(service_id)
@@ -207,9 +212,11 @@ def create_order_payment(
     except (TypeError, ValueError) as error:
         raise ServiceNotFoundError("Поставщик вернул некорректный ID услуги") from error
 
-    platform = str(service.get("soc") or "other").lower()
-    if len(platform) > 9:
-        platform = "other"
+    platform = str(service.get("platform") or service.get("soc") or "").lower()
+    # The legacy orders.soc column is limited to 9 characters.
+    platform = {"apple_music": "apple"}.get(platform, platform)
+    if not platform or len(platform) > 9:
+        raise ServiceNotFoundError("У услуги некорректно указана площадка")
 
     attempt = _create_or_get_attempt(
         user_id=user_id,
@@ -235,6 +242,12 @@ def create_order_payment(
             amount=_money(attempt["amount"]),
             idempotence_key=idempotence_key,
         )
+        actual_payment_method = _payment_method_type(payment)
+        if actual_payment_method != "sbp":
+            raise PaymentVerificationError(
+                "ЮKassa создала способ оплаты "
+                f"{actual_payment_method or 'unknown'} вместо СБП"
+            )
         confirmation_url = _confirmation_url(payment)
         payment_status = str(getattr(payment, "status", "pending"))
 
@@ -280,7 +293,7 @@ def create_order_payment(
         try:
             with session.begin():
                 payment_id = str(getattr(payment, "id", "")) if payment else ""
-                if payment_id:
+                if payment_id and _payment_method_type(payment) == "sbp":
                     set_attempt_payment_details(
                         session,
                         attempt_id=attempt["id"],

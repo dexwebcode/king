@@ -83,12 +83,12 @@
 
 .benefit-slide-preview--left {
     left: 0;
-    transform: translate(-48%, -50%) scale(.86);
+    transform: translate(-40%, -50%) scale(.86);
 }
 
 .benefit-slide-preview--right {
     right: 0;
-    transform: translate(48%, -50%) scale(.86);
+    transform: translate(40%, -50%) scale(.86);
 }
 
 .benefit-slide-preview:hover {
@@ -223,11 +223,11 @@
     }
 
     .benefit-slide-preview--left {
-        transform: translate(-60%, -50%) scale(.8);
+        transform: translate(-45%, -50%) scale(.8);
     }
 
     .benefit-slide-preview--right {
-        transform: translate(60%, -50%) scale(.8);
+        transform: translate(45%, -50%) scale(.8);
     }
 
     .benefit-slide-preview small {

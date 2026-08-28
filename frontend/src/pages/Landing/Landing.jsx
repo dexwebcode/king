@@ -8,6 +8,7 @@ import TestBanner from "./components/TestBanner/TestBanner";
 import Reliability from "./components/Reliability/Reliability";
 import FinalCTA from "./components/FinalCTA/FinalCTA";
 import Footer from "./components/Footer/Footer";
+
 import { useEffect, useLayoutEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 
@@ -36,6 +37,7 @@ function scrollToTopFast() {
 export default function Landing() {
     const location = useLocation();
     const [isScrollTopVisible, setIsScrollTopVisible] = useState(false);
+    const [isHeroAuthVisible, setIsHeroAuthVisible] = useState(true);
     const [authMode, setAuthMode] = useState(
         location.state?.authMode === "login" ? "login" : "register"
     );
@@ -159,12 +161,28 @@ export default function Landing() {
         };
     }, []);
 
+    useEffect(() => {
+        const authPanel = document.querySelector(".hero-auth-panel");
+
+        if (!authPanel) {
+            return undefined;
+        }
+
+        const observer = new IntersectionObserver(
+            ([entry]) => setIsHeroAuthVisible(entry.isIntersecting),
+            { threshold: 0.1 }
+        );
+
+        observer.observe(authPanel);
+        return () => observer.disconnect();
+    }, []);
+
     return (
         <div className="page-shell">
             <div className="ambient ambient-one" />
             <div className="ambient ambient-two" />
 
-            <Header onAuthModeChange={setAuthMode} />
+            <Header onAuthModeChange={setAuthMode} showAuthButton={!isHeroAuthVisible} />
 
             <main id="top">
                 <Hero initialAuthMode={authMode} onQuickOrderClick={scrollToOrderCard} />
