@@ -12,7 +12,9 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
-
+.node_modules/
+.codex/
+.agents/
 # Environment variables
 .env
 .env.*
