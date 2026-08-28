@@ -85,13 +85,13 @@ KingPromotion создается как новый инструмент дкот
 
 ```
 docs/
-     ├── backend/
-     │        ├── 01-ARCHITECTURE.md
-     │        └─── ..
-     │
-     └── frontend/
-                ├── ...
-                └─── ..
+├── backend/
+│    ├── 01-ARCHITECTURE.md
+│    └─── ..
+│
+└── frontend/
+     ├── ...
+     └─── ..
 ```
 
 1.0.0 → первая рабочая версия
