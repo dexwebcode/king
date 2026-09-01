@@ -4,7 +4,50 @@
 #       и авторизации пользователей.
 
 # PYTHON ИМПОРТЫ
-from pydantic import BaseModel, EmailStr, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, field_validator
+
+
+def normalize_identifier(value: str) -> str:
+    identifier = value.strip()
+
+    if not identifier:
+        raise ValueError(
+            "Введите логин или почту"
+        )
+
+    return identifier.lower()
+
+
+def validate_login_value(value: str) -> str:
+    login = value.strip()
+
+    if len(login) < 3:
+        raise ValueError(
+            "Логин должен содержать минимум 3 символа"
+        )
+
+    if len(login) > 50:
+        raise ValueError(
+            "Логин слишком длинный"
+        )
+
+    if any(symbol.isspace() for symbol in login):
+        raise ValueError(
+            "Логин не должен содержать пробелы"
+        )
+
+    return login.lower()
+
+
+def normalize_token(value: str) -> str:
+    token = value.strip()
+
+    if not token:
+        raise ValueError(
+            "Токен не может быть пустым"
+        )
+
+    return token
 
 
 # Базовая схема электронной почты
@@ -26,24 +69,13 @@ class EmailRequest(BaseModel):
 # Схема для авторизации пользователя
 class LoginRequest(BaseModel):
 
-    email: str | None = None
-    login: str | None = None
-
+    identifier: str
     password: str
 
-    @model_validator(mode="after")
-    def validate_login_identifier(self):
-
-        identifier = self.email or self.login
-
-        if not identifier or not identifier.strip():
-            raise ValueError(
-                "Введите логин или почту"
-            )
-
-        self.email = identifier.strip().lower()
-
-        return self
+    @field_validator("identifier")
+    @classmethod
+    def validate_login_identifier(cls, value: str) -> str:
+        return normalize_identifier(value)
 
     # Минимальная проверка пароля при входе
     @field_validator("password")
@@ -118,6 +150,11 @@ class TelegramStartRequest(BaseModel):
     telegram_id: int
     telegram_username: str | None = None
 
+    @field_validator("token")
+    @classmethod
+    def validate_telegram_token(cls, value: str) -> str:
+        return normalize_token(value)
+
 
 class TelegramCompleteRegisterRequest(BaseModel):
 
@@ -128,24 +165,12 @@ class TelegramCompleteRegisterRequest(BaseModel):
     @field_validator("login")
     @classmethod
     def validate_telegram_login(cls, value: str) -> str:
-        login = value.strip()
+        return validate_login_value(value)
 
-        if len(login) < 3:
-            raise ValueError(
-                "Логин должен содержать минимум 3 символа"
-            )
-
-        if len(login) > 50:
-            raise ValueError(
-                "Логин слишком длинный"
-            )
-
-        if any(symbol.isspace() for symbol in login):
-            raise ValueError(
-                "Логин не должен содержать пробелы"
-            )
-
-        return login.lower()
+    @field_validator("token")
+    @classmethod
+    def validate_telegram_token(cls, value: str) -> str:
+        return normalize_token(value)
 
     @field_validator("password")
     @classmethod
@@ -153,11 +178,33 @@ class TelegramCompleteRegisterRequest(BaseModel):
         return RegisterRequest.validate_register_password(value)
 
 
-class TelegramLinkExistingRequest(LoginRequest):
+class TelegramLinkExistingRequest(BaseModel):
 
+    identifier: str
+    password: str
     token: str
+
+    @field_validator("identifier")
+    @classmethod
+    def validate_login_identifier(cls, value: str) -> str:
+        return normalize_identifier(value)
+
+    @field_validator("token")
+    @classmethod
+    def validate_telegram_token(cls, value: str) -> str:
+        return normalize_token(value)
+
+    @field_validator("password")
+    @classmethod
+    def validate_login_password(cls, value: str) -> str:
+        return LoginRequest.validate_login_password(value)
 
 
 class VkLoginRequest(BaseModel):
 
     access_token: str
+
+    @field_validator("access_token")
+    @classmethod
+    def validate_access_token(cls, value: str) -> str:
+        return normalize_token(value)

@@ -8,16 +8,19 @@
 #       выбрасывается исключение HTTPException с соответствующим кодом состояния.
 
 # PYTHON ИМПОРТЫ
-from fastapi import Header, HTTPException, status
-
+from fastapi import Header, HTTPException, status, Depends
+from sqlalchemy.orm import Session
 # ЛОКАЛЬНЫЕ ИМПОРТЫ
-from backend.core.database import SessionLocal
+
 from .repository import get_user_by_id
 from .security import decode_access_token
+from backend.core.database import get_db
+
 
 # Определение зависимости для получения текущего пользователя по токену
 def get_current_user(
     authorization: str | None = Header(default=None),
+    session: Session = Depends(get_db),
 ):
     if not authorization:
         raise HTTPException(
@@ -45,21 +48,14 @@ def get_current_user(
             detail="Токен недействителен или истёк",
         )
 
-    # Создание сессии базы данных для получения информации о пользователе
-    session = SessionLocal()
+    # Получение информации о пользователе по идентификатору из базы данных
+    user = get_user_by_id(session, user_id)
 
-    try:
-        # Получение информации о пользователе по идентификатору из базы данных
-        user = get_user_by_id(session, user_id)
+    # Если пользователь не найден, выбрасывается исключение HTTPException
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Пользователь не найден",
+        )
 
-        # Если пользователь не найден, выбрасывается исключение HTTPException
-        if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Пользователь не найден",
-            )
-        
-        return dict(user)
-
-    finally:
-        session.close()
+    return dict(user)

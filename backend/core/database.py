@@ -21,3 +21,11 @@ SessionLocal = sessionmaker(
     autoflush=False,
     autocommit=False,
 )
+
+# Подключается к базе данных
+def get_db():
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()

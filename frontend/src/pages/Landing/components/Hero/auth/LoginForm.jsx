@@ -143,9 +143,9 @@ export default function LoginForm({
     async function handleLogin(event) {
         event?.preventDefault()
 
-        const normalizedLogin = login.trim().toLowerCase()
+        const identifier = login.trim().toLowerCase()
 
-        if (!normalizedLogin || !password) {
+        if (!identifier || !password) {
             setErrorMessage('Введите логин и пароль')
             return
         }
@@ -157,14 +157,14 @@ export default function LoginForm({
 
             // ------ POST запрос на backend сервер для авторизации ------ //
             const response = await loginUser(
-                normalizedLogin,
+                identifier,
                 password
             )
 
             // ------ Если сервер вернул успешную авторизацию ------ //
             if (response.ok) {
                 if (rememberMe) {
-                    localStorage.setItem(rememberedLoginKey, normalizedLogin)
+                    localStorage.setItem(rememberedLoginKey, identifier)
                 } else {
                     localStorage.removeItem(rememberedLoginKey)
                 }
@@ -297,11 +297,11 @@ export default function LoginForm({
 
                     <input
                         id="auth-login"
-                        name="email"
+                        name="identifier"
                         className="Username-input"
-                        type="email"
+                        type="text"
                         autoComplete="username"
-                        placeholder="Введите логин"
+                        placeholder="Введите логин или почту"
                         value={login}
 
                         onChange={(event) => {

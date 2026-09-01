@@ -25,7 +25,7 @@ router = APIRouter()
 @router.post("/login")
 def login(data: LoginRequest):
     result = login_user(
-        email=str(data.email),
+        login_or_email=data.identifier,
         password=data.password,
     )
 

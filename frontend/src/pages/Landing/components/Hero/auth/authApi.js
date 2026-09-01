@@ -30,10 +30,10 @@ async function sendRequest(endpoint, method = 'GET', body = null, useAuth = true
     }
 }
 
-export async function loginUser(email, password) {
+export async function loginUser(identifier, password) {
 
     const result = await sendRequest('/auth/login', 'POST', {
-        email,
+        identifier,
         password
     }, false)
 
@@ -87,10 +87,10 @@ export async function completeTelegramRegister(token, login, password) {
     return saveAuthResult(result)
 }
 
-export async function linkTelegramExisting(token, login, password) {
+export async function linkTelegramExisting(token, identifier, password) {
     const result = await sendRequest('/auth/telegram/link-existing', 'POST', {
         token,
-        login,
+        identifier,
         password
     }, false)
 

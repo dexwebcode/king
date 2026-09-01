@@ -21,7 +21,7 @@ class UserAlreadyExistsError(Exception):
 
 # функция для аутентификации пользователя
 def login_user(
-    email: str,
+    login_or_email: str,
     password: str,
 ) -> dict | None:
 
@@ -31,7 +31,7 @@ def login_user(
 
         user = get_user_by_login_or_email(
             session=session,
-            login_or_email=email,
+            login_or_email=login_or_email,
         )
 
         if user is None:
