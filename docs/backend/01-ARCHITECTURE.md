@@ -1,85 +1,85 @@
 # 01-ARCHITECTURE
 ## Общая архитектура backend
 ```
-     ├── auth/
-     │    ├── __init__.py
-     │    │
-     │    ├── dependencies.py
-     │    │    └── Получение и проверка текущего пользователя
-     │    │
-     │    ├── repository.py
-     │    │    └── Работа с пользователями в PostgreSQL
-     │    │
-     │    ├── router.py
-     │    │    └── Главный роутер модуля авторизации
-     │    │
-     │    ├── routers/
-     │    │   ├── __init__.py
-     │    │   │    └── Экспорт роутеров
-     │    │   ├── auth.py
-     │    │   │    └── Базовая авторизация
-     │    │   ├── social.py
-     │    │   │    └── Социальные аккаунты и VK ID
-     │    │   └── telegram.py
-     │    │        └── Авторизация через Telegram
-     │    │
-     │    ├── schemas.py Валидация входящих данных авторизации
-     │    │    └── Валидация входящих данных авторизации
-     │    │
-     │    ├── security.py
-     │    │    └── Пароли и JWT
-     │    │
-     │    ├── service.py
-     │    │    └── Бизнес-логика базовой авторизации
-     │    │
-     │    ├── social_accounts.py
-     │    │    └── Работа с привязанными социальными аккаунтами
-     │    │
-     │    └── telegram_sessions.py
-     │         └── Работа с временными Telegram-сессиями
-     │
-     ├── bots/
-     │    ├── config.py
-     │    ├── __init__.py
-     │    ├── __main__.py
-     │    ├── run_bots.py
-     │    ├── telegram/
-     │    │    ├── bot.py
-     │    │    ├── __init__.py
-     │    │    └── __main__.py
-     │    │
-     │    └── vk/
-     │         ├── bot.py
-     │         ├── __init__.py
-     │         └── __main__.py
-     ├── core/
-     │    ├── config.py
-     │    ├── database.py
-     │    └── __init__.py
+├── auth/
+│    ├── __init__.py
+│    │
+│    ├── dependencies.py
+│    │    └── Получение и проверка текущего пользователя
+│    │
+│    ├── repository.py
+│    │    └── Работа с пользователями в PostgreSQL
+│    │
+│    ├── router.py
+│    │    └── Главный роутер модуля авторизации
+│    │
+│    ├── routers/
+│    │   ├── __init__.py
+│    │   │    └── Экспорт роутеров
+│    │   ├── auth.py
+│    │   │    └── Базовая авторизация
+│    │   ├── social.py
+│    │   │    └── Социальные аккаунты и VK ID
+│    │   └── telegram.py
+│    │        └── Авторизация через Telegram
+│    │
+│    ├── schemas.py Валидация входящих данных авторизации
+│    │    └── Валидация входящих данных авторизации
+│    │
+│    ├── security.py
+│    │    └── Пароли и JWT
+│    │
+│    ├── service.py
+│    │    └── Бизнес-логика базовой авторизации
+│    │
+│    ├── social_accounts.py
+│    │    └── Работа с привязанными социальными аккаунтами
+│    │
+│    └── telegram_sessions.py
+│         └── Работа с временными Telegram-сессиями
+│
+├── bots/
+│    ├── config.py
+│    ├── __init__.py
+│    ├── __main__.py
+│    ├── run_bots.py
+│    ├── telegram/
+│    │    ├── bot.py
+│    │    ├── __init__.py
+│    │    └── __main__.py
+│    │
+│    └── vk/
+│         ├── bot.py
+│         ├── __init__.py
+│         └── __main__.py
+├── core/
+│    ├── config.py
+│    ├── database.py
+│    └── __init__.py
+├── __init__.py
+│
+├── main.py ----> Точка входа в приложение
+├── migrations/
+│    └── 001_yookassa_balance.sql
+│
+├── payments/
+│    ├── __init__.py
+│    ├── repository.py
+│    ├── router.py
+│    ├── schemas.py
+│    ├── service.py
+│    └── yookassa_service.py
+│
+├── services/
+│    ├── get_price.py
+│    ├── __init__.py
+│    └── supplier.py
+│
+├── test.py
+└── tests/
      ├── __init__.py
-     │
-     ├── main.py ----> Точка входа в приложение
-     ├── migrations/
-     │    └── 001_yookassa_balance.sql
-     │
-     ├── payments/
-     │    ├── __init__.py
-     │    ├── repository.py
-     │    ├── router.py
-     │    ├── schemas.py
-     │    ├── service.py
-     │    └── yookassa_service.py
-     │
-     ├── services/
-     │    ├── get_price.py
-     │    ├── __init__.py
-     │    └── supplier.py
-     │
-     ├── test.py
-     └── tests/
-          ├── __init__.py
-          ├── test_catalog_normalization.py
-          └── test_payment_service.py
+     ├── test_catalog_normalization.py
+     └── test_payment_service.py
 ```
 ## Примечание
 
@@ -110,42 +110,42 @@
 
 ### Архитектура модуля
 ```
-     auth/
-     ├── __init__.py
-     │
-     ├── dependencies.py
-     │    └── Получение и проверка текущего пользователя
-     │
-     ├── repository.py
-     │    └── Работа с пользователями в PostgreSQL
-     │
-     ├── router.py
-     │    └── Главный роутер модуля авторизации
-     │
-     ├── routers/
-     │   ├── __init__.py
-     │   │    └── Экспорт роутеров
-     │   ├── auth.py
-     │   │    └── Базовая авторизация
-     │   ├── social.py
-     │   │    └── Социальные аккаунты и VK ID
-     │   └── telegram.py
-     │        └── Авторизация через Telegram
-     │
-     ├── schemas.py Валидация входящих данных авторизации
-     │    └── Валидация входящих данных авторизации
-     │
-     ├── security.py
-     │    └── Пароли и JWT
-     │
-     ├── service.py
-     │    └── Бизнес-логика базовой авторизации
-     │
-     ├── social_accounts.py
-     │    └── Работа с привязанными социальными аккаунтами
-     │
-     └── telegram_sessions.py
-          └── Работа с временными Telegram-сессиями
+auth/
+├── __init__.py
+│
+├── dependencies.py
+│    └── Получение и проверка текущего пользователя
+│
+├── repository.py
+│    └── Работа с пользователями в PostgreSQL
+│
+├── router.py
+│    └── Главный роутер модуля авторизации
+│
+├── routers/
+│   ├── __init__.py
+│   │    └── Экспорт роутеров
+│   ├── auth.py
+│   │    └── Базовая авторизация
+│   ├── social.py
+│   │    └── Социальные аккаунты и VK ID
+│   └── telegram.py
+│        └── Авторизация через Telegram
+│
+├── schemas.py Валидация входящих данных авторизации
+│    └── Валидация входящих данных авторизации
+│
+├── security.py
+│    └── Пароли и JWT
+│
+├── service.py
+│    └── Бизнес-логика базовой авторизации
+│
+├── social_accounts.py
+│    └── Работа с привязанными социальными аккаунтами
+│
+└── telegram_sessions.py
+     └── Работа с временными Telegram-сессиями
 ```
 ### dependencies.py
 
@@ -153,7 +153,7 @@
 
 ### router.py
 
-### routers/ --> Папка роутеров модуля 
+### routers/ --> Папка роутеров модуля
 
 #### auth.py
 
