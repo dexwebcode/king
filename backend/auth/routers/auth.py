@@ -1,5 +1,15 @@
+# ФАЙЛ: backend/auth/routers/auth.py
+#
+# Содержит HTTP-endpoints базовой авторизации:
+# вход, регистрацию, получение текущего пользователя и выход.
+#
+# Router принимает и валидирует HTTP-данные через schemas,
+# а основную логику входа и регистрации передаёт в auth.service.
+
+# PYTHON ИМПОРТЫ
 from fastapi import APIRouter, Depends, HTTPException, status
 
+# ЛОКАЛЬНЫЕ ИМПОРТЫ
 from backend.auth.dependencies import get_current_user
 from backend.auth.schemas import LoginRequest, RegisterRequest
 from backend.auth.service import (
@@ -11,7 +21,7 @@ from backend.auth.service import (
 
 router = APIRouter()
 
-
+# Endpoint входа пользователя
 @router.post("/login")
 def login(data: LoginRequest):
     result = login_user(
@@ -34,7 +44,7 @@ def login(data: LoginRequest):
         },
     }
 
-
+# Endpoint получения информации о пользователе
 @router.get("/me")
 def me(current_user: dict = Depends(get_current_user)):
     return {
@@ -42,7 +52,7 @@ def me(current_user: dict = Depends(get_current_user)):
         "user": current_user,
     }
 
-
+# Endpoint регитрации
 @router.post(
     "/register",
     status_code=status.HTTP_201_CREATED,
@@ -69,7 +79,7 @@ def register(data: RegisterRequest):
         },
     }
 
-
+# Endpoint выхода
 @router.post("/logout")
 def logout():
     return {

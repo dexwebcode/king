@@ -1,5 +1,8 @@
 # ФАЙЛ: main.py является точкой входа в приложение FastAPI.
-#КОМЕНТАРИЙ: Он создает экземпляр приложения, настраивает CORS и подключает маршруты для аутентификации.
+#КОМЕНТАРИЙ:
+# > Он создает экземпляр приложения,
+# > Настраивает CORS
+# > Подключает маршруты для аутентификации.
 
 
 # PYTHON ИМПОРТЫ
@@ -22,10 +25,11 @@ app = FastAPI(
 # Настройка CORS (Cross-Origin Resource Sharing) для разрешения запросов с указанных источников
 app.add_middleware(
     CORSMiddleware,
+    # Ссылки с разрешением обращаться к app
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        FRONTEND_URL,
+        FRONTEND_URL, # Настраиваемый фронетнд адрес
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -35,7 +39,6 @@ app.add_middleware(
 # Подключение маршрутов для аутентификации
 app.include_router(auth_router)
 app.include_router(payments_router)
-
 
 @app.get("/price")
 def price(platform: str | None = Query(default=None, max_length=32)):
