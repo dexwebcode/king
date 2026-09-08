@@ -88,7 +88,7 @@
     grid-row: 2;
     width: min(560px, 100%);
     min-height: 96px;
-    transform: translateX(42px);
+    transform: translate(17px, var(--hero-interactive-offset-y, 30px));
 }
 
 .hero-benefit-rotator--copy .hero-benefit-slide {
@@ -100,16 +100,17 @@
     grid-column: 1;
     grid-row: 1;
     min-height: 0;
-    padding-right: 26px;
+    padding-left: 28px;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     transform: none;
-    text-align: center;
+    text-align: left;
 }
 
 .hero-benefit-rotator--copy .hero-benefit-indicator {
     top: 4px;
-    right: -14px;
+    right: auto;
+    left: 0;
     bottom: 4px;
 }
 
@@ -235,13 +236,13 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 10px;
     pointer-events: none;
 }
 
 .hero-benefit-indicator span {
     width: 3px;
-    height: 17px;
+    height: 13px;
     border-radius: 999px;
     background: #ffffff;
     opacity: 0.62;
@@ -263,17 +264,17 @@
 
     0%,
     18% {
-        height: 72px;
+        height: 54px;
     }
 
     22%,
     78% {
-        height: 17px;
+        height: 13px;
     }
 
     82%,
     100% {
-        height: 72px;
+        height: 54px;
     }
 }
 
@@ -281,27 +282,27 @@
 
     0%,
     18% {
-        height: 17px;
+        height: 13px;
     }
 
     22%,
     38% {
-        height: 72px;
+        height: 54px;
     }
 
     42%,
     58% {
-        height: 17px;
+        height: 13px;
     }
 
     62%,
     78% {
-        height: 72px;
+        height: 54px;
     }
 
     82%,
     100% {
-        height: 17px;
+        height: 13px;
     }
 }
 
@@ -309,17 +310,17 @@
 
     0%,
     38% {
-        height: 17px;
+        height: 13px;
     }
 
     42%,
     58% {
-        height: 72px;
+        height: 54px;
     }
 
     62%,
     100% {
-        height: 17px;
+        height: 13px;
     }
 }
 

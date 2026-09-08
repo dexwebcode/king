@@ -1,5 +1,6 @@
 import json
 import logging
+from urllib.error import HTTPError, URLError
 
 from fastapi import (
     APIRouter,
@@ -12,6 +13,11 @@ from fastapi import (
 
 from backend.auth.dependencies import get_current_user
 from backend.core.database import SessionLocal
+from backend.services.supplier import (
+    SupplierNotConfiguredError,
+    SupplierRejectedError,
+    SupplierResponseError,
+)
 from .repository import (
     get_account_summary,
     get_order_for_user,
@@ -19,12 +25,18 @@ from .repository import (
 )
 from .schemas import CreateOrderRequest, CreateOrderResponse, OrderStatusResponse
 from .service import (
+    OrderNotDispatchedError,
+    OrderNotFoundError,
     PaymentConflictError,
     PaymentVerificationError,
     ServiceNotFoundError,
+    cancel_order_with_supplier,
     create_order_payment,
     dispatch_order,
+    refill_order_with_supplier,
     reconcile_payment_if_due,
+    sync_order_safely,
+    sync_order_with_supplier,
     verify_payment_notification,
 )
 from .yookassa_service import (
@@ -82,10 +94,16 @@ def create_order_endpoint(
 
 
 def _order_message(order) -> str | None:
+    if order["status"] == "Ожидает пополнения поставщика":
+        return "Заказ оплачен и ожидает пополнения рабочего баланса поставщика."
+    if order["status"] == "Поставщик недоступен":
+        return "Заказ оплачен. Поставщик временно недоступен, заказ сохранён."
     if order["status"] == "Требует проверки":
         return "Оплата принята. Отправка заказа проверяется поддержкой."
-    if order["status"] == "Отменен" and order["processed_at"] is not None:
-        return "Поставщик отклонил заказ. Средства возвращены на баланс."
+    if order["status"] == "Отклонен поставщиком":
+        return "Поставщик отклонил заказ. Требуется проверка администратора."
+    if order["status"] == "Отмена запрошена":
+        return "Поставщик принял запрос на отмену. Финансовый результат не подтверждён."
     if order["status"] == "Оплата отменена":
         return "Платёж отменён, баланс не изменён."
     return None
@@ -111,6 +129,15 @@ def order_status_endpoint(
     if order["status"] == "Ожидает отправки":
         background_tasks.add_task(dispatch_order, order_id)
     elif (
+        order["id_rocket"]
+        and order["status"] not in {"Завершен", "Отменен поставщиком"}
+    ):
+        background_tasks.add_task(
+            sync_order_safely,
+            order_id,
+            current_user["id"],
+        )
+    elif (
         order["processed_at"] is None
         and order["provider_payment_id"]
         and order["payment_status"] != "canceled"
@@ -131,6 +158,102 @@ def order_status_endpoint(
     }
 
 
+def _supplier_http_error(error: Exception) -> HTTPException:
+    if isinstance(error, SupplierNotConfiguredError):
+        return HTTPException(status_code=503, detail="Поставщик не настроен")
+    if isinstance(error, SupplierRejectedError):
+        return HTTPException(status_code=409, detail=str(error))
+    return HTTPException(status_code=502, detail="Некорректный ответ поставщика")
+
+
+@router.post("/api/orders/{order_id}/sync")
+def sync_order_endpoint(
+    order_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    try:
+        supplier_status, local_status = sync_order_with_supplier(
+            order_id,
+            current_user["id"],
+        )
+    except OrderNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except OrderNotDispatchedError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except (
+        SupplierNotConfiguredError,
+        SupplierRejectedError,
+        SupplierResponseError,
+        HTTPError,
+        URLError,
+        TimeoutError,
+        OSError,
+    ) as error:
+        raise _supplier_http_error(error) from error
+    return {
+        "id": order_id,
+        "status": local_status,
+        "supplier_status": supplier_status.status,
+        "charge": format(supplier_status.charge, "f"),
+        "currency": supplier_status.currency,
+        "quantity": supplier_status.quantity,
+        "start_count": supplier_status.start_count,
+        "remains": supplier_status.remains,
+    }
+
+
+@router.post("/api/orders/{order_id}/cancel")
+def cancel_order_endpoint(
+    order_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    try:
+        cancel_order_with_supplier(order_id, current_user["id"])
+    except OrderNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except OrderNotDispatchedError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except (
+        SupplierNotConfiguredError,
+        SupplierRejectedError,
+        SupplierResponseError,
+        HTTPError,
+        URLError,
+        TimeoutError,
+        OSError,
+    ) as error:
+        raise _supplier_http_error(error) from error
+    return {
+        "success": True,
+        "status": "Отмена запрошена",
+        "message": "Баланс пользователя не изменён: финансовый результат ещё не подтверждён.",
+    }
+
+
+@router.post("/api/orders/{order_id}/refill")
+def refill_order_endpoint(
+    order_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    try:
+        refill = refill_order_with_supplier(order_id, current_user["id"])
+    except OrderNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except OrderNotDispatchedError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except (
+        SupplierNotConfiguredError,
+        SupplierRejectedError,
+        SupplierResponseError,
+        HTTPError,
+        URLError,
+        TimeoutError,
+        OSError,
+    ) as error:
+        raise _supplier_http_error(error) from error
+    return {"success": True, "refill_id": refill.refill_id}
+
+
 @router.get("/api/me")
 def account_summary_endpoint(current_user: dict = Depends(get_current_user)):
     session = SessionLocal()
@@ -148,12 +271,25 @@ def account_summary_endpoint(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/api/my-orders")
-def my_orders_endpoint(current_user: dict = Depends(get_current_user)):
+def my_orders_endpoint(
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user),
+):
     session = SessionLocal()
     try:
         orders = get_user_orders(session, current_user["id"])
     finally:
         session.close()
+    for item in orders:
+        if item["id_rocket"] and item["status"] not in {
+            "Завершен",
+            "Отменен поставщиком",
+        }:
+            background_tasks.add_task(
+                sync_order_safely,
+                item["id"],
+                current_user["id"],
+            )
     return {
         "items": [
             {
@@ -164,6 +300,8 @@ def my_orders_endpoint(current_user: dict = Depends(get_current_user)):
                 "quantity": item["qnt"],
                 "amount": format(item["amount"], ".2f"),
                 "status": item["status"],
+                "dispatch_status": item["dispatch_status"],
+                "remains": item["remains"],
                 "created_at": item["date"],
             }
             for item in orders

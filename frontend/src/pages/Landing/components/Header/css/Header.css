@@ -25,6 +25,13 @@
 
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+    transition: background .35s ease, backdrop-filter .35s ease;
+}
+
+.site-header.container.site-header--initial {
+    background: rgba(8, 8, 9, .9);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
 }
 
 .site-header.container>* {
@@ -87,7 +94,8 @@
 
 .header-actions {
     display: flex;
-    min-width: 0;
+    min-width: 112px;
+    justify-content: flex-end;
     gap: 12px;
 }
 
@@ -227,6 +235,16 @@
     height: 44px;
     min-width: 112px;
     font-size: 14px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .22s ease, visibility .22s ease, transform .35s ease, box-shadow .5s ease;
+}
+
+.header-actions .button.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 .header-actions .button-gold {

@@ -10,13 +10,27 @@
     display: grid;
     grid-template-columns: minmax(0, 1.45fr) minmax(390px, .85fr);
     grid-template-areas:
-        "copy form"
-        "stats form";
+        "copy form";
     align-items: center;
     column-gap: clamp(36px, 4vw, 72px);
     row-gap: 18px;
     padding-block: clamp(44px, 6vh, 82px);
     overflow: visible;
+}
+
+/* The transition is part of the first screen, so it is visible before scrolling. */
+.hero::after {
+    position: absolute;
+    z-index: 2;
+    bottom: -72px;
+    left: 50%;
+    width: 100vw;
+    height: clamp(72px, 8vw, 118px);
+    content: "";
+    pointer-events: none;
+    background: rgba(8, 8, 9, 0.9);
+    filter: blur(42px);
+    transform: translateX(-50%) scaleX(1.08);
 }
 
 /* =========================================================
@@ -42,4 +56,10 @@
 
 .hero--left .hero-content {
     left: auto;
+}
+
+@media (min-width: 1101px) {
+    .hero--left .hero-content {
+        transform: translateX(-50px);
+    }
 }

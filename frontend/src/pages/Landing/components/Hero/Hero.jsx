@@ -65,9 +65,9 @@ export default function Hero({
             <div className="hero-content">
                 <div className="hero-copy">
                     <h1 className="hero-main-title">
-                        <span>Продвигайте ваши</span>
-                        <span>социальные сети быстрее </span>
-                        <span>дешевле и эффективнее</span>
+                        <span>Мы продвинем ваши</span>
+                        <span>социальные сети быстро</span>
+                        <span>эффективно и дешево</span>
                     </h1>
 
                     <p className="hero-subtitle">
@@ -108,6 +108,7 @@ export default function Hero({
                                     <span />
                                 </div>
                             </div>
+                            <Stats />
 
                         </div>
                     </div>
@@ -119,7 +120,6 @@ export default function Hero({
                     <HeroRegisterForm initialMode={initialAuthMode} />
                 </div>
             </div>
-            <Stats />
         </section>
     );
 }

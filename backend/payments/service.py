@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from threading import Lock
+from time import monotonic
 from urllib.error import HTTPError, URLError
 from zoneinfo import ZoneInfo
 
@@ -10,17 +12,22 @@ from backend.core.config import REFERRAL_REWARD_PERCENT, YOOKASSA_RETURN_URL
 from backend.core.database import SessionLocal
 from backend.services.get_price import (
     calculate_order_amount,
+    calculate_supplier_order_cost,
     get_service_by_id,
     validate_service_quantity,
 )
 from backend.services.supplier import (
     SupplierNotConfiguredError,
     SupplierRejectedError,
+    SupplierResponseError,
+    cancel_supplier_order,
     create_supplier_order,
+    get_supplier_balance,
+    get_supplier_order_status,
+    refill_supplier_order,
 )
 from .repository import (
     add_referral_reward,
-    cancel_order_after_rejection,
     claim_payment_reconciliation,
     claim_order_for_dispatch,
     complete_order_dispatch,
@@ -29,16 +36,23 @@ from .repository import (
     create_order_with_payment_attempt,
     get_attempt_by_idempotence_key,
     get_attempt_by_payment_id,
-    has_order_refund,
+    get_order_dispatch_state,
+    get_order_for_user,
     lock_order,
     lock_user,
+    mark_dispatch_rejected,
     mark_dispatch_unknown,
+    mark_insufficient_supplier_balance,
+    mark_order_cancel_requested,
     mark_order_paid,
     mark_payment_canceled,
     mark_payment_processed,
+    mark_supplier_precheck_unavailable,
+    record_supplier_order_for_review,
     set_attempt_error,
     set_attempt_payment_details,
     set_user_balance,
+    update_order_from_supplier,
 )
 from .yookassa_service import create_yookassa_payment, get_yookassa_payment
 
@@ -46,6 +60,9 @@ from .yookassa_service import create_yookassa_payment, get_yookassa_payment
 logger = logging.getLogger(__name__)
 MONEY_STEP = Decimal("0.01")
 MOSCOW_TIMEZONE = ZoneInfo("Europe/Moscow")
+STATUS_SYNC_INTERVAL_SECONDS = 15
+_status_sync_lock = Lock()
+_status_sync_started_at: dict[int, float] = {}
 
 
 class ServiceNotFoundError(ValueError):
@@ -57,6 +74,18 @@ class PaymentVerificationError(RuntimeError):
 
 
 class PaymentConflictError(RuntimeError):
+    pass
+
+
+class OrderNotFoundError(LookupError):
+    pass
+
+
+class OrderNotDispatchedError(ValueError):
+    pass
+
+
+class RetryDispatchError(ValueError):
     pass
 
 
@@ -470,45 +499,27 @@ def reconcile_payment_if_due(payment_id: str) -> None:
         logger.exception("Payment reconciliation failed")
 
 
-def _refund_rejected_order(order_id: int, error_message: str) -> None:
+def _save_dispatch_state(callback, **kwargs) -> None:
     session = SessionLocal()
     try:
         with session.begin():
-            order = lock_order(session, order_id)
-            if order is None or has_order_refund(session, order_id):
-                return
-            user = lock_user(session, order["user_id"])
-            if user is None:
-                raise RuntimeError("Пользователь заказа не найден")
-
-            refund_amount = _money(order["amount"])
-            balance_before = _money(user["balance"])
-            balance_after = balance_before + refund_amount
-            create_expense(
-                session,
-                user_id=order["user_id"],
-                related_id=order_id,
-                balance_before=balance_before,
-                balance_after=balance_after,
-                amount=refund_amount,
-                date=_legacy_now(),
-                expense_type=1,
-            )
-            set_user_balance(
-                session,
-                user_id=order["user_id"],
-                balance=balance_after,
-            )
-            cancel_order_after_rejection(
-                session,
-                order_id=order_id,
-                error_message=error_message,
-            )
+            callback(session, **kwargs)
     finally:
         session.close()
 
 
-def dispatch_order(order_id: int) -> None:
+def _is_insufficient_funds_error(error: Exception) -> bool:
+    message = str(error).lower()
+    return any(fragment in message for fragment in (
+        "not enough funds",
+        "insufficient funds",
+        "insufficient balance",
+        "недостаточно средств",
+        "недостаточный баланс",
+    ))
+
+
+def dispatch_order(order_id: int) -> str:
     session = SessionLocal()
     try:
         with session.begin():
@@ -516,8 +527,70 @@ def dispatch_order(order_id: int) -> None:
     finally:
         session.close()
     if order is None:
-        return
+        return "not_dispatchable"
 
+    try:
+        service = get_service_by_id(order["service_id"])
+        if service is None:
+            _save_dispatch_state(
+                mark_dispatch_rejected,
+                order_id=order_id,
+                error_message="Услуга поставщика больше недоступна",
+            )
+            return "rejected"
+
+        supplier_cost = calculate_supplier_order_cost(service, order["qnt"])
+        service_currency = str(service.get("currency") or "RUB").upper()
+        supplier_balance = get_supplier_balance()
+        if supplier_balance.currency != service_currency:
+            raise SupplierResponseError(
+                "Валюта баланса поставщика не совпадает с валютой услуги"
+            )
+    except (
+        SupplierNotConfiguredError,
+        SupplierRejectedError,
+        SupplierResponseError,
+        HTTPError,
+        URLError,
+        TimeoutError,
+        OSError,
+        ValueError,
+        KeyError,
+        InvalidOperation,
+    ) as error:
+        logger.warning(
+            "Supplier precheck unavailable local_order_id=%s error_type=%s",
+            order_id,
+            type(error).__name__,
+        )
+        _save_dispatch_state(
+            mark_supplier_precheck_unavailable,
+            order_id=order_id,
+            error_message=f"{type(error).__name__}: {error}",
+        )
+        return "supplier_unavailable"
+
+    if supplier_balance.balance < supplier_cost:
+        logger.warning(
+            "Supplier balance insufficient local_order_id=%s required=%s available=%s",
+            order_id,
+            supplier_cost,
+            supplier_balance.balance,
+        )
+        _save_dispatch_state(
+            mark_insufficient_supplier_balance,
+            order_id=order_id,
+            required=supplier_cost,
+            available=supplier_balance.balance,
+            currency=supplier_balance.currency,
+        )
+        return "insufficient_supplier_balance"
+
+    logger.info(
+        "Supplier dispatch started local_order_id=%s supplier_cost=%s",
+        order_id,
+        supplier_cost,
+    )
     try:
         supplier_order = create_supplier_order(
             service_id=order["service_id"],
@@ -525,11 +598,34 @@ def dispatch_order(order_id: int) -> None:
             quantity=order["qnt"],
         )
     except SupplierRejectedError as error:
-        logger.warning("Supplier rejected order_id=%s: %s", order_id, error)
-        _refund_rejected_order(order_id, str(error))
-        return
+        if _is_insufficient_funds_error(error):
+            logger.warning(
+                "Supplier add reported insufficient balance local_order_id=%s",
+                order_id,
+            )
+            _save_dispatch_state(
+                mark_insufficient_supplier_balance,
+                order_id=order_id,
+                required=supplier_cost,
+                available=supplier_balance.balance,
+                currency=supplier_balance.currency,
+            )
+            return "insufficient_supplier_balance"
+
+        logger.warning(
+            "Supplier rejected local_order_id=%s error=%s",
+            order_id,
+            error,
+        )
+        _save_dispatch_state(
+            mark_dispatch_rejected,
+            order_id=order_id,
+            error_message=str(error),
+        )
+        return "rejected"
     except (
         SupplierNotConfiguredError,
+        SupplierResponseError,
         HTTPError,
         URLError,
         TimeoutError,
@@ -537,17 +633,12 @@ def dispatch_order(order_id: int) -> None:
         ValueError,
     ) as error:
         logger.exception("Supplier result is unknown order_id=%s", order_id)
-        session = SessionLocal()
-        try:
-            with session.begin():
-                mark_dispatch_unknown(
-                    session,
-                    order_id=order_id,
-                    error_message=f"{type(error).__name__}: {error}",
-                )
-        finally:
-            session.close()
-        return
+        _save_dispatch_state(
+            mark_dispatch_unknown,
+            order_id=order_id,
+            error_message=f"{type(error).__name__}: {error}",
+        )
+        return "unknown"
 
     session = SessionLocal()
     try:
@@ -557,12 +648,142 @@ def dispatch_order(order_id: int) -> None:
                 order_id=order_id,
                 supplier_order_id=supplier_order.order_id,
             )
-    except Exception:
+    except Exception as save_error:
         logger.exception(
             "Supplier order created but local save failed order_id=%s supplier_order_id=%s",
             order_id,
             supplier_order.order_id,
         )
-        raise
+        try:
+            _save_dispatch_state(
+                record_supplier_order_for_review,
+                order_id=order_id,
+                supplier_order_id=supplier_order.order_id,
+                error_message=f"{type(save_error).__name__}: {save_error}",
+            )
+        except Exception:
+            logger.critical(
+                "Supplier order ID recovery failed local_order_id=%s supplier_order_id=%s",
+                order_id,
+                supplier_order.order_id,
+                exc_info=True,
+            )
+        return "save_failed"
     finally:
         session.close()
+
+    logger.info(
+        "Supplier order created local_order_id=%s supplier_order_id=%s",
+        order_id,
+        supplier_order.order_id,
+    )
+    return "completed"
+
+
+def retry_dispatch_order(order_id: int) -> str:
+    session = SessionLocal()
+    try:
+        order = get_order_dispatch_state(session, order_id)
+    finally:
+        session.close()
+    if order is None:
+        raise OrderNotFoundError("Заказ не найден")
+    if order["id_rocket"]:
+        raise RetryDispatchError("Заказ уже отправлен поставщику")
+    if order["payment_status"] != "processed" or order["processed_at"] is None:
+        raise RetryDispatchError("Заказ ещё не оплачен")
+    if order["dispatch_status"] not in {
+        "not_started",
+        "insufficient_supplier_balance",
+        "supplier_unavailable",
+    }:
+        raise RetryDispatchError("Заказ не находится в состоянии безопасного retry")
+    return dispatch_order(order_id)
+
+
+def _owned_supplier_order(order_id: int, user_id: int):
+    session = SessionLocal()
+    try:
+        order = get_order_for_user(session, order_id, user_id)
+    finally:
+        session.close()
+    if order is None:
+        raise OrderNotFoundError("Заказ не найден")
+    if not order["id_rocket"]:
+        raise OrderNotDispatchedError("Заказ ещё не отправлен поставщику")
+    return order
+
+
+SUPPLIER_TO_LOCAL_STATUS = {
+    "Pending": "В очереди у поставщика",
+    "In progress": "Выполняется",
+    "Partial": "Частично выполнен",
+    "Completed": "Завершен",
+    "Canceled": "Отменен поставщиком",
+}
+
+
+def sync_order_with_supplier(order_id: int, user_id: int):
+    order = _owned_supplier_order(order_id, user_id)
+    supplier_order_id = int(order["id_rocket"])
+    supplier_status = get_supplier_order_status(supplier_order_id)
+    local_status = SUPPLIER_TO_LOCAL_STATUS[supplier_status.status]
+
+    session = SessionLocal()
+    try:
+        with session.begin():
+            update_order_from_supplier(
+                session,
+                order_id=order_id,
+                supplier_order_id=supplier_order_id,
+                status=local_status,
+                remains=supplier_status.remains,
+                start_count=supplier_status.start_count,
+            )
+    finally:
+        session.close()
+    logger.info(
+        "Supplier status updated local_order_id=%s supplier_status=%s",
+        order_id,
+        supplier_status.status,
+    )
+    return supplier_status, local_status
+
+
+def sync_order_safely(order_id: int, user_id: int) -> None:
+    now = monotonic()
+    with _status_sync_lock:
+        last_started_at = _status_sync_started_at.get(order_id, 0)
+        if now - last_started_at < STATUS_SYNC_INTERVAL_SECONDS:
+            return
+        _status_sync_started_at[order_id] = now
+    try:
+        sync_order_with_supplier(order_id, user_id)
+    except Exception as error:
+        logger.warning(
+            "Supplier status sync failed local_order_id=%s error_type=%s",
+            order_id,
+            type(error).__name__,
+        )
+
+
+def cancel_order_with_supplier(order_id: int, user_id: int) -> None:
+    order = _owned_supplier_order(order_id, user_id)
+    supplier_order_id = int(order["id_rocket"])
+    cancel_supplier_order(supplier_order_id)
+
+    session = SessionLocal()
+    try:
+        with session.begin():
+            mark_order_cancel_requested(
+                session,
+                order_id=order_id,
+                supplier_order_id=supplier_order_id,
+            )
+    finally:
+        session.close()
+
+
+def refill_order_with_supplier(order_id: int, user_id: int):
+    order = _owned_supplier_order(order_id, user_id)
+    return refill_supplier_order(int(order["id_rocket"]))

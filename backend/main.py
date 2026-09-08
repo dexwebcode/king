@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # ЛЛОКАЛЬНЫЕ ИМПОРТЫ
 from backend.auth.router import router as auth_router
+from backend.admin.router import router as admin_router
 from backend.core.config import FRONTEND_URL
 from backend.payments.router import router as payments_router
 from backend.services.get_price import get_price
@@ -39,6 +40,7 @@ app.add_middleware(
 # Подключение маршрутов для аутентификации
 app.include_router(auth_router)
 app.include_router(payments_router)
+app.include_router(admin_router)
 
 @app.get("/price")
 def price(platform: str | None = Query(default=None, max_length=32)):

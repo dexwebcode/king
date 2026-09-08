@@ -4,7 +4,6 @@
         grid-template-columns: minmax(0, 1fr);
         grid-template-areas:
             "copy"
-            "stats"
             "form";
         gap: 28px;
         padding-block: clamp(42px, 7vw, 70px);
@@ -42,6 +41,17 @@
 
     .stats {
         justify-self: center;
+    }
+
+    .hero-actions-top {
+        grid-template-columns: repeat(2, minmax(170px, 220px));
+    }
+
+    .hero-actions-top .stats {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        margin: 18px 0 0;
+        justify-self: start;
     }
 }
 
@@ -81,6 +91,10 @@
     .hero-benefit-rotator--copy {
         width: 100%;
         transform: none;
+    }
+
+    .hero-actions-top .stats {
+        grid-row: 3;
     }
 
     .hero-supported-platforms-grid {
@@ -133,13 +147,19 @@
         min-height: 112px;
     }
 
+    .hero-actions-top .stats {
+        grid-column: 1;
+        grid-row: 4;
+    }
+
     .hero-benefit-rotator--copy .hero-benefit-slide p {
         padding-inline: 10px 22px;
         font-size: 15px;
     }
 
     .hero-benefit-rotator--copy .hero-benefit-indicator {
-        right: 2px;
+        right: auto;
+        left: 2px;
     }
 
     .hero-supported-platforms-grid {

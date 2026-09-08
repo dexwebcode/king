@@ -46,6 +46,17 @@
     text-wrap: balance;
 }
 
+@media (min-width: 1101px) {
+    .hero--left .hero-main-title {
+        font-size: clamp(42px, 3.55vw, 64px);
+    }
+
+    .hero--left .hero-main-title span {
+        white-space: nowrap;
+        text-wrap: nowrap;
+    }
+}
+
 .hero--left .hero-title-king,
 .hero--left .hero-title-promotion {
     text-align: left;

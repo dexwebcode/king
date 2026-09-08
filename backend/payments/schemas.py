@@ -7,7 +7,7 @@ from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 
 class CreateOrderRequest(BaseModel):
     service_id: str | int
-    quantity: int = Field(ge=100, le=10000, multiple_of=100)
+    quantity: int = Field(gt=0)
     recipient_link: AnyHttpUrl
     payment_method: Literal["sbp"]
     idempotence_key: UUID

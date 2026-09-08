@@ -1,7 +1,6 @@
 import { useDeferredValue, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-import logo from "../../assets/logo.png";
 import instagramIcon from "../../assets/social_icons/instagram.svg";
 import telegramIcon from "../../assets/social_icons/telegram.svg";
 import tiktokIcon from "../../assets/social_icons/tiktok.svg";
@@ -16,6 +15,7 @@ import spotifyIcon from "../../assets/social_icons/Spotify.png";
 import appleMusicIcon from "../../assets/social_icons/Apple_Musikl.png";
 import HeroRegisterForm from "../Landing/components/Hero/HeroRegisterForm";
 import { AUTH_CHANGED_EVENT, logoutUser } from "../Landing/components/Hero/auth/authApi";
+import { AccountMenu, InternalHeader, MenuToggle } from "../../ui/AppShell";
 import "../Landing/Landing.css";
 import "./Catalog.css";
 
@@ -35,7 +35,6 @@ const platformNames = {
     spotify: "Spotify",
     apple_music: "Apple Music",
     shazam: "Shazam",
-    wibes: "Wibes",
 };
 
 const platformIcons = {
@@ -68,7 +67,6 @@ const catalogPlatformOrder = [
     "spotify",
     "apple_music",
     "shazam",
-    "wibes",
 ];
 
 const serviceTypeNames = {
@@ -145,9 +143,8 @@ export default function Catalog() {
     const [platform, setPlatform] = useState("all");
     const [serviceType, setServiceType] = useState("all");
     const [account, setAccount] = useState(null);
-    const [orders, setOrders] = useState([]);
+    const [isAdmin, setIsAdmin] = useState(false);
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
-    const [accountPanelSection, setAccountPanelSection] = useState("overview");
     const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
     const deferredSearch = useDeferredValue(search.trim().toLowerCase());
 
@@ -188,24 +185,17 @@ export default function Catalog() {
 
         async function loadAccountMenu() {
             try {
-                const [accountResponse, ordersResponse] = await Promise.all([
+                const [accountResponse, adminResponse] = await Promise.all([
                     fetch(`${API_URL}/api/me`, { headers, signal: controller.signal }),
-                    fetch(`${API_URL}/api/my-orders`, { headers, signal: controller.signal }),
+                    fetch(`${API_URL}/api/admin/me`, { headers, signal: controller.signal }),
                 ]);
 
-                if (!accountResponse.ok || !ordersResponse.ok) {
-                    return;
-                }
-
-                const [accountData, ordersData] = await Promise.all([
-                    accountResponse.json(),
-                    ordersResponse.json(),
-                ]);
-                setAccount(accountData);
-                setOrders(Array.isArray(ordersData.items) ? ordersData.items : []);
+                if (accountResponse.ok) setAccount(await accountResponse.json());
+                setIsAdmin(adminResponse.ok);
             } catch (error) {
                 if (error.name !== "AbortError") {
                     setAccount(null);
+                    setIsAdmin(false);
                 }
             }
         }
@@ -277,14 +267,7 @@ export default function Catalog() {
     }
 
     function openAccountMenu() {
-        setAccountPanelSection("overview");
         setIsAccountMenuOpen(true);
-    }
-
-    function handleLogout() {
-        logoutUser();
-        closeAccountMenu();
-        navigate("/", { replace: true });
     }
 
     function openAuthPrompt() {
@@ -296,11 +279,14 @@ export default function Catalog() {
         <main className="catalog-page">
             <div className="catalog-glow catalog-glow--one" />
             <div className="catalog-glow catalog-glow--two" />
-            <header className="catalog-header container">
-                <Link className="catalog-brand" to="/" aria-label="King Promotion">
-                    <img src={logo} alt="" />
-                    <strong>Каталог услуг</strong>
-                </Link>
+            <InternalHeader
+                menuOpen={isAccountMenuOpen}
+                onMenuToggle={hasSession ? openAccountMenu : openAuthPrompt}
+                onLogin={openAuthPrompt}
+                showAuthenticatedMenu={false}
+            />
+            <section className={`catalog-controls container ${hasSession ? "is-authenticated" : ""}`} aria-label="Поиск и выбор социальной сети">
+                <div className="catalog-section-title" aria-hidden="true">Каталог услуг</div>
                 <div className="catalog-socials" aria-label="Выбор социальной сети">
                     {platforms.map((itemPlatform) => {
                         const icon = platformIcons[itemPlatform];
@@ -330,81 +316,21 @@ export default function Catalog() {
                             placeholder="Найти услугу"
                         />
                     </label>
-                    <button
-                        className="catalog-account-toggle"
-                        type="button"
-                        aria-label="Открыть меню аккаунта"
-                        aria-expanded={isAccountMenuOpen}
-                        onClick={openAccountMenu}
-                    >
-                        <span />
-                        <span />
-                        <span />
-                    </button>
+                    {hasSession && <MenuToggle menuOpen={isAccountMenuOpen} onMenuToggle={openAccountMenu} className="catalog-menu-toggle" />}
                 </div>
-            </header>
+            </section>
 
-            <>
-                <button
-                    className={`catalog-account-backdrop ${isAccountMenuOpen ? "is-open" : ""}`}
-                    type="button"
-                    aria-label="Закрыть меню аккаунта"
-                    onClick={closeAccountMenu}
-                />
-                <aside className={`catalog-account-panel ${hasSession ? "" : "catalog-account-panel--guest"} ${isAccountMenuOpen ? "is-open" : ""}`} aria-label="Аккаунт">
-                    {hasSession ? (
-                        <>
-                            <div className="catalog-account-panel-head">
-                                <div>
-                                    <small>Личный кабинет</small>
-                                    <strong>{accountPanelSection === "orders" ? "Мои заказы" : account?.login || "KING PROMOTION"}</strong>
-                                </div>
-                                <button type="button" onClick={closeAccountMenu} aria-label="Закрыть меню">×</button>
-                            </div>
-                            {accountPanelSection === "orders" ? (
-                                <div className="catalog-account-orders catalog-account-orders--all">
-                                    <button className="catalog-account-back" type="button" onClick={() => setAccountPanelSection("overview")}>Назад к аккаунту</button>
-                                    {orders.length === 0 ? <span>Заказов пока нет</span> : orders.map((order) => (
-                                        <article key={order.id}>
-                                            <span>#{order.id} · {order.platform}</span>
-                                            <strong>{order.amount} ₽</strong>
-                                        </article>
-                                    ))}
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="catalog-account-balance">
-                                        <span>Баланс</span>
-                                        <strong>{account?.balance || "0.00"} ₽</strong>
-                                    </div>
-                                    <nav className="catalog-account-links" aria-label="Разделы аккаунта">
-                                        <Link to="/main" state={{ section: "create" }} onClick={closeAccountMenu}>Создать заказ</Link>
-                                        <button type="button" onClick={() => setAccountPanelSection("orders")}>Мои заказы <span>{orders.length}</span></button>
-                                        <Link to="/main" state={{ section: "balance" }} onClick={closeAccountMenu}>Баланс</Link>
-                                    </nav>
-                                    <div className="catalog-account-orders">
-                                        <p>Последние заказы</p>
-                                        {orders.length === 0 ? <span>Заказов пока нет</span> : orders.slice(0, 3).map((order) => (
-                                            <article key={order.id}>
-                                                <span>#{order.id} · {order.platform}</span>
-                                                <strong>{order.amount} ₽</strong>
-                                            </article>
-                                        ))}
-                                    </div>
-                                    <button className="catalog-account-logout" type="button" onClick={handleLogout}>Выйти из аккаунта</button>
-                                </>
-                            )}
-                        </>
-                    ) : (
-                        <div className="catalog-guest-panel">
-                            <button type="button" className="catalog-guest-close" onClick={closeAccountMenu} aria-label="Закрыть меню">×</button>
-                            <small>Личный кабинет</small>
-                            <h2>После авторизации будут доступны баланс, история заказов и оформление услуг</h2>
-                            <button type="button" className="catalog-guest-auth" onClick={openAuthPrompt}>Авторизируйтесь</button>
-                        </div>
-                    )}
-                </aside>
-            </>
+            <AccountMenu
+                open={isAccountMenuOpen}
+                onClose={closeAccountMenu}
+                active="catalog"
+                account={account}
+                isAdmin={isAdmin}
+                onLogout={() => {
+                    logoutUser();
+                    navigate("/", { replace: true });
+                }}
+            />
 
             {isAuthPromptOpen && (
                 <div className="catalog-auth-overlay" role="dialog" aria-modal="true" aria-labelledby="catalog-auth-title">

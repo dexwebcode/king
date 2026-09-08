@@ -81,6 +81,11 @@ class CatalogNormalizationTests(unittest.TestCase):
         )
         self.assertIsNone(result)
 
+    def test_excludes_wibes_from_public_catalog(self):
+        self.assertIsNone(
+            normalize_service(service(soc="wibes", type="views"))
+        )
+
     def test_preserves_provider_fields_and_real_service_id(self):
         result = normalize_service(
             service(

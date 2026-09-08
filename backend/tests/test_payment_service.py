@@ -13,6 +13,7 @@ from backend.payments.service import (
     process_verified_payment,
 )
 from backend.payments.schemas import CreateOrderRequest
+from backend.payments.repository import lock_user
 
 
 class FakeTransaction:
@@ -68,6 +69,16 @@ class PaymentValidationTests(unittest.TestCase):
         )
         self.assertEqual(str(request.recipient_link), "https://instagram.com/example")
 
+    def test_request_schema_allows_service_specific_quantity_limits(self):
+        request = CreateOrderRequest(
+            service_id=10,
+            quantity=25,
+            recipient_link="https://instagram.com/example",
+            payment_method="sbp",
+            idempotence_key="00000000-0000-0000-0000-000000000002",
+        )
+        self.assertEqual(request.quantity, 25)
+
     def test_accepts_matching_provider_payment(self):
         self.assertEqual(
             _validate_payment(payment(), attempt()),
@@ -107,6 +118,18 @@ class PaymentValidationTests(unittest.TestCase):
 
 
 class PaymentAccountingTests(unittest.TestCase):
+    def test_user_balance_lock_uses_postgresql_for_update(self):
+        session = MagicMock()
+        session.execute.return_value.mappings.return_value.first.return_value = {
+            "id": 151,
+            "balance": Decimal("100.00"),
+        }
+
+        lock_user(session, 151)
+
+        statement = str(session.execute.call_args.args[0]).upper()
+        self.assertIn("FOR UPDATE", statement)
+
     @patch("backend.payments.service.SessionLocal", return_value=FakeSession())
     @patch("backend.payments.service.mark_payment_processed")
     @patch("backend.payments.service.mark_order_paid")

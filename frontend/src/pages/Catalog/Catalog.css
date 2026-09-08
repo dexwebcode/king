@@ -149,8 +149,42 @@
     gap: 10px;
 }
 
+.catalog-controls {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(200px, 1fr) minmax(310px, 2.2fr) minmax(280px, 410px);
+    align-items: center;
+    gap: clamp(16px, 2vw, 28px);
+    margin-top: 78px;
+    padding-top: 28px;
+}
+
+.catalog-controls.is-authenticated {
+    margin-top: 0;
+}
+
+.catalog-controls .catalog-socials {
+    justify-content: safe center;
+}
+
+.catalog-controls .catalog-header-actions {
+    grid-column: 3;
+}
+
+.catalog-section-title {
+    color: #f5f5f2;
+    font-size: clamp(22px, 2.4vw, 34px);
+    font-weight: 800;
+    letter-spacing: -.045em;
+}
+
 .catalog-header-actions .catalog-search {
     flex: 1;
+}
+
+.catalog-menu-toggle {
+    flex: 0 0 46px;
 }
 
 .catalog-search>span {
@@ -557,7 +591,7 @@
     grid-template-columns: 208px minmax(0, 1fr);
     align-items: start;
     gap: clamp(18px, 2vw, 26px);
-    padding-top: clamp(40px, 5vw, 72px);
+    padding-top: clamp(20px, 2.5vw, 36px);
     padding-bottom: 84px;
 }
 
@@ -812,6 +846,21 @@
         grid-column: 2;
         grid-row: 1;
     }
+
+    .catalog-controls {
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 410px);
+    }
+
+    .catalog-controls .catalog-socials {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-content: flex-start;
+    }
+
+    .catalog-controls .catalog-header-actions {
+        grid-column: 2;
+        grid-row: 1;
+    }
 }
 
 @media (max-width: 700px) {
@@ -832,9 +881,22 @@
         grid-row: 3;
     }
 
+    .catalog-controls {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 18px;
+        margin-top: 66px;
+        padding-top: 18px;
+    }
+
+    .catalog-controls .catalog-header-actions {
+        grid-column: 1 / -1;
+        grid-row: 3;
+    }
+
     .catalog-layout {
         grid-template-columns: 1fr;
-        padding-top: 36px;
+        padding-top: 18px;
     }
 
     .catalog-service-filters {
@@ -859,6 +921,10 @@
 
     .catalog-socials {
         gap: 5px;
+    }
+
+    .catalog-controls {
+        gap: 14px;
     }
 
     .catalog-socials button {

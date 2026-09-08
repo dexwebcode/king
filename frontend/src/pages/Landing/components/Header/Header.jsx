@@ -22,7 +22,7 @@ function scrollToTopFast() {
     requestAnimationFrame(animateScroll);
 }
 
-export default function Header({ onAuthModeChange, showAuthButton = false }) {
+export default function Header({ onAuthModeChange, showAuthButton = false, initiallyDark = false }) {
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -38,7 +38,7 @@ export default function Header({ onAuthModeChange, showAuthButton = false }) {
     }
 
     return (
-        <header className="site-header container">
+        <header className={`site-header container ${initiallyDark ? "site-header--initial" : ""}`}>
 
             <a
                 href="/"
@@ -85,19 +85,19 @@ export default function Header({ onAuthModeChange, showAuthButton = false }) {
                 </a>
 
             </nav>
-            {showAuthButton && (
-                <div className="header-actions">
-                    <button
-                        type="button"
-                        className="button button-gold"
-                        onClick={() => goToAuth("auth")}
-                    >
-                        <span className="button-label">
-                            Авторизация
-                        </span>
-                    </button>
-                </div>
-            )}
+            <div className="header-actions">
+                <button
+                    type="button"
+                    className={`button button-gold ${showAuthButton ? "is-visible" : ""}`}
+                    onClick={() => goToAuth("auth")}
+                    tabIndex={showAuthButton ? 0 : -1}
+                    aria-hidden={!showAuthButton}
+                >
+                    <span className="button-label">
+                        Авторизация
+                    </span>
+                </button>
+            </div>
 
         </header>
     );

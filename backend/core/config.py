@@ -28,6 +28,25 @@ KINGPROMOTION_MARKUP_PERCENT = float(
 )
 REFERRAL_REWARD_PERCENT = os.getenv("REFERRAL_REWARD_PERCENT", "12")
 
+
+def _parse_admin_user_ids(raw_value: str) -> frozenset[int]:
+    values: set[int] = set()
+    for item in raw_value.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        try:
+            user_id = int(item)
+        except ValueError as error:
+            raise RuntimeError("ADMIN_USER_IDS должен содержать только числа") from error
+        if user_id <= 0:
+            raise RuntimeError("ADMIN_USER_IDS должен содержать положительные ID")
+        values.add(user_id)
+    return frozenset(values)
+
+
+ADMIN_USER_IDS = _parse_admin_user_ids(os.getenv("ADMIN_USER_IDS", ""))
+
 TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "KingPromotion_Support_bot")
 TELEGRAM_AUTH_SESSION_EXPIRE_MINUTES = int(
     os.getenv("TELEGRAM_AUTH_SESSION_EXPIRE_MINUTES", "10")

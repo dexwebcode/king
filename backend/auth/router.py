@@ -3,6 +3,7 @@
 
 # PYTHON ИМПОРТЫ
 from fastapi import APIRouter
+# Коментарии: APIRouter - Класс который позволяет объедленять Endpoints в группы.
 
 # ЛОКАЛЬНЫЕ ИМПОРТЫ
 from backend.auth.routers import (

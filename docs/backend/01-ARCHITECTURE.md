@@ -1,85 +1,68 @@
 # 01-ARCHITECTURE
 ## Общая архитектура backend
 ```
-├── auth/
-│    ├── __init__.py
-│    │
-│    ├── dependencies.py
-│    │    └── Получение и проверка текущего пользователя
-│    │
-│    ├── repository.py
-│    │    └── Работа с пользователями в PostgreSQL
-│    │
-│    ├── router.py
-│    │    └── Главный роутер модуля авторизации
-│    │
-│    ├── routers/
-│    │   ├── __init__.py
-│    │   │    └── Экспорт роутеров
-│    │   ├── auth.py
-│    │   │    └── Базовая авторизация
-│    │   ├── vkid.py
-│    │   │    └── HTTP flow авторизации через VK ID
-│    │   └── telegram.py
-│    │        └── Авторизация через Telegram
-│    │
-│    ├── schemas.py
-│    │    └── Валидация входящих данных авторизации
-│    │
-│    ├── security.py
-│    │    └── Пароли и JWT
-│    │
-│    ├── service.py
-│    │    └── Бизнес-логика базовой авторизации
-│    │
-│    ├── social_accounts.py
-│    │    └── Работа с привязанными социальными аккаунтами
-│    │
-│    └── telegram_sessions.py
-│         └── Работа с временными Telegram-сессиями
-│
-├── bots/
-│    ├── config.py
-│    ├── __init__.py
-│    ├── __main__.py
-│    ├── run_bots.py
-│    ├── telegram/
-│    │    ├── bot.py
-│    │    ├── __init__.py
-│    │    └── __main__.py
-│    │
-│    └── vk/
-│         ├── bot.py
-│         ├── __init__.py
-│         └── __main__.py
-├── core/
-│    ├── config.py
-│    ├── database.py
-│    └── __init__.py
-├── __init__.py
-│
-├── main.py ----> Точка входа в приложение
-├── migrations/
-│    └── 001_yookassa_balance.sql
-│
-├── payments/
-│    ├── __init__.py
-│    ├── repository.py
-│    ├── router.py
-│    ├── schemas.py
-│    ├── service.py
-│    └── yookassa_service.py
-│
-├── services/
-│    ├── get_price.py
-│    ├── __init__.py
-│    └── supplier.py
-│
-├── test.py
-└── tests/
-     ├── __init__.py
-     ├── test_catalog_normalization.py
-     └── test_payment_service.py
+backend/
+  ├── auth/ --> Блок авторизации
+  │    ├── __init__.py
+  │    │
+  │    ├── dependencies.py --> Получение и проверка текущего пользователя
+  │    ├── repository.py --> Работа с пользователями в PostgreSQL
+  │    ├── router.py --> Главный роутер модуля авторизации
+  │    │
+  │    ├── routers/
+  │    │   ├── __init__.py --> Экспорт роутеров
+  │    │   ├── auth.py --> Базовая авторизация
+  │    │   ├── vkid.py --> HTTP flow авторизации через VK ID
+  │    │   └── telegram.py --> Авторизация через Telegram
+  │    │
+  │    ├── schemas.py --> Валидация входящих данных авторизации
+  │    ├── security.py --> Пароли и JWT
+  │    ├── service.py --> Бизнес-логика базовой авторизации
+  │    ├── social_accounts.py --> Работа с привязанными социальными аккаунтами
+  │    └── telegram_sessions.py --> Работа с временными Telegram-сессиями
+  │
+  ├── bots/
+  │    ├── config.py
+  │    ├── __init__.py
+  │    ├── __main__.py
+  │    ├── run_bots.py
+  │    ├── telegram/
+  │    │    ├── bot.py
+  │    │    ├── __init__.py
+  │    │    └── __main__.py
+  │    │
+  │    └── vk/
+  │         ├── bot.py
+  │         ├── __init__.py
+  │         └── __main__.py
+  ├── core/
+  │    ├── config.py
+  │    ├── database.py
+  │    └── __init__.py
+  ├── __init__.py
+  │
+  ├── main.py ----> Точка входа в приложение
+  ├── migrations/
+  │    └── 001_yookassa_balance.sql
+  │
+  ├── payments/
+  │    ├── __init__.py
+  │    ├── repository.py
+  │    ├── router.py
+  │    ├── schemas.py
+  │    ├── service.py
+  │    └── yookassa_service.py
+  │
+  ├── services/
+  │    ├── get_price.py
+  │    ├── __init__.py
+  │    └── supplier.py
+  │
+  ├── test.py
+  └── tests/
+       ├── __init__.py
+       ├── test_catalog_normalization.py
+       └── test_payment_service.py
 ```
 ## Примечание
 
@@ -95,6 +78,16 @@
 
 В этом файле создаётся и настраивается объект FastAPI-приложения `app`.
 К нему подключаются общая конфигурация, middleware и роутеры отдельных модулей.
+Основная структура подключений такая
+```
+FastAPI app
+    │
+    └── auth router
+           │
+           ├── auth_router
+           ├── vkid_router
+           └── telegram_router
+```
 
 ### Подключенные модули
 
@@ -174,6 +167,27 @@ auth/
   ├── auth_router
   ├── vkid_router
   └── telegram_router
+```
+
+#### Endponts главного роутера
+```
+/auth
+│
+├── /login
+├── /register
+├── /me
+├── /logout
+│
+├── /social/accounts
+├── /vk/login
+├── /vk/callback
+│
+├── /telegram/session
+├── /telegram/guest/session
+├── /telegram/guest/status
+├── /telegram/start
+├── /telegram/complete-register
+└── /telegram/link-existing
 ```
 
 ### routers/auth.py
@@ -331,3 +345,121 @@ auth/
 Сессия считается подтверждённой только если token найден, её статус равен `pending`
 и срок действия ещё не истёк. Проверку дальнейшей авторизации или привязки
 пользователя выполняет `routers/telegram.py`.
+
+## Балансы и интеграция с поставщиком
+
+В системе принципиально разделены два баланса:
+
+```text
+User balance                     Supplier balance
+migration_temp.users.balance     Внешний общий аккаунт поставщика
+Деньги одного пользователя       Операционные деньги KingPromotion
+```
+
+`User balance != Supplier balance`. Баланс поставщика никогда не записывается в
+`migration_temp.users`, не возвращается обычным пользователям и не используется
+вместо их внутреннего баланса.
+
+```text
+                     KINGPROMOTION
+
+Пользователь A ─┐
+Пользователь B ─┼──→ FastAPI ───→ PostgreSQL users.balance
+Пользователь C ─┘        │
+                         │
+                         ├──→ YooKassa
+                         │
+                         └──→ Supplier Client
+                                  │
+                                  │ KINGPROMOTION_API_KEY
+                                  ↓
+                         Общий supplier account
+                                  │
+                                  ├── balance
+                                  ├── add
+                                  ├── status
+                                  ├── cancel
+                                  └── refill
+```
+
+`backend/services/supplier.py` — единственная точка HTTP-взаимодействия с API
+поставщика. Все запросы отправляются методом POST с телом
+`application/x-www-form-urlencoded`. Общий `KINGPROMOTION_API_KEY` загружается из
+`backend/.env`, добавляется только внутри supplier client и не передаётся во
+frontend, ответы API или логи.
+
+Перед каждым `action=add` backend заново получает баланс общего supplier account.
+Для сравнения используется себестоимость `base_rate * quantity / 1000`,
+рассчитанная через `Decimal`; публичная цена с наценкой в проверке не участвует.
+
+```text
+Оплаченный заказ
+       ↓
+атомарный claim (id_rocket = 0)
+       ↓
+supplier cost + свежий balance
+       ↓
+достаточно? ── нет ──→ insufficient_supplier_balance
+       │                         ↓
+      да                 безопасный admin retry
+       ↓
+action=add
+       ↓
+валидный supplier order id
+       ↓
+orders.id_rocket + completed dispatch
+```
+
+Недостаточный supplier balance не отменяет заказ и не меняет пользовательский
+баланс. При timeout или неоднозначном ответе после `action=add` выставляется
+`dispatch_status=unknown`; такой заказ нельзя повторно отправлять автоматически,
+поскольку поставщик мог успеть его создать. Защиту от двойного `add` также дают
+атомарный переход локального статуса и условие `orders.id_rocket = 0`.
+
+Supplier status всегда запрашивается по `orders.id_rocket`, тогда как frontend
+передаёт только локальный `orders.id`. `cancel=ok` не вызывает автоматический
+refund: этот ответ не подтверждает сумму или сам факт возврата средств.
+
+## Администрирование supplier account
+
+Административные маршруты находятся в `backend/admin` и имеют общий prefix
+`/api/admin`. JWT подтверждает личность, а dependency `get_current_admin()`
+дополнительно проверяет ID пользователя по allowlist `ADMIN_USER_IDS` из
+`backend/.env`. Значения `standart`, `premium`, `vip` поля `users.user_group` не
+интерпретируются как admin без подтверждённого бизнес-правила.
+
+```text
+Admin
+  ↓
+/admin
+  ↓
+GET /api/admin/supplier/balance
+  ↓
+get_current_admin
+  ↓
+supplier.py → action=balance → общий supplier account
+```
+
+Endpoints:
+
+* `GET /api/admin/supplier/balance` — баланс общего аккаунта; UI-cache 15 секунд;
+* `GET /api/admin/orders/blocked` — оплаченные заказы, ожидающие supplier funds;
+* `POST /api/admin/orders/{order_id}/retry-dispatch` — безопасный повторный claim;
+* `POST /api/orders/{order_id}/sync` — синхронизация своего заказа по `id_rocket`;
+* `POST /api/orders/{order_id}/cancel` — запрос отмены своего заказа без refund;
+* `POST /api/orders/{order_id}/refill` — refill своего заказа.
+
+Frontend-страница `/admin` показывает supplier balance отдельно от user balance,
+обновляет его не чаще раза в 30 секунд и позволяет повторить отправку только через
+защищённый backend endpoint. Проверка перед фактическим `add` никогда не использует
+UI-cache.
+
+## Текущий YooKassa flow и граница следующего изменения
+
+Существующая версия создаёт YooKassa payment непосредственно для конкретного
+заказа. После `succeeded` сумма атомарно зачисляется на `users.balance` и сразу
+списывается на этот заказ в одной PostgreSQL-транзакции с `FOR UPDATE`. Поэтому это
+ещё не отдельный продуктовый flow «пополнить баланс, затем когда-нибудь оплатить
+заказ с баланса». Supplier execution уже отделён от учёта пользовательских денег,
+но выделение самостоятельных top-up и balance-order endpoints требует отдельного
+решения по UX, идемпотентности и учёту реферального вознаграждения.

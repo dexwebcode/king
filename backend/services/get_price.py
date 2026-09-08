@@ -1,13 +1,9 @@
-import json
-import urllib.parse
-import urllib.request
 from decimal import Decimal, ROUND_HALF_UP
 
 from backend.core.config import (
-    KINGPROMOTION_API_KEY,
-    KINGPROMOTION_API_URL,
     KINGPROMOTION_MARKUP_PERCENT,
 )
+from backend.services.supplier import get_supplier_services
 
 
 COMPARE_MARKUP_PERCENT = Decimal("75")
@@ -18,7 +14,6 @@ PROVIDER_PLATFORM_TYPES = {
     "tiktok": "tiktok",
     "twitch": "twitch",
     "twich": "twitch",
-    "wibes": "wibes",
 }
 DIRECT_SERVICE_TYPES = {
     "auto": "auto",
@@ -115,7 +110,7 @@ def normalize_service(service: dict) -> dict | None:
     service_type = _service_type(provider_type, name)
 
     # Keep ambiguous provider services out of the public catalog.
-    if not platform or not service_type:
+    if not platform or platform == "wibes" or not service_type:
         return None
 
     return {
@@ -157,21 +152,7 @@ def add_markup_to_service(service: dict) -> dict:
 
 
 def _load_provider_services() -> list[dict]:
-    if not KINGPROMOTION_API_KEY:
-        raise RuntimeError("KINGPROMOTION_API_KEY не задан в backend/.env")
-
-    params = urllib.parse.urlencode({
-        "action": "services",
-        "key": KINGPROMOTION_API_KEY,
-    })
-    url = f"{KINGPROMOTION_API_URL}?{params}"
-
-    with urllib.request.urlopen(url, timeout=15) as response:
-        data = json.loads(response.read().decode("utf-8"))
-
-    if not isinstance(data, list):
-        raise RuntimeError("Поставщик вернул некорректный каталог услуг")
-    return data
+    return get_supplier_services()
 
 
 def normalize_catalog(services: list[dict]) -> list[dict]:
@@ -217,6 +198,15 @@ def calculate_order_amount(service: dict, quantity: int) -> Decimal:
     rate_key = "price_per_1000" if quantity >= 1000 else "compare_price_per_1000"
     rate = Decimal(str(service[rate_key]))
     return (rate * Decimal(quantity) / Decimal("1000")).quantize(
+        Decimal("0.01"),
+        rounding=ROUND_HALF_UP,
+    )
+
+
+def calculate_supplier_order_cost(service: dict, quantity: int) -> Decimal:
+    """Calculate supplier cost from base_rate, never from public pricing."""
+    base_rate = Decimal(str(service["base_rate"]))
+    return (base_rate * Decimal(quantity) / Decimal("1000")).quantize(
         Decimal("0.01"),
         rounding=ROUND_HALF_UP,
     )

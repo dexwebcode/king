@@ -37,6 +37,7 @@ function scrollToTopFast() {
 export default function Landing() {
     const location = useLocation();
     const [isScrollTopVisible, setIsScrollTopVisible] = useState(false);
+    const [hasStartedScrolling, setHasStartedScrolling] = useState(false);
     const [isHeroAuthVisible, setIsHeroAuthVisible] = useState(true);
     const [authMode, setAuthMode] = useState(
         location.state?.authMode === "login" ? "login" : "register"
@@ -151,6 +152,7 @@ export default function Landing() {
     useEffect(() => {
         function handleScroll() {
             setIsScrollTopVisible(window.scrollY > 420);
+            if (window.scrollY > 0) setHasStartedScrolling(true);
         }
 
         handleScroll();
@@ -182,7 +184,7 @@ export default function Landing() {
             <div className="ambient ambient-one" />
             <div className="ambient ambient-two" />
 
-            <Header onAuthModeChange={setAuthMode} showAuthButton={!isHeroAuthVisible} />
+            <Header onAuthModeChange={setAuthMode} showAuthButton={!isHeroAuthVisible} initiallyDark={!hasStartedScrolling} />
 
             <main id="top">
                 <Hero initialAuthMode={authMode} onQuickOrderClick={scrollToOrderCard} />

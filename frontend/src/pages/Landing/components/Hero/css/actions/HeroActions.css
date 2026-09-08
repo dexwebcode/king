@@ -11,14 +11,15 @@
     justify-content: center;
     gap: 12px;
     width: 100%;
-    margin: 20px 0 0;
+    margin: clamp(52px, 7vh, 86px) 0 0;
     padding: 0;
 }
 
 .hero-actions-top {
     position: relative;
+    --hero-interactive-offset-y: 30px;
     display: grid;
-    grid-template-columns: repeat(2, minmax(170px, 220px));
+    grid-template-columns: repeat(2, minmax(170px, 220px)) minmax(0, 300px);
     grid-template-rows: 54px auto;
     column-gap: 14px;
     row-gap: 18px;
@@ -26,9 +27,20 @@
     overflow: visible;
 }
 
+.hero-actions-top .stats {
+    grid-area: auto;
+    grid-column: 3;
+    grid-row: 1;
+    width: min(300px, 100%);
+    margin: 0 0 0 36px;
+    justify-self: start;
+    align-self: center;
+    top: 0;
+}
+
 .hero-supported-platforms {
     grid-column: 1 / 3;
-    grid-row: 2;
+    grid-row: 1;
     margin-top: 6px;
     transform: none;
     margin-top: 0;
@@ -120,6 +132,27 @@
 .hero--left .hero-actions {
     justify-content: flex-start;
     width: min(100%, 1050px);
+}
+
+@media (max-width: 1450px) and (min-width: 1101px) {
+    .hero-actions-top {
+        grid-template-columns: repeat(2, minmax(170px, 220px));
+    }
+
+    .hero-actions-top .stats {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        margin: 18px 0 0;
+        justify-self: start;
+    }
+}
+
+@media (min-width: 1451px) {
+    .hero-actions .hero-action-primary,
+    .hero-actions .hero-action-catalog {
+        position: relative;
+        left: 0;
+    }
 }
 
 .hero-advantages-text {

@@ -22,10 +22,23 @@ def get_account_summary(session: Session, user_id: int):
 def get_user_orders(session: Session, user_id: int):
     return session.execute(
         text("""
-            SELECT id, soc, service_id, link, qnt, amount, status, date
-            FROM migration_temp.orders
-            WHERE user_id = :user_id
-            ORDER BY id DESC
+            SELECT
+                o.id,
+                o.soc,
+                o.service_id,
+                o.link,
+                o.qnt,
+                o.amount,
+                o.status,
+                o.remains,
+                o.id_rocket,
+                o.date,
+                p.dispatch_status
+            FROM migration_temp.orders AS o
+            LEFT JOIN migration_temp.payment_attempts AS p
+              ON p.order_id = o.id
+            WHERE o.user_id = :user_id
+            ORDER BY o.id DESC
         """),
         {"user_id": user_id},
     ).mappings().all()
@@ -238,6 +251,64 @@ def get_order_for_user(session: Session, order_id: int, user_id: int):
     ).mappings().first()
 
 
+def get_order_dispatch_state(session: Session, order_id: int):
+    return session.execute(
+        text("""
+            SELECT
+                o.*,
+                p.status AS payment_status,
+                p.processed_at,
+                p.dispatch_status,
+                p.dispatch_error
+            FROM migration_temp.orders AS o
+            LEFT JOIN migration_temp.payment_attempts AS p
+              ON p.order_id = o.id
+            WHERE o.id = :order_id
+            LIMIT 1
+        """),
+        {"order_id": order_id},
+    ).mappings().first()
+
+
+def get_supplier_attention_orders(session: Session):
+    return session.execute(
+        text("""
+            SELECT
+                o.id,
+                o.service_id,
+                o.link,
+                o.qnt,
+                o.amount,
+                o.status,
+                o.id_rocket,
+                o.date,
+                p.dispatch_status,
+                p.dispatch_error,
+                p.dispatch_started_at,
+                p.updated_at
+            FROM migration_temp.orders AS o
+            JOIN migration_temp.payment_attempts AS p
+              ON p.order_id = o.id
+            WHERE p.status = 'processed'
+              AND (
+                  p.dispatch_status IN (
+                      'not_started',
+                      'insufficient_supplier_balance',
+                      'supplier_unavailable',
+                      'unknown',
+                      'rejected',
+                      'save_failed'
+                  )
+                  OR (
+                      p.dispatch_status = 'sending'
+                      AND p.dispatch_started_at < NOW() - INTERVAL '5 minutes'
+                  )
+              )
+            ORDER BY p.updated_at ASC, o.id ASC
+        """),
+    ).mappings().all()
+
+
 def lock_user(session: Session, user_id: int):
     return session.execute(
         text("""
@@ -421,11 +492,26 @@ def mark_order_paid(session: Session, order_id: int) -> None:
 def claim_order_for_dispatch(session: Session, order_id: int):
     order = session.execute(
         text("""
-            UPDATE migration_temp.orders
+            UPDATE migration_temp.orders AS o
             SET status = 'Отправляется'
-            WHERE id = :order_id
-              AND status = 'Ожидает отправки'
-              AND id_rocket = 0
+            WHERE o.id = :order_id
+              AND o.status IN (
+                  'Ожидает отправки',
+                  'Ожидает пополнения поставщика',
+                  'Поставщик недоступен'
+              )
+              AND o.id_rocket = 0
+              AND EXISTS (
+                  SELECT 1
+                  FROM migration_temp.payment_attempts AS p
+                  WHERE p.order_id = o.id
+                    AND p.status = 'processed'
+                    AND p.dispatch_status IN (
+                        'not_started',
+                        'insufficient_supplier_balance',
+                        'supplier_unavailable'
+                    )
+              )
             RETURNING id, user_id, service_id, link, qnt, amount
         """),
         {"order_id": order_id},
@@ -444,6 +530,101 @@ def claim_order_for_dispatch(session: Session, order_id: int):
             {"order_id": order_id},
         )
     return order
+
+
+def mark_insufficient_supplier_balance(
+    session: Session,
+    *,
+    order_id: int,
+    required: Decimal,
+    available: Decimal,
+    currency: str,
+) -> None:
+    message = (
+        f"required={required} available={available} currency={currency}"
+    )
+    session.execute(
+        text("""
+            UPDATE migration_temp.orders
+            SET status = 'Ожидает пополнения поставщика'
+            WHERE id = :order_id
+              AND status = 'Отправляется'
+              AND id_rocket = 0
+        """),
+        {"order_id": order_id},
+    )
+    session.execute(
+        text("""
+            UPDATE migration_temp.payment_attempts
+            SET dispatch_status = 'insufficient_supplier_balance',
+                dispatch_finished_at = NOW(),
+                dispatch_error = :message,
+                updated_at = NOW()
+            WHERE order_id = :order_id
+              AND status = 'processed'
+        """),
+        {"order_id": order_id, "message": message},
+    )
+
+
+def mark_supplier_precheck_unavailable(
+    session: Session,
+    *,
+    order_id: int,
+    error_message: str,
+) -> None:
+    session.execute(
+        text("""
+            UPDATE migration_temp.orders
+            SET status = 'Поставщик недоступен'
+            WHERE id = :order_id
+              AND status = 'Отправляется'
+              AND id_rocket = 0
+        """),
+        {"order_id": order_id},
+    )
+    session.execute(
+        text("""
+            UPDATE migration_temp.payment_attempts
+            SET dispatch_status = 'supplier_unavailable',
+                dispatch_finished_at = NOW(),
+                dispatch_error = :error_message,
+                updated_at = NOW()
+            WHERE order_id = :order_id
+              AND status = 'processed'
+        """),
+        {"order_id": order_id, "error_message": error_message[:1000]},
+    )
+
+
+def mark_dispatch_rejected(
+    session: Session,
+    *,
+    order_id: int,
+    error_message: str,
+) -> None:
+    session.execute(
+        text("""
+            UPDATE migration_temp.orders
+            SET status = 'Отклонен поставщиком'
+            WHERE id = :order_id
+              AND status = 'Отправляется'
+              AND id_rocket = 0
+        """),
+        {"order_id": order_id},
+    )
+    session.execute(
+        text("""
+            UPDATE migration_temp.payment_attempts
+            SET dispatch_status = 'rejected',
+                dispatch_finished_at = NOW(),
+                dispatch_error = :error_message,
+                updated_at = NOW()
+            WHERE order_id = :order_id
+              AND status = 'processed'
+        """),
+        {"order_id": order_id, "error_message": error_message[:1000]},
+    )
 
 
 def complete_order_dispatch(
@@ -480,6 +661,40 @@ def complete_order_dispatch(
     )
 
 
+def record_supplier_order_for_review(
+    session: Session,
+    *,
+    order_id: int,
+    supplier_order_id: int,
+    error_message: str,
+) -> None:
+    result = session.execute(
+        text("""
+            UPDATE migration_temp.orders
+            SET id_rocket = :supplier_order_id,
+                status = 'Требует проверки'
+            WHERE id = :order_id
+              AND id_rocket IN (0, :supplier_order_id)
+        """),
+        {"order_id": order_id, "supplier_order_id": supplier_order_id},
+    )
+    if result.rowcount != 1:
+        raise RuntimeError("Не удалось сохранить supplier order ID для проверки")
+
+    session.execute(
+        text("""
+            UPDATE migration_temp.payment_attempts
+            SET dispatch_status = 'save_failed',
+                dispatch_finished_at = NOW(),
+                dispatch_error = :error_message,
+                updated_at = NOW()
+            WHERE order_id = :order_id
+              AND status = 'processed'
+        """),
+        {"order_id": order_id, "error_message": error_message[:1000]},
+    )
+
+
 def mark_dispatch_unknown(
     session: Session,
     *,
@@ -509,43 +724,50 @@ def mark_dispatch_unknown(
     )
 
 
-def has_order_refund(session: Session, order_id: int) -> bool:
-    return bool(session.execute(
-        text("""
-            SELECT EXISTS (
-                SELECT 1
-                FROM migration_temp.expenses
-                WHERE type = 1
-                  AND order_id = :order_id
-            )
-        """),
-        {"order_id": str(order_id)},
-    ).scalar_one())
-
-
-def cancel_order_after_rejection(
+def update_order_from_supplier(
     session: Session,
     *,
     order_id: int,
-    error_message: str,
+    supplier_order_id: int,
+    status: str,
+    remains: int,
+    start_count: int,
+) -> None:
+    result = session.execute(
+        text("""
+            UPDATE migration_temp.orders
+            SET status = :status,
+                remains = :remains,
+                before = :start_count
+            WHERE id = :order_id
+              AND id_rocket = :supplier_order_id
+              AND id_rocket <> 0
+        """),
+        {
+            "order_id": order_id,
+            "supplier_order_id": supplier_order_id,
+            "status": status,
+            "remains": remains,
+            "start_count": start_count,
+        },
+    )
+    if result.rowcount != 1:
+        raise RuntimeError("Локальный заказ изменился во время синхронизации")
+
+
+def mark_order_cancel_requested(
+    session: Session,
+    *,
+    order_id: int,
+    supplier_order_id: int,
 ) -> None:
     session.execute(
         text("""
             UPDATE migration_temp.orders
-            SET status = 'Отменен', amount = 0, remains = qnt
+            SET status = 'Отмена запрошена'
             WHERE id = :order_id
+              AND id_rocket = :supplier_order_id
+              AND id_rocket <> 0
         """),
-        {"order_id": order_id},
-    )
-    session.execute(
-        text("""
-            UPDATE migration_temp.payment_attempts
-            SET dispatch_status = 'rejected',
-                dispatch_finished_at = NOW(),
-                dispatch_error = :error_message,
-                updated_at = NOW()
-            WHERE order_id = :order_id
-              AND status = 'processed'
-        """),
-        {"order_id": order_id, "error_message": error_message[:1000]},
+        {"order_id": order_id, "supplier_order_id": supplier_order_id},
     )
