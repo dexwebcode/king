@@ -51,17 +51,25 @@ TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "KingPromotion_Suppor
 TELEGRAM_AUTH_SESSION_EXPIRE_MINUTES = int(
     os.getenv("TELEGRAM_AUTH_SESSION_EXPIRE_MINUTES", "10")
 )
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+TELEGRAM_BOT_BACKEND_SECRET = os.getenv(
+    "TELEGRAM_BOT_BACKEND_SECRET",
+    SECRET_KEY,
+).strip()
+
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "https://monument-cuddly-outsell.ngrok-free.dev",
+).rstrip("/")
 
 VK_APP_ID = int(os.getenv("VK_APP_ID", "54737931"))
 VK_REDIRECT_URL = os.getenv(
     "VK_REDIRECT_URL",
     "https://monument-cuddly-outsell.ngrok-free.dev/auth/vk/callback",
 )
-
-FRONTEND_URL = os.getenv(
-    "FRONTEND_URL",
-    "https://monument-cuddly-outsell.ngrok-free.dev",
-).rstrip("/")
+VK_AUTH_SESSION_EXPIRE_MINUTES = int(
+    os.getenv("VK_AUTH_SESSION_EXPIRE_MINUTES", "10")
+)
 
 YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID", "").strip()
 YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY", "").strip()

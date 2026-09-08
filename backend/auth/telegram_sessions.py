@@ -23,40 +23,11 @@ def hash_telegram_session_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-# Создаёт таблицу временных Telegram-сессий, если она ещё не существует.
-def ensure_telegram_auth_sessions_table(session: Session) -> None:
-    session.execute(
-        text("""
-            CREATE TABLE IF NOT EXISTS public.telegram_auth_sessions (
-                id BIGSERIAL PRIMARY KEY,
-                user_id BIGINT,
-                token_hash CHAR(64) NOT NULL UNIQUE,
-                telegram_id BIGINT,
-                telegram_username TEXT,
-                status VARCHAR(32) NOT NULL DEFAULT 'pending',
-                expires_at TIMESTAMPTZ NOT NULL,
-                used_at TIMESTAMPTZ,
-                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            )
-        """)
-    )
-    # Поддерживаем guest-сессии без привязки к существующему пользователю.
-    session.execute(
-        text("""
-            ALTER TABLE public.telegram_auth_sessions
-            ALTER COLUMN user_id DROP NOT NULL
-        """)
-    )
-    session.commit()
-
-
 # Создаёт новую временную Telegram-сессию и возвращает токен для frontend.
 def create_telegram_auth_session(
     session: Session,
     user_id: int | None,
 ) -> dict:
-    ensure_telegram_auth_sessions_table(session)
-
     # Генерируем одноразовый токен и сохраняем только его хеш.
     token = secrets.token_urlsafe(32)
     token_hash = hash_telegram_session_token(token)
@@ -110,20 +81,21 @@ def get_telegram_auth_session(
     session: Session,
     token: str,
 ):
-    ensure_telegram_auth_sessions_table(session)
-
     # Ищем в базе хеш токена, а не исходное значение.
     token_hash = hash_telegram_session_token(token)
 
     result = session.execute(
         text("""
             SELECT
+                id,
                 user_id,
                 telegram_id,
                 telegram_username,
+                telegram_display_name,
                 status,
                 expires_at,
-                used_at
+                used_at,
+                consumed_at
             FROM public.telegram_auth_sessions
             WHERE token_hash = :token_hash
             LIMIT 1
@@ -136,15 +108,83 @@ def get_telegram_auth_session(
     return result.mappings().first()
 
 
+def claim_authorized_telegram_guest_session(
+    session: Session,
+    token: str,
+):
+    """Atomically reserve one authorized guest session for exactly one login."""
+    result = session.execute(
+        text("""
+            UPDATE public.telegram_auth_sessions
+            SET status = 'redeeming',
+                consumed_at = NOW()
+            WHERE token_hash = :token_hash
+              AND user_id IS NULL
+              AND status = 'authorized'
+              AND consumed_at IS NULL
+              AND expires_at > NOW()
+            RETURNING
+                id,
+                user_id,
+                telegram_id,
+                telegram_username,
+                telegram_display_name,
+                status,
+                expires_at,
+                used_at,
+                consumed_at
+        """),
+        {"token_hash": hash_telegram_session_token(token)},
+    )
+    auth_session = result.mappings().first()
+    session.commit()
+    return auth_session
+
+
+def finish_telegram_guest_session_redemption(
+    session: Session,
+    session_id: int,
+) -> bool:
+    result = session.execute(
+        text("""
+            UPDATE public.telegram_auth_sessions
+            SET status = 'consumed'
+            WHERE id = :session_id
+              AND status = 'redeeming'
+              AND consumed_at IS NOT NULL
+        """),
+        {"session_id": session_id},
+    )
+    session.commit()
+    return result.rowcount == 1
+
+
+def release_telegram_guest_session_redemption(
+    session: Session,
+    session_id: int,
+) -> None:
+    """Allow a retry when user creation failed after a successful claim."""
+    session.execute(
+        text("""
+            UPDATE public.telegram_auth_sessions
+            SET status = 'authorized',
+                consumed_at = NULL
+            WHERE id = :session_id
+              AND status = 'redeeming'
+        """),
+        {"session_id": session_id},
+    )
+    session.commit()
+
+
 # Подтверждает ожидающую Telegram-сессию данными, полученными от бота.
 def complete_telegram_auth_session(
     session: Session,
     token: str,
     telegram_id: int,
     telegram_username: str | None,
+    telegram_display_name: str | None = None,
 ):
-    ensure_telegram_auth_sessions_table(session)
-
     # Обновляем только неиспользованную и неистёкшую сессию.
     token_hash = hash_telegram_session_token(token)
 
@@ -154,6 +194,7 @@ def complete_telegram_auth_session(
             SET
                 telegram_id = :telegram_id,
                 telegram_username = :telegram_username,
+                telegram_display_name = :telegram_display_name,
                 status = 'authorized',
                 used_at = NOW()
             WHERE token_hash = :token_hash
@@ -162,10 +203,12 @@ def complete_telegram_auth_session(
             RETURNING user_id
                 , telegram_id
                 , telegram_username
+                , telegram_display_name
         """),
         {
             "telegram_id": telegram_id,
             "telegram_username": telegram_username,
+            "telegram_display_name": telegram_display_name,
             "token_hash": token_hash,
         },
     )

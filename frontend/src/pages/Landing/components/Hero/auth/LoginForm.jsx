@@ -6,42 +6,17 @@ import {
     loginWithVk
 } from './authApi'
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import * as VKID from '@vkid/sdk'
 import showIcon from '../../../../../assets/icons/show.png'
 import dontShowIcon from '../../../../../assets/icons/dont_show.png'
 import accountIcon from '../../../../../assets/icons/accaunt.png'
 import telegramIcon from '../../../../../assets/social_icons/telegram.svg'
 import vkIcon from '../../../../../assets/social_icons/vk.svg'
-import SocialAuthPrompt from './SocialAuthPrompt'
 
 const rememberedLoginKey = 'king_remembered_login'
 const VK_APP_ID = 54737931
 const VK_REDIRECT_URL = 'https://monument-cuddly-outsell.ngrok-free.dev/auth/vk/callback'
-const VK_SDK_URL = 'https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js'
-
-function loadVkSdk() {
-    if (window.VKIDSDK) {
-        return Promise.resolve(window.VKIDSDK)
-    }
-
-    return new Promise((resolve, reject) => {
-        const existingScript = document.querySelector(`script[src="${VK_SDK_URL}"]`)
-
-        if (existingScript) {
-            existingScript.addEventListener('load', () => resolve(window.VKIDSDK), { once: true })
-            existingScript.addEventListener('error', reject, { once: true })
-            return
-        }
-
-        const script = document.createElement('script')
-        script.src = VK_SDK_URL
-        script.async = true
-        script.onload = () => resolve(window.VKIDSDK)
-        script.onerror = reject
-        document.head.appendChild(script)
-    })
-}
-
 /// ------ Компонент формы авторизации ------ ///
 export default function LoginForm({
 
@@ -57,9 +32,8 @@ export default function LoginForm({
     setIsAuth,
 
     // ------ Изменение режима login/register ------ //
-    setMode,
     showModeSwitch = true,
-    showSocialAuth = true
+    expandedSocialButtons = false
 
 }) {
     const [showPassword, setShowPassword] = useState(false)
@@ -106,20 +80,7 @@ export default function LoginForm({
                 return
             }
 
-            if (response.data.action === 'complete_account') {
-                setTelegramToken('')
-                navigate('/telegram-auth', {
-                    replace: true,
-                    state: {
-                        token: telegramToken,
-                        telegram: response.data.telegram,
-                        suggestedLogin: response.data.suggested_login,
-                    },
-                })
-                return
-            }
-
-            if (response.data.status === 'expired' || response.data.status === 'not_found') {
+            if (['expired', 'not_found', 'consumed'].includes(response.data.status)) {
                 setTelegramToken('')
                 setTelegramState('idle')
                 setErrorMessage(response.data.message || 'Telegram-сессия истекла')
@@ -236,14 +197,6 @@ export default function LoginForm({
             setVkState('loading')
             setErrorMessage('')
 
-            const VKID = await loadVkSdk()
-
-            if (!VKID) {
-                setErrorMessage('Не удалось загрузить VK ID')
-                setVkState('idle')
-                return
-            }
-
             VKID.Config.init({
                 app: VK_APP_ID,
                 redirectUrl: VK_REDIRECT_URL,
@@ -256,7 +209,7 @@ export default function LoginForm({
             const authPayload = await VKID.Auth.login()
             const tokenPayload = await VKID.Auth.exchangeCode(
                 authPayload.code,
-                authPayload.device_id
+                authPayload.device_id,
             )
 
             const response = await loginWithVk(tokenPayload.access_token)
@@ -287,7 +240,7 @@ export default function LoginForm({
 
             <div className="login-field">
                 <label htmlFor="auth-login">
-                    Логин
+                    Логин или почта
                 </label>
 
                 <div className="login-input-wrapper">
@@ -386,7 +339,7 @@ export default function LoginForm({
 
             {/* ------ КОНТЕЙНЕР КНОПОК ------ */}
 
-            <section className="Buttons-container">
+            <section className={`Buttons-container ${expandedSocialButtons ? 'Buttons-container--expanded' : ''}`}>
 
                 {/* ------ КНОПКА АВТОРИЗАЦИИ ------ */}
 
@@ -406,6 +359,7 @@ export default function LoginForm({
                     disabled={telegramState === 'loading'}
                 >
                     <img src={telegramIcon} alt="" aria-hidden="true" />
+                    <span className="social-login-label">Войти через Telegram</span>
                 </button>
 
                 <button
@@ -416,6 +370,7 @@ export default function LoginForm({
                     disabled={vkState === 'loading'}
                 >
                     <img src={vkIcon} alt="" aria-hidden="true" />
+                    <span className="social-login-label">Войти через VK</span>
                 </button>
 
             </section>
@@ -431,21 +386,10 @@ export default function LoginForm({
                         Нет аккаунта?
                     </span>
 
-                    <button
-                        type="button"
-                        onClick={() => {
-
-                            // ------ Переключение режима на register ------ //
-                            setMode('register')
-                        }}
-                    >
+                    <Link to="/register">
                         Зарегистрироваться
-                    </button>
+                    </Link>
                 </div>
-            )}
-
-            {showSocialAuth && (
-                <SocialAuthPrompt />
             )}
         </form>
     )

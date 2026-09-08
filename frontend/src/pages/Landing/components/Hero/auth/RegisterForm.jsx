@@ -8,11 +8,10 @@ import { validatePassword } from './validatePassword'
 import { validateEmail } from './validateEmail'
 
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import showIcon from '../../../../../assets/icons/show.png'
 import dontShowIcon from '../../../../../assets/icons/dont_show.png'
 import accountIcon from '../../../../../assets/icons/accaunt.png'
-import SocialAuthPrompt from './SocialAuthPrompt'
 
 /// ------ Компонент формы регистрации ------ ///
 export default function RegisterForm({
@@ -36,9 +35,6 @@ export default function RegisterForm({
     // ------ Глобальное состояние авторизации ------ //
     setIsAuth,
 
-    // ------ Изменение режима login/register ------ //
-    setMode,
-
     // ------ Показывать переключатель на вход ------ //
     showModeSwitch = true
 
@@ -46,6 +42,8 @@ export default function RegisterForm({
     const [showPassword, setShowPassword] = useState(false)
     const [showRepeatPassword, setShowRepeatPassword] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [login, setLogin] = useState('')
+    const [loginHint, setLoginHint] = useState('')
     const navigate = useNavigate()
 
 
@@ -84,6 +82,13 @@ export default function RegisterForm({
 
         // ------ Нормализуем почту ------ //
         const normalizedEmail = email.trim().toLowerCase()
+        const normalizedLogin = login.trim().toLowerCase()
+
+        if (normalizedLogin.length < 3 || normalizedLogin.length > 40 || /\s/.test(normalizedLogin)) {
+            setLoginHint('Логин: от 3 до 40 символов, без пробелов')
+            return
+        }
+        setLoginHint('')
 
         // ------ Проверяем корректность почты ------ //
         const emailError = validateEmail(normalizedEmail)
@@ -112,15 +117,19 @@ export default function RegisterForm({
 
             // ------ Отправляем данные на backend ------ //
             const response = await registerUser(
+                normalizedLogin,
                 normalizedEmail,
                 password
             )
 
             // ------ Если регистрация завершилась ошибкой ------ //
             if (!response.ok) {
-                setEmailHint(
-                    response.data?.detail || 'Ошибка регистрации'
-                )
+                const detail = response.data?.detail || 'Ошибка регистрации'
+                if (detail.toLowerCase().includes('логин')) {
+                    setLoginHint(detail)
+                } else {
+                    setEmailHint(detail)
+                }
 
                 return
             }
@@ -149,6 +158,27 @@ export default function RegisterForm({
 
     return (
         <>
+
+            <div className="login-field">
+                <label htmlFor="register-login">Логин</label>
+                <div className="login-input-wrapper">
+                    <span className="input-icon" aria-hidden="true">
+                        <img src={accountIcon} alt="" />
+                    </span>
+                    <input
+                        id="register-login"
+                        name="username"
+                        className="Username-input"
+                        type="text"
+                        autoComplete="username"
+                        placeholder="Придумайте логин"
+                        value={login}
+                        onChange={(event) => setLogin(event.target.value)}
+                    />
+                </div>
+            </div>
+
+            {loginHint && <p className="Password-hint">{loginHint}</p>}
 
             {/* ------ INPUT ПОЧТЫ ------ */}
 
@@ -261,7 +291,7 @@ export default function RegisterForm({
 
             {/* ------ КОНТЕЙНЕР КНОПОК ------ */}
 
-            <section className="Buttons-container">
+            <section className="Buttons-container register-actions">
 
                 {/* ------ КНОПКА РЕГИСТРАЦИИ ------ */}
 
@@ -282,20 +312,11 @@ export default function RegisterForm({
                         Уже есть аккаунт?
                     </span>
 
-                    <button
-                        type="button"
-                        onClick={() => {
-
-                            // ------ Переключение режима на login ------ //
-                            setMode('login')
-                        }}
-                    >
+                    <Link to="/login">
                         Войти
-                    </button>
+                    </Link>
                 </div>
             )}
-
-            <SocialAuthPrompt />
 
         </>
     )

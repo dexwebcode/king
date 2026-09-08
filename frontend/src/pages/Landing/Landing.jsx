@@ -10,7 +10,6 @@ import FinalCTA from "./components/FinalCTA/FinalCTA";
 import Footer from "./components/Footer/Footer";
 
 import { useEffect, useLayoutEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
 
 import "./Landing.css";
 
@@ -35,13 +34,9 @@ function scrollToTopFast() {
 }
 
 export default function Landing() {
-    const location = useLocation();
     const [isScrollTopVisible, setIsScrollTopVisible] = useState(false);
     const [hasStartedScrolling, setHasStartedScrolling] = useState(false);
     const [isHeroAuthVisible, setIsHeroAuthVisible] = useState(true);
-    const [authMode, setAuthMode] = useState(
-        location.state?.authMode === "login" ? "login" : "register"
-    );
 
     useLayoutEffect(() => {
         function resetScrollToTop() {
@@ -184,10 +179,10 @@ export default function Landing() {
             <div className="ambient ambient-one" />
             <div className="ambient ambient-two" />
 
-            <Header onAuthModeChange={setAuthMode} showAuthButton={!isHeroAuthVisible} initiallyDark={!hasStartedScrolling} />
+            <Header showAuthButton={!isHeroAuthVisible} initiallyDark={!hasStartedScrolling} />
 
             <main id="top">
-                <Hero initialAuthMode={authMode} onQuickOrderClick={scrollToOrderCard} />
+                <Hero onQuickOrderClick={scrollToOrderCard} />
                 <section className="landing-order-card-section container" id="quick-order">
                     <OrderCard />
                 </section>

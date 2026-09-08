@@ -55,8 +55,9 @@ function saveAuthResult(result) {
     return result
 }
 
-export async function registerUser(email, password) {
+export async function registerUser(login, email, password) {
     const result = await sendRequest('/auth/register', 'POST', {
+        login,
         email,
         password
     }, false)
@@ -75,26 +76,6 @@ export function getTelegramGuestStatus(token) {
         null,
         false
     )
-}
-
-export async function completeTelegramRegister(token, login, password) {
-    const result = await sendRequest('/auth/telegram/complete-register', 'POST', {
-        token,
-        login,
-        password
-    }, false)
-
-    return saveAuthResult(result)
-}
-
-export async function linkTelegramExisting(token, identifier, password) {
-    const result = await sendRequest('/auth/telegram/link-existing', 'POST', {
-        token,
-        identifier,
-        password
-    }, false)
-
-    return saveAuthResult(result)
 }
 
 export async function loginWithVk(accessToken) {

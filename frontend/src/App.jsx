@@ -5,7 +5,7 @@ import Landing from "./pages/Landing/Landing";
 import Catalog from "./pages/Catalog/Catalog";
 import Main from "./pages/Main/Main";
 import Payment from "./pages/Payment/Payment";
-import TelegramAuth from "./pages/TelegramAuth/TelegramAuth";
+import AuthPage from "./pages/Auth/AuthPage";
 import Admin from "./pages/Admin/Admin";
 import { AUTH_CHANGED_EVENT, isAuth } from "./pages/Landing/components/Hero/auth/authApi";
 
@@ -59,15 +59,17 @@ export default function App() {
                 element={isAuthenticated ? <Navigate to="/catalog" replace /> : <Landing />}
             />
             <Route path="/catalog" element={<Catalog />} />
-            <Route path="/login" element={<Navigate to="/" replace state={{ authMode: "login" }} />} />
-            <Route path="/register" element={<Navigate to="/" replace />} />
+            <Route
+                path="/login"
+                element={isAuthenticated ? <Navigate to="/catalog" replace /> : <AuthPage mode="login" />}
+            />
+            <Route
+                path="/register"
+                element={isAuthenticated ? <Navigate to="/catalog" replace /> : <AuthPage mode="register" />}
+            />
             <Route
                 path="/payment/success"
                 element={isAuthenticated ? <Payment /> : <Navigate to="/" replace />}
-            />
-            <Route
-                path="/telegram-auth"
-                element={isAuthenticated ? <Navigate to="/catalog" replace /> : <TelegramAuth />}
             />
             <Route
                 path="/main"

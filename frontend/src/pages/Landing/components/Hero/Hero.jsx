@@ -48,7 +48,6 @@ const heroBenefitCopy = [
 
 export default function Hero({
     isOrderGuideActive = false,
-    initialAuthMode = "register",
     onQuickOrderClick,
 }) {
     function handleQuickOrderClick(event) {
@@ -117,7 +116,7 @@ export default function Hero({
 
             <div className="hero-visual">
                 <div className="hero-form-column">
-                    <HeroRegisterForm initialMode={initialAuthMode} />
+                    <HeroRegisterForm />
                 </div>
             </div>
         </section>

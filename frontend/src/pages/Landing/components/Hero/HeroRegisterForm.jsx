@@ -1,15 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import LoginForm from "./auth/LoginForm";
 import "./css/auth-panel/HeroAuthForm.css";
 
-export default function HeroRegisterForm({ initialMode = "auth" }) {
-    const [mode, setMode] = useState("email");
+export default function HeroRegisterForm() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-
-    useEffect(() => {
-        setMode("email");
-    }, [initialMode]);
 
     return (
         <div className="hero-auth-panel">
@@ -26,9 +21,7 @@ export default function HeroRegisterForm({ initialMode = "auth" }) {
                     setLogin={setEmail}
                     setPassword={setPassword}
                     setIsAuth={() => {}}
-                    setMode={() => setMode(mode)}
                     showModeSwitch={false}
-                    showSocialAuth={false}
                 />
             </section>
         </div>

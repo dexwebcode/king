@@ -6,13 +6,19 @@ from aiogram.exceptions import TelegramNetworkError
 from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import Message
 
-from backend.bots.config import BACKEND_PUBLIC_URL, TELEGRAM_BOT_TOKEN
+from backend.bots.config import (
+    BACKEND_PUBLIC_URL,
+    TELEGRAM_BOT_BACKEND_SECRET,
+    TELEGRAM_BOT_TOKEN,
+)
 
 
 async def send_token_to_backend(
     token: str,
     telegram_id: int,
     telegram_username: str | None,
+    first_name: str | None,
+    last_name: str | None,
 ) -> dict:
     async with aiohttp.ClientSession() as session:
         async with session.post(
@@ -21,7 +27,10 @@ async def send_token_to_backend(
                 "token": token,
                 "telegram_id": telegram_id,
                 "telegram_username": telegram_username,
+                "first_name": first_name,
+                "last_name": last_name,
             },
+            headers={"X-Telegram-Bot-Secret": TELEGRAM_BOT_BACKEND_SECRET},
             timeout=aiohttp.ClientTimeout(total=10),
         ) as response:
             return await response.json()
@@ -52,6 +61,8 @@ async def start_handler(
             token=token,
             telegram_id=user.id,
             telegram_username=user.username,
+            first_name=user.first_name,
+            last_name=user.last_name,
         )
 
     except aiohttp.ClientError:

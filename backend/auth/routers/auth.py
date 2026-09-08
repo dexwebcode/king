@@ -40,6 +40,7 @@ def login(data: LoginRequest):
         "token": result["token"],
         "user": {
             "id": result["user_id"],
+            "login": result["login"],
             "email": result["email"],
         },
     }
@@ -49,7 +50,11 @@ def login(data: LoginRequest):
 def me(current_user: dict = Depends(get_current_user)):
     return {
         "success": True,
-        "user": current_user,
+        "user": {
+            "id": current_user["id"],
+            "login": current_user["login"],
+            "email": current_user["mail"],
+        },
     }
 
 # Endpoint регитрации
@@ -60,14 +65,20 @@ def me(current_user: dict = Depends(get_current_user)):
 def register(data: RegisterRequest):
     try:
         result = register_user(
+            login=data.login,
             email=str(data.email),
             password=data.password,
         )
 
-    except UserAlreadyExistsError:
+    except UserAlreadyExistsError as error:
+        detail = (
+            "Пользователь с таким логином уже существует"
+            if str(error) == "login"
+            else "Пользователь с такой почтой уже существует"
+        )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Пользователь с такой почтой уже существует",
+            detail=detail,
         )
 
     return {
@@ -75,6 +86,7 @@ def register(data: RegisterRequest):
         "token": result["token"],
         "user": {
             "id": result["user_id"],
+            "login": result["login"],
             "email": result["email"],
         },
     }

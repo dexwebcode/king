@@ -27,6 +27,32 @@ def get_user_by_login_or_email(
     return result.mappings().first()
 
 
+def get_user_by_login(session: Session, login: str):
+    result = session.execute(
+        text("""
+            SELECT id, login, mail, password
+            FROM migration_temp.users
+            WHERE LOWER(login) = LOWER(:login)
+            LIMIT 1
+        """),
+        {"login": login},
+    )
+    return result.mappings().first()
+
+
+def get_user_by_email(session: Session, email: str):
+    result = session.execute(
+        text("""
+            SELECT id, login, mail, password
+            FROM migration_temp.users
+            WHERE LOWER(mail) = LOWER(:email)
+            LIMIT 1
+        """),
+        {"email": email},
+    )
+    return result.mappings().first()
+
+
 # Определение функции для получения пользователя по идентификатору
 def get_user_by_id(
     session: Session,
@@ -50,12 +76,11 @@ def get_user_by_id(
 # Определение функции для добавления пользователя
 def create_user(
     session: Session,
-    login: str,
-    email: str,
-    password: str,
+    login: str | None,
+    email: str | None,
+    password: str | None,
 ):
-    try:
-        result = session.execute(
+    result = session.execute(
             text("""
                 INSERT INTO migration_temp.users (
                     login,
@@ -78,13 +103,15 @@ def create_user(
                 "password": password,
             },
         )
+    return result.mappings().first()
 
-        user = result.mappings().first()
 
-        session.commit()
-
-        return user
-
-    except Exception:
-        session.rollback()
-        raise
+def update_user_password(session: Session, user_id: int, password: str) -> None:
+    session.execute(
+        text("""
+            UPDATE migration_temp.users
+            SET password = :password
+            WHERE id = :user_id
+        """),
+        {"user_id": user_id, "password": password},
+    )

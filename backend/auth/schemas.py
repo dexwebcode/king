@@ -26,7 +26,7 @@ def validate_login_value(value: str) -> str:
             "Логин должен содержать минимум 3 символа"
         )
 
-    if len(login) > 50:
+    if len(login) > 40:
         raise ValueError(
             "Логин слишком длинный"
         )
@@ -98,7 +98,13 @@ class LoginRequest(BaseModel):
 # Схема для регистрации пользователя
 class RegisterRequest(EmailRequest):
 
+    login: str
     password: str
+
+    @field_validator("login")
+    @classmethod
+    def validate_register_login(cls, value: str) -> str:
+        return validate_login_value(value)
 
     # Полная проверка нового пароля
     @field_validator("password")
@@ -149,55 +155,13 @@ class TelegramStartRequest(BaseModel):
     token: str
     telegram_id: int
     telegram_username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
 
     @field_validator("token")
     @classmethod
     def validate_telegram_token(cls, value: str) -> str:
         return normalize_token(value)
-
-
-class TelegramCompleteRegisterRequest(BaseModel):
-
-    token: str
-    login: str
-    password: str
-
-    @field_validator("login")
-    @classmethod
-    def validate_telegram_login(cls, value: str) -> str:
-        return validate_login_value(value)
-
-    @field_validator("token")
-    @classmethod
-    def validate_telegram_token(cls, value: str) -> str:
-        return normalize_token(value)
-
-    @field_validator("password")
-    @classmethod
-    def validate_telegram_password(cls, value: str) -> str:
-        return RegisterRequest.validate_register_password(value)
-
-
-class TelegramLinkExistingRequest(BaseModel):
-
-    identifier: str
-    password: str
-    token: str
-
-    @field_validator("identifier")
-    @classmethod
-    def validate_login_identifier(cls, value: str) -> str:
-        return normalize_identifier(value)
-
-    @field_validator("token")
-    @classmethod
-    def validate_telegram_token(cls, value: str) -> str:
-        return normalize_token(value)
-
-    @field_validator("password")
-    @classmethod
-    def validate_login_password(cls, value: str) -> str:
-        return LoginRequest.validate_login_password(value)
 
 
 class VkLoginRequest(BaseModel):
