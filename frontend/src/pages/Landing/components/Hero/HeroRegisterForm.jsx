@@ -2,7 +2,7 @@ import { useState } from "react";
 import LoginForm from "./auth/LoginForm";
 import "./css/auth-panel/HeroAuthForm.css";
 
-export default function HeroRegisterForm() {
+export default function HeroRegisterForm({ onAuthSuccess }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
@@ -21,7 +21,8 @@ export default function HeroRegisterForm() {
                     setLogin={setEmail}
                     setPassword={setPassword}
                     setIsAuth={() => {}}
-                    showModeSwitch={false}
+                    onAuthSuccess={onAuthSuccess}
+                    showModeSwitch
                 />
             </section>
         </div>

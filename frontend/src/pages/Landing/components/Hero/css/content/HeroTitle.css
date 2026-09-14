@@ -48,7 +48,7 @@
 
 @media (min-width: 1101px) {
     .hero--left .hero-main-title {
-        font-size: clamp(42px, 3.55vw, 64px);
+        font-size: clamp(52px, 4.1vw, 74px);
     }
 
     .hero--left .hero-main-title span {

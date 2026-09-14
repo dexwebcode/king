@@ -11,6 +11,9 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from typing import cast
+from sqlalchemy.engine import CursorResult
+
 # ЛОКАЛЬНЫЕ ИМПОРТЫ
 from backend.core.config import (
     TELEGRAM_AUTH_SESSION_EXPIRE_MINUTES,
@@ -145,18 +148,23 @@ def finish_telegram_guest_session_redemption(
     session: Session,
     session_id: int,
 ) -> bool:
-    result = session.execute(
-        text("""
-            UPDATE public.telegram_auth_sessions
-            SET status = 'consumed'
-            WHERE id = :session_id
-              AND status = 'redeeming'
-              AND consumed_at IS NOT NULL
-        """),
-        {"session_id": session_id},
+    result = cast(
+        CursorResult,
+        session.execute(
+            text("""
+                UPDATE public.telegram_auth_sessions
+                SET status = 'consumed'
+                WHERE id = :session_id
+                AND status = 'redeeming'
+                AND consumed_at IS NOT NULL
+            """),
+            {"session_id": session_id},
+        ),
     )
+
+    updated_rows = result.rowcount
     session.commit()
-    return result.rowcount == 1
+    return updated_rows == 1
 
 
 def release_telegram_guest_session_redemption(

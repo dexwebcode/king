@@ -12,34 +12,22 @@ import {
     platformIcon,
     providerServiceId,
 } from "../../ui/catalogMeta";
+import {
+    clearPendingCheckoutDraft,
+    readPendingCheckoutDraft,
+} from "../../ui/orderDraft";
 import "./Main.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
-const ORDER_DRAFT_KEY = "king_order_draft";
-
-function readOrderDraft() {
-    try {
-        const value = localStorage.getItem(ORDER_DRAFT_KEY);
-        return value ? JSON.parse(value) : null;
-    } catch {
-        localStorage.removeItem(ORDER_DRAFT_KEY);
-        return null;
-    }
-}
-
-function apiError(data, fallback) {
-    return typeof data?.detail === "string" ? data.detail : fallback;
-}
 
 export default function Main() {
     const location = useLocation();
-    const [draft, setDraft] = useState(readOrderDraft);
-    const [section, setSection] = useState(location.state?.section || (readOrderDraft() ? "create" : "orders"));
+    const [pendingDraft, setPendingDraft] = useState(readPendingCheckoutDraft);
+    const [section, setSection] = useState(location.state?.section || (pendingDraft ? "create" : "orders"));
     const [account, setAccount] = useState(null);
     const [orders, setOrders] = useState([]);
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [paymentLoading, setPaymentLoading] = useState(false);
     const [error, setError] = useState("");
 
     useEffect(() => {
@@ -76,48 +64,9 @@ export default function Main() {
         services.map((item) => [providerServiceId(item), item]),
     ), [services]);
 
-    function handleDraftSaved(savedDraft) {
-        setDraft(savedDraft);
-        setError("");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    function handleDeleteDraft() {
-        if (!window.confirm("Удалить черновик заказа?")) return;
-        localStorage.removeItem(ORDER_DRAFT_KEY);
-        setDraft(null);
-        setError("");
-    }
-
-    async function handlePayment() {
-        const token = localStorage.getItem("token");
-        if (!draft || !token || paymentLoading) return;
-        try {
-            setPaymentLoading(true);
-            setError("");
-            const response = await fetch(`${API_URL}/api/orders`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({
-                    service_id: draft.service_id,
-                    quantity: draft.quantity,
-                    recipient_link: draft.recipient_link,
-                    payment_method: "sbp",
-                    idempotence_key: crypto.randomUUID(),
-                }),
-            });
-            const data = await response.json();
-            if (!response.ok || !data?.order_id || !data?.confirmation_url) {
-                throw new Error(apiError(data, "Не удалось создать платёж"));
-            }
-            localStorage.removeItem(ORDER_DRAFT_KEY);
-            setDraft(null);
-            localStorage.setItem("pending_order_id", String(data.order_id));
-            window.location.assign(data.confirmation_url);
-        } catch (paymentError) {
-            setError(paymentError.message || "Не удалось создать платёж");
-            setPaymentLoading(false);
-        }
+    function handleCheckoutRestored() {
+        clearPendingCheckoutDraft();
+        setPendingDraft(null);
     }
 
     const descriptions = {
@@ -127,40 +76,24 @@ export default function Main() {
     };
 
     return (
-        <AppShell active={section} account={account} onSectionChange={setSection} contentClassName={section === "create" && !draft ? "main-wide" : ""}>
+        <AppShell active={section} account={account} onSectionChange={setSection} contentClassName={section === "create" ? "main-wide" : ""}>
             {loading ? <Panel className="main-message">Загружаем кабинет…</Panel> : (
                 <>
-                    {(section !== "create" || draft) && (
+                    {section !== "create" && (
                         <PageHeader
                             eyebrow="Личный кабинет"
-                            title={section === "create" ? "Подтверждение заказа" : section === "orders" ? "Мои заказы" : "Баланс"}
+                            title={section === "orders" ? "Мои заказы" : "Баланс"}
                             description={descriptions[section]}
                         />
                     )}
                     {error && <p className="main-alert" role="alert">{error}</p>}
 
-                    {section === "create" && draft && (
-                        <Panel className="draft-panel">
-                            <div className="draft-panel-head">
-                                <div><p className="kp-eyebrow">Черновик сохранён</p><h2>Проверьте детали перед оплатой</h2></div>
-                                <button className="draft-delete" type="button" onClick={handleDeleteDraft}>Удалить</button>
-                            </div>
-                            <dl className="draft-summary">
-                                <div><dt>Площадка</dt><dd>{draft.platform_name || displayPlatform(draft.platform)}</dd></div>
-                                <div><dt>Тип услуги</dt><dd>{draft.service_type_name || displayServiceType(draft.service_type)}</dd></div>
-                                <div><dt>Услуга</dt><dd>{draft.service_name || `#${draft.service_id}`}</dd></div>
-                                <div><dt>Количество</dt><dd>{Number(draft.quantity).toLocaleString("ru-RU")}</dd></div>
-                                <div className="draft-link"><dt>Ссылка</dt><dd>{draft.recipient_link}</dd></div>
-                                <div className="draft-total"><dt>К оплате</dt><dd>{draft.display_total} ₽</dd></div>
-                            </dl>
-                            <div className="payment-method"><span>QR</span><div><strong>СБП</strong><small>Сервер ещё раз проверит услугу, лимиты и актуальную цену.</small></div><i>✓</i></div>
-                            <button className="kp-button draft-pay" type="button" onClick={handlePayment} disabled={paymentLoading}>
-                                {paymentLoading ? "Создаём платёж…" : "Перейти к оплате"}
-                            </button>
-                        </Panel>
+                    {section === "create" && (
+                        <OrderCard
+                            initialDraft={pendingDraft}
+                            onCheckoutRestored={handleCheckoutRestored}
+                        />
                     )}
-
-                    {section === "create" && !draft && <OrderCard onDraftSaved={handleDraftSaved} />}
 
                     {section === "orders" && (
                         <Panel className="orders-panel">

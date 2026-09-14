@@ -12,6 +12,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import showIcon from '../../../../../assets/icons/show.png'
 import dontShowIcon from '../../../../../assets/icons/dont_show.png'
 import accountIcon from '../../../../../assets/icons/accaunt.png'
+import { hasPendingCheckoutDraft } from '../../../../../ui/orderDraft'
 
 /// ------ Компонент формы регистрации ------ ///
 export default function RegisterForm({
@@ -142,7 +143,11 @@ export default function RegisterForm({
 
             // ------ Изменяем состояние авторизации ------ //
             setIsAuth(true)
-            navigate('/catalog')
+            if (hasPendingCheckoutDraft()) {
+                navigate('/main', { state: { section: 'create', resumeCheckout: true } })
+            } else {
+                navigate('/catalog')
+            }
 
         } catch (error) {
 

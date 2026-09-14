@@ -5,7 +5,7 @@ import {
     loginUser,
     loginWithVk
 } from './authApi'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import * as VKID from '@vkid/sdk'
 import showIcon from '../../../../../assets/icons/show.png'
@@ -13,6 +13,7 @@ import dontShowIcon from '../../../../../assets/icons/dont_show.png'
 import accountIcon from '../../../../../assets/icons/accaunt.png'
 import telegramIcon from '../../../../../assets/social_icons/telegram.svg'
 import vkIcon from '../../../../../assets/social_icons/vk.svg'
+import { hasPendingCheckoutDraft } from '../../../../../ui/orderDraft'
 
 const rememberedLoginKey = 'king_remembered_login'
 const VK_APP_ID = 54737931
@@ -33,7 +34,8 @@ export default function LoginForm({
 
     // ------ Изменение режима login/register ------ //
     showModeSwitch = true,
-    expandedSocialButtons = false
+    expandedSocialButtons = false,
+    onAuthSuccess
 
 }) {
     const [showPassword, setShowPassword] = useState(false)
@@ -44,6 +46,20 @@ export default function LoginForm({
     const [vkState, setVkState] = useState('idle')
     const [errorMessage, setErrorMessage] = useState('')
     const navigate = useNavigate()
+
+    const continueAfterAuth = useCallback(async ({ replace = false } = {}) => {
+        if (onAuthSuccess) {
+            await onAuthSuccess()
+            return
+        }
+
+        if (hasPendingCheckoutDraft()) {
+            navigate('/main', { replace, state: { section: 'create', resumeCheckout: true } })
+            return
+        }
+
+        navigate('/catalog', { replace })
+    }, [navigate, onAuthSuccess])
 
     useEffect(() => {
         const rememberedLogin = localStorage.getItem(rememberedLoginKey)
@@ -76,7 +92,7 @@ export default function LoginForm({
             if (response.data.action === 'login' && response.data.token) {
                 localStorage.setItem('token', response.data.token)
                 window.dispatchEvent(new Event('king-auth-changed'))
-                navigate('/catalog', { replace: true })
+                await continueAfterAuth({ replace: true })
                 return
             }
 
@@ -98,7 +114,7 @@ export default function LoginForm({
             isMounted = false
             window.clearInterval(intervalId)
         }
-    }, [navigate, telegramToken])
+    }, [continueAfterAuth, telegramToken])
 
     // ------ Функция авторизации ------ //
     async function handleLogin(event) {
@@ -132,7 +148,7 @@ export default function LoginForm({
 
                 // ------ Изменяем глобальное состояние авторизации ------ //
                 setIsAuth(true)
-                navigate('/catalog')
+                await continueAfterAuth()
                 return
             }
 
@@ -220,7 +236,7 @@ export default function LoginForm({
                 return
             }
 
-            navigate('/catalog', { replace: true })
+            await continueAfterAuth({ replace: true })
 
         } catch (error) {
             console.log('Ошибка VK ID авторизации:', error)
@@ -375,11 +391,6 @@ export default function LoginForm({
 
             </section>
 
-            <p className="login-social-note">
-                При входе через сторонние сервисы мы создаем аккаунт
-                за вас автоматически
-            </p>
-
             {showModeSwitch && (
                 <div className="login-register">
                     <span>
@@ -387,7 +398,7 @@ export default function LoginForm({
                     </span>
 
                     <Link to="/register">
-                        Зарегистрироваться
+                        Зарегистрируйтесь
                     </Link>
                 </div>
             )}

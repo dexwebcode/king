@@ -6,14 +6,15 @@
     position: relative;
     --hero-title-width: 100%;
     margin-top: 78px;
-    min-height: max(680px, calc(100svh - 78px));
+    min-height: 0;
     display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(390px, .85fr);
+    grid-template-columns: minmax(0, 1.35fr) minmax(390px, .85fr);
     grid-template-areas:
-        "copy form";
-    align-items: center;
+        "copy form"
+        "stats stats";
+    align-items: stretch;
     column-gap: clamp(36px, 4vw, 72px);
-    row-gap: 18px;
+    row-gap: 25px;
     padding-block: clamp(44px, 6vh, 82px);
     overflow: visible;
 }
@@ -43,10 +44,10 @@
     z-index: 6;
     display: flex;
     flex-direction: column;
-    gap: 28px;
     width: 100%;
     min-width: 0;
-    height: auto;
+    height: 100%;
+    align-self: stretch;
     transform: none;
 }
 
@@ -60,6 +61,11 @@
 
 @media (min-width: 1101px) {
     .hero--left .hero-content {
-        transform: translateX(-50px);
+        transform: none;
+    }
+
+    .hero--left .hero-copy {
+        align-content: start;
+        padding-top: 80px;
     }
 }

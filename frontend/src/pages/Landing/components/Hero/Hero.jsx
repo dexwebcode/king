@@ -12,38 +12,11 @@ import "./css/auth-panel/HeroAuthPanel.css";
 import "./css/responsive/HeroResponsive.css";
 import "./css/Visual.css";
 
-import instagramIcon from "../../../../assets/social_icons/instagram.svg";
-import telegramIcon from "../../../../assets/social_icons/telegram.svg";
-import tiktokIcon from "../../../../assets/social_icons/tiktok.svg";
-import vkIcon from "../../../../assets/social_icons/vk.svg";
-import youtubeIcon from "../../../../assets/social_icons/youtube.svg";
-import rutubeIcon from "../../../../assets/social_icons/Icon_RUTUBE_dark_color.svg";
-import spotifyIcon from "../../../../assets/social_icons/Spotify.png";
-import dzenIcon from "../../../../assets/social_icons/dzen.svg";
-import maxIcon from "../../../../assets/social_icons/max.svg";
-import vkMusicIcon from "../../../../assets/social_icons/vk-music.svg";
-import twitchIcon from "../../../../assets/social_icons/twich.png";
-import appleMusicIcon from "../../../../assets/social_icons/Apple_Musikl.png";
 
-const heroPlatforms = [
-    { name: "Instagram", icon: instagramIcon },
-    { name: "Telegram", icon: telegramIcon },
-    { name: "TikTok", icon: tiktokIcon },
-    { name: "VK", icon: vkIcon },
-    { name: "YouTube", icon: youtubeIcon },
-    { name: "RuTube", icon: rutubeIcon },
-    { name: "Dzen", icon: dzenIcon },
-    { name: "MAX", icon: maxIcon },
-    { name: "Spotify", icon: spotifyIcon },
-    { name: "VK Музыка", icon: vkMusicIcon },
-    { name: "Twitch", icon: twitchIcon },
-    { name: "Apple Music", icon: appleMusicIcon },
-];
-
-const heroBenefitCopy = [
-    "Минимальная сумма заказа подходит для быстрого теста продвижения.",
-    "Помогаем разобраться с заказом и подскажем лучший вариант услуги.",
-    "Заказы проходят аккуратно, а статус можно отслеживать после оформления.",
+const heroBenefits = [
+    { label: "Старт от 30 ₽", icon: "₽" },
+    { label: "Поддержка 24/7", icon: "?" },
+    { label: "Высокая скорость", icon: "⚡" },
 ];
 
 export default function Hero({
@@ -64,25 +37,15 @@ export default function Hero({
             <div className="hero-content">
                 <div className="hero-copy">
                     <h1 className="hero-main-title">
-                        <span>Мы продвинем ваши</span>
-                        <span>социальные сети быстро</span>
-                        <span>эффективно и дешево</span>
+                        <span>Продвигайте</span>
+                        <span>аккаунты быстрее</span>
+                        <span>без сложных настроек</span>
                     </h1>
 
                     <p className="hero-subtitle">
                         Тысячи клиентов уже получают подписчиков,
                         просмотры и <span className="hero-subtitle-nowrap">активность с нами.</span>
                     </p>
-                    <div className="hero-supported-platforms" aria-label="Поддерживаемые площадки">
-
-                        <div className="hero-supported-platforms-grid">
-                            {heroPlatforms.map((platform) => (
-                                <div className="hero-supported-platform" key={platform.name}>
-                                    <img src={platform.icon} alt={platform.name} />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
                     <div className="hero-actions">
                         <div className="hero-actions-top">
                             <a
@@ -95,20 +58,14 @@ export default function Hero({
                             <Link className="button hero-action-catalog" to="/catalog">
                                 <span className="button-label">Каталог услуг</span>
                             </Link>
-                            <div className="hero-benefit-rotator hero-benefit-rotator--copy" aria-label="Преимущества">
-                                {heroBenefitCopy.map((text) => (
-                                    <div className="hero-benefit-slide" key={text}>
-                                        <p>{text}</p>
-                                    </div>
-                                ))}
-                                <div className="hero-benefit-indicator" aria-hidden="true">
-                                    <span />
-                                    <span />
-                                    <span />
-                                </div>
-                            </div>
-                            <Stats />
-
+                        </div>
+                        <div className="hero-benefit-grid" aria-label="Преимущества">
+                            {heroBenefits.map(({ label, icon }) => (
+                                <span className="hero-benefit-card" key={label}>
+                                    <span className="hero-benefit-icon" aria-hidden="true">{icon}</span>
+                                    <span>{label}</span>
+                                </span>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -119,6 +76,8 @@ export default function Hero({
                     <HeroRegisterForm />
                 </div>
             </div>
+
+            <Stats />
         </section>
     );
 }

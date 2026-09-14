@@ -5,9 +5,10 @@
 .hero-auth-panel {
     position: relative;
     z-index: 4;
-    width: min(500px, 100%);
+    width: min(480px, 100%);
     min-width: 0;
-    padding: 46px 48px 42px;
+    height: 100%;
+    padding: 50px;
     border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 24px;
     background: rgba(255, 255, 255, 0.028);
@@ -19,6 +20,15 @@
     animation: heroAuthPanelReveal 0.95s ease 1.85s both;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+@media (min-width: 1101px) {
+
+    .hero-auth-panel {
+        align-self: flex-end;
+        height: calc(100% - 20px);
+        transform: translate(-100px, 30px);
+    }
 }
 
 @keyframes heroAuthPanelReveal {
@@ -77,8 +87,8 @@
 
     .hero-auth-panel {
         right: 0;
-        width: min(500px, 100%);
-        padding: 36px;
+        width: min(550px, 100%);
+        padding: 56px 40px 46px;
     }
 
 }
@@ -90,7 +100,7 @@
         top: auto;
         right: auto;
         width: 100%;
-        padding: 26px 22px;
+        padding: 46px 15px;
         transform: none;
     }
 

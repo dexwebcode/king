@@ -4,15 +4,16 @@
 
 .hero-copy {
     position: relative;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: end;
+    gap: 25px;
     align-items: center;
     text-align: center;
     height: 100%;
 }
 
 .hero--left .hero-copy {
-    display: flex;
     align-items: flex-start;
     text-align: left;
 }

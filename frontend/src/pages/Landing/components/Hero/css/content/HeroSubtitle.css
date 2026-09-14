@@ -3,13 +3,13 @@
 ========================================================= */
 
 .hero-subtitle {
-    margin: 18px 0 20px;
+    margin: 0;
 
     max-width: none;
 
     color: var(--muted);
 
-    font-size: clamp(0.1vw, 1vw, 4vw);
+    font-size: clamp(16px, 1.15vw, 18px);
 
     line-height: 1.55;
     text-align: center;
@@ -17,7 +17,7 @@
 }
 
 .hero--left .hero-subtitle {
-    margin: 18px 0 20px;
+    margin: 0;
     text-align: left;
 }
 

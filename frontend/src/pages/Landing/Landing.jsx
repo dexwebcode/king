@@ -75,14 +75,41 @@ export default function Landing() {
 
     useLayoutEffect(() => {
         const sections = Array.from(
-            document.querySelectorAll(".page-shell > main > section, .page-shell > footer")
+            document.querySelectorAll(
+                ".page-shell > main > section:not(.landing-order-card-section), .page-shell > footer"
+            )
+        );
+        const orderCardSection = document.querySelector(".landing-order-card-section");
+        const revealItems = Array.from(
+            document.querySelectorAll([
+                ".panel-section > .section-heading",
+                ".benefit-grid > .benefit-card",
+                ".popular-services-grid > .popular-service-card",
+                ".test-banner > *",
+                ".final-cta > *",
+                ".footer > *",
+            ].join(", "))
         );
         const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const parentRevealIndexes = new Map();
 
         sections.forEach((section) => section.classList.add("landing-section-reveal"));
+        orderCardSection?.classList.add("landing-order-card-reveal");
+        revealItems.forEach((item) => {
+            const parent = item.parentElement;
+            const revealIndex = parentRevealIndexes.get(parent) || 0;
+            const finalOpacity = window.getComputedStyle(item).opacity;
+
+            parentRevealIndexes.set(parent, revealIndex + 1);
+            item.classList.add("landing-item-reveal");
+            item.style.setProperty("--landing-item-delay", `${Math.min(revealIndex * 75, 375)}ms`);
+            item.style.setProperty("--landing-item-opacity", finalOpacity);
+        });
 
         if (prefersReducedMotion) {
             sections.forEach((section) => section.classList.add("landing-section-reveal--visible"));
+            orderCardSection?.classList.add("landing-order-card-reveal--visible");
+            revealItems.forEach((item) => item.classList.add("landing-item-reveal--visible"));
             return undefined;
         }
 
@@ -93,7 +120,13 @@ export default function Landing() {
                         return;
                     }
 
-                    entry.target.classList.add("landing-section-reveal--visible");
+                    if (entry.target.classList.contains("landing-order-card-reveal")) {
+                        entry.target.classList.add("landing-order-card-reveal--visible");
+                    } else if (entry.target.classList.contains("landing-item-reveal")) {
+                        entry.target.classList.add("landing-item-reveal--visible");
+                    } else {
+                        entry.target.classList.add("landing-section-reveal--visible");
+                    }
                     observer.unobserve(entry.target);
                 });
             },
@@ -103,9 +136,22 @@ export default function Landing() {
             }
         );
 
-        sections.forEach((section) => observer.observe(section));
+        let secondAnimationFrameId;
+        const firstAnimationFrameId = requestAnimationFrame(() => {
+            secondAnimationFrameId = requestAnimationFrame(() => {
+                sections.forEach((section) => observer.observe(section));
+                if (orderCardSection) {
+                    observer.observe(orderCardSection);
+                }
+                revealItems.forEach((item) => observer.observe(item));
+            });
+        });
 
         return () => {
+            cancelAnimationFrame(firstAnimationFrameId);
+            if (secondAnimationFrameId) {
+                cancelAnimationFrame(secondAnimationFrameId);
+            }
             observer.disconnect();
         };
     }, []);

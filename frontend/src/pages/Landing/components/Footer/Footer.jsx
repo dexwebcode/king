@@ -1,11 +1,15 @@
+import logo from "../../../../assets/logo.png";
+
 import "./css/Footer.css";
 
 export default function Footer() {
     return (
         <footer className="footer container" id="support">
             <div className="footer-brand">
-                <div className="brand"><span className="brand-mark">♛</span><span><strong>KING</strong><small>PROMOTION</small></span></div>
-                <p>Лучший сервис для продвижения в социальных сетях.</p>
+                <div className="brand">
+                    <img src={logo} alt="KingPromotion" width={48} height={48} />
+                    <span><strong>KING</strong><small>PROMOTION</small></span>
+                </div>
             </div>
             <div><h4>Услуги</h4><a href="#services">Instagram</a><a href="#services">TikTok</a><a href="#services">YouTube</a></div>
             <div><h4>Компания</h4><a href="#how">О нас</a><a href="#reviews">Отзывы</a><a href="#faq">FAQ</a></div>

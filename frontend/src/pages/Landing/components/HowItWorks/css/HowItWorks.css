@@ -31,16 +31,14 @@
     height: 2px;
     border-radius: 999px;
     background: linear-gradient(90deg, transparent, #ffd15a 10%, #e9a91a 90%, transparent);
-    box-shadow: 0 0 18px rgba(255, 196, 56, .48);
+    box-shadow: none;
     opacity: 0;
     transform: scaleX(0);
     transform-origin: left center;
 }
 
 .how-step {
-    --step-delay: .16s;
-    --step-fade-delay: 2.05s;
-    --step-reveal-delay: .24s;
+    --step-reveal-delay: .12s;
     position: relative;
     display: flex;
     align-items: center;
@@ -53,24 +51,19 @@
     background: transparent;
     font-size: 16px;
     opacity: 0;
+    transform: translateX(-28px);
 }
 
 .how-step:nth-child(2) {
-    --step-delay: .42s;
-    --step-fade-delay: 2.27s;
-    --step-reveal-delay: .46s;
+    --step-reveal-delay: .28s;
 }
 
 .how-step:nth-child(3) {
-    --step-delay: .68s;
-    --step-fade-delay: 2.49s;
-    --step-reveal-delay: .68s;
+    --step-reveal-delay: .44s;
 }
 
 .how-step:nth-child(4) {
-    --step-delay: .94s;
-    --step-fade-delay: 2.71s;
-    --step-reveal-delay: .9s;
+    --step-reveal-delay: .60s;
 }
 
 .how-step>span {
@@ -85,7 +78,7 @@
     border: 1px solid rgba(255, 209, 90, .28);
     background: #17181b;
     font-weight: 700;
-    box-shadow: 0 0 24px rgba(255, 198, 44, .08);
+    box-shadow: none;
 }
 
 .how-step>div {
@@ -128,6 +121,32 @@
     animation:
         howStepTitleGlow .7s cubic-bezier(.16, 1, .3, 1) var(--step-delay) both,
         howStepTitleFadeOut .65s cubic-bezier(.4, 0, .2, 1) var(--step-fade-delay) forwards;
+}
+
+/* Draw the line and reveal steps in one left-to-right sequence. */
+#how.landing-section-reveal--visible .how-grid::before {
+    animation: howLineDraw .82s cubic-bezier(.16, 1, .3, 1) .08s both;
+}
+
+#how.landing-section-reveal--visible .how-step {
+    animation: howStepSlideIn .56s cubic-bezier(.16, 1, .3, 1) var(--step-reveal-delay) both;
+}
+
+#how.landing-section-reveal--visible .how-step>span,
+#how.landing-section-reveal--visible .how-step h3 {
+    animation: none;
+}
+
+@keyframes howStepSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-28px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 @keyframes howLineDraw {

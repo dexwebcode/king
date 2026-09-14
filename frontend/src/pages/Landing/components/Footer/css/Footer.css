@@ -4,6 +4,7 @@
 
     min-width: 0;
     gap: clamp(20px, 3vw, 38px);
+    align-items: center;
 
     padding-block: 34px 50px;
 
@@ -38,10 +39,38 @@
     color: #ffffff;
 }
 
-.footer-brand p {
-    max-width: 210px;
+.footer-brand {
+    align-self: center;
+}
 
-    line-height: 1.5;
+.footer-brand .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #f7f7f4;
+    text-decoration: none;
+}
+
+.footer-brand .brand img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
+.footer-brand .brand strong,
+.footer-brand .brand small {
+    display: block;
+    line-height: 1;
+}
+
+.footer-brand .brand strong {
+    letter-spacing: .04em;
+}
+
+.footer-brand .brand small {
+    margin-top: 3px;
+    color: #b9b9b3;
+    letter-spacing: .24em;
 }
 
 @media (max-width: 480px) {
