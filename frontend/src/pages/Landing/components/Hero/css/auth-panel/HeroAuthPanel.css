@@ -26,8 +26,8 @@
 
     .hero-auth-panel {
         align-self: flex-end;
-        height: calc(100% - 20px);
-        transform: translate(-100px, 30px);
+        height: auto;
+        transform: translate(0, 48px);
     }
 }
 

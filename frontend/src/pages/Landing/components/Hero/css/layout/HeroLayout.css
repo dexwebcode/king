@@ -5,15 +5,16 @@
 .hero {
     position: relative;
     --hero-title-width: 100%;
+    --hero-column-gap: clamp(36px, 4vw, 72px);
     margin-top: 78px;
     min-height: 0;
     display: grid;
     grid-template-columns: minmax(0, 1.35fr) minmax(390px, .85fr);
     grid-template-areas:
         "copy form"
-        "stats stats";
+        "stats form";
     align-items: stretch;
-    column-gap: clamp(36px, 4vw, 72px);
+    column-gap: var(--hero-column-gap);
     row-gap: 25px;
     padding-block: clamp(44px, 6vh, 82px);
     overflow: visible;

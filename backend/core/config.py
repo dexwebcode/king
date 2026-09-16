@@ -74,6 +74,10 @@ VK_AUTH_SESSION_EXPIRE_MINUTES = int(
 YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID", "").strip()
 YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY", "").strip()
 YOOKASSA_RETURN_URL = os.getenv("YOOKASSA_RETURN_URL", "").strip()
+YOOKASSA_BALANCE_RETURN_URL = os.getenv(
+    "YOOKASSA_BALANCE_RETURN_URL",
+    f"{FRONTEND_URL}/main?section=balance&topup=return",
+).strip()
 
 YOOKASSA_CONNECT_TIMEOUT_SECONDS = float(
     os.getenv("YOOKASSA_CONNECT_TIMEOUT_SECONDS", "3")

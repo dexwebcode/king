@@ -4,14 +4,14 @@
 }
 
 .reliability-section>.section-heading h2 {
-    font-size: clamp(32px, 4vw, 52px);
+    font-size: clamp(32px, 3.71vw, 52px);
     line-height: 1.05;
     letter-spacing: -.035em;
 }
 
 .reliability-section>.section-heading p {
     margin-top: 12px;
-    font-size: clamp(15px, 1.5vw, 19px);
+    font-size: clamp(15px, 1.38vw, 19px);
 }
 
 .reliability-grid {

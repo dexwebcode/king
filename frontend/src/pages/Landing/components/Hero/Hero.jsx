@@ -59,14 +59,6 @@ export default function Hero({
                                 <span className="button-label">Каталог услуг</span>
                             </Link>
                         </div>
-                        <div className="hero-benefit-grid" aria-label="Преимущества">
-                            {heroBenefits.map(({ label, icon }) => (
-                                <span className="hero-benefit-card" key={label}>
-                                    <span className="hero-benefit-icon" aria-hidden="true">{icon}</span>
-                                    <span>{label}</span>
-                                </span>
-                            ))}
-                        </div>
                     </div>
                 </div>
             </div>

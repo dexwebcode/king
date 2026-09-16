@@ -160,10 +160,6 @@
     padding-top: 28px;
 }
 
-.catalog-controls.is-authenticated {
-    margin-top: 0;
-}
-
 .catalog-controls .catalog-socials {
     justify-content: safe center;
 }
@@ -521,33 +517,10 @@
 .catalog-auth-card {
     position: relative;
     z-index: 1;
-    width: min(510px, 100%);
+    width: min(480px, 100%);
     min-width: 0;
     max-height: calc(100dvh - 40px);
     overflow-y: auto;
-    border: 1px solid rgba(255, 209, 90, 0.28);
-    border-radius: 22px;
-    padding: 30px;
-    background: linear-gradient(155deg, rgba(41, 42, 46, 0.76), rgba(19, 20, 23, 0.78));
-    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(22px);
-    -webkit-backdrop-filter: blur(22px);
-}
-
-.catalog-auth-card>p {
-    margin: 0 0 8px;
-    color: #f6dc91;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-}
-
-.catalog-auth-card>h2 {
-    max-width: 350px;
-    margin: 0 0 24px;
-    font-size: 28px;
-    line-height: 1.12;
 }
 
 .catalog-auth-close {
@@ -558,32 +531,22 @@
     width: 34px;
     height: 34px;
     place-items: center;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 209, 93, .7);
     border-radius: 10px;
-    background: transparent;
-    color: #dedfe2;
+    background: rgba(12, 13, 16, .72);
+    color: #ffd15d;
+    box-shadow: 0 0 16px rgba(255, 209, 93, .16);
     cursor: pointer;
     font-size: 24px;
     line-height: 1;
 }
 
 .catalog-auth-card .hero-auth-panel {
-    box-sizing: border-box;
     width: 100%;
     max-width: 100%;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
+    height: auto;
+    transform: none;
     animation: none;
-}
-
-.catalog-auth-card .hero-auth-panel-header {
-    margin-bottom: 22px;
-}
-
-.catalog-auth-card .hero-auth-panel-header h2 {
-    font-size: 24px;
 }
 
 .catalog-layout {
@@ -941,15 +904,6 @@
 
     .catalog-grid {
         grid-template-columns: 1fr;
-    }
-
-    .catalog-auth-card {
-        padding: 24px 18px;
-    }
-
-    .catalog-auth-card>h2 {
-        padding-right: 34px;
-        font-size: 24px;
     }
 
     .catalog-account-panel {

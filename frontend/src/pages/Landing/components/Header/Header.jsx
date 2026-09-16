@@ -1,19 +1,34 @@
 import logo from "../../../../assets/logo.png";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import Modal from "../../../../ui/Modal";
+import HeroRegisterForm from "../Hero/HeroRegisterForm";
 import "./css/Header.css";
 
-export default function Header({ showAuthButton = false, initiallyDark = false }) {
-    const navigate = useNavigate();
+export default function Header({
+    showAuthButton = false,
+    initiallyDark = false,
+    actionLabel = "Авторизация",
+    onAction,
+}) {
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const isLanding = window.location.pathname === "/";
+    const sectionLink = (section) => isLanding ? `#${section}` : `/#${section}`;
 
-    function goToAuth() {
-        navigate("/login");
+    function handleAction() {
+        if (onAction) {
+            onAction();
+            return;
+        }
+        setIsAuthModalOpen(true);
     }
 
     return (
-        <header className={`site-header container ${initiallyDark ? "site-header--initial" : ""}`}>
+        <>
+            <header className={`site-header container ${initiallyDark ? "site-header--initial" : ""}`}>
 
-            <a
-                href="/"
+            <Link
+                to="/"
                 className="brand"
                 aria-label="KingPromotion"
             >
@@ -28,31 +43,31 @@ export default function Header({ showAuthButton = false, initiallyDark = false }
                     <strong>KING</strong>
                     <small>PROMOTION</small>
                 </span>
-            </a>
+            </Link>
 
             <nav className="main-nav">
 
-                <a href="#services">
+                <a href={sectionLink("services")}>
                     Услуги
                 </a>
 
-                <a href="#prices">
+                <a href={sectionLink("prices")}>
                     Цены
                 </a>
 
-                <a href="#how">
+                <a href={sectionLink("how")}>
                     Как это работает
                 </a>
 
-                <a href="#reviews">
+                <Link to="/reviews">
                     Отзывы
-                </a>
+                </Link>
 
-                <a href="#faq">
+                <Link to="/faq">
                     FAQ
-                </a>
+                </Link>
 
-                <a href="#support">
+                <a href={sectionLink("support")}>
                     Поддержка
                 </a>
 
@@ -61,16 +76,23 @@ export default function Header({ showAuthButton = false, initiallyDark = false }
                 <button
                     type="button"
                     className={`button button-gold ${showAuthButton ? "is-visible" : ""}`}
-                    onClick={goToAuth}
+                    onClick={handleAction}
                     tabIndex={showAuthButton ? 0 : -1}
                     aria-hidden={!showAuthButton}
                 >
                     <span className="button-label">
-                        Авторизация
+                        {actionLabel}
                     </span>
                 </button>
             </div>
 
-        </header>
+            </header>
+
+            {isAuthModalOpen && (
+                <Modal title="Авторизация" onClose={() => setIsAuthModalOpen(false)}>
+                    <HeroRegisterForm />
+                </Modal>
+            )}
+        </>
     );
 }

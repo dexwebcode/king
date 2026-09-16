@@ -1,7 +1,7 @@
 const API_URL = import.meta.env.VITE_API_URL || '';
 const AUTH_CHANGED_EVENT = 'king-auth-changed';
 
-async function sendRequest(endpoint, method = 'GET', body = null, useAuth = true) {
+export async function sendRequest(endpoint, method = 'GET', body = null, useAuth = true, options = {}) {
 
     const token = localStorage.getItem("token")
     const headers = {
@@ -15,8 +15,13 @@ async function sendRequest(endpoint, method = 'GET', body = null, useAuth = true
     const response = await fetch(`${API_URL}${endpoint}`, {
         method,
         headers,
+        signal: options.signal,
         body: body ? JSON.stringify(body) : null
     })
+
+    if (useAuth && response.status === 401 && token === localStorage.getItem('token')) {
+        logoutUser()
+    }
 
     const contentType = response.headers.get('content-type') || ''
     const data = contentType.includes('application/json')
@@ -106,16 +111,11 @@ export async function isAuth() {
         return false
     }
 
-    // Проверяем token через backend
-    const result = await checkToken()
-
-    // Token валиден
-    if (result.ok) {
-        return true
+    // A temporary outage must not erase a session or prevent public pages from rendering.
+    try {
+        const result = await checkToken()
+        return result.ok
+    } catch {
+        return false
     }
-
-    // Token невалиден
-    localStorage.removeItem("token")
-
-    return false
 }

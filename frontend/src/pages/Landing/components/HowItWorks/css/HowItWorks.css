@@ -4,14 +4,14 @@
 }
 
 .panel-section#how>.section-heading h2 {
-    font-size: clamp(34px, 4.5vw, 56px);
+    font-size: clamp(34px, 4.17vw, 56px);
     line-height: 1.05;
     letter-spacing: -.035em;
 }
 
 .panel-section#how>.section-heading p {
     margin-top: 12px;
-    font-size: clamp(16px, 1.6vw, 20px);
+    font-size: clamp(16px, 1.48vw, 20px);
 }
 
 .how-grid {

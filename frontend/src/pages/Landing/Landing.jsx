@@ -184,12 +184,6 @@ export default function Landing() {
         });
     }
 
-    function handlePopularServiceSelect(preset) {
-        localStorage.setItem("king_order_prefill", JSON.stringify(preset));
-        window.dispatchEvent(new CustomEvent("king:order-prefill", { detail: preset }));
-        scrollToOrderCard();
-    }
-
     useEffect(() => {
         function handleScroll() {
             setIsScrollTopVisible(window.scrollY > 420);
@@ -234,7 +228,7 @@ export default function Landing() {
                 </section>
                 <HowItWorks />
                 <Benefits />
-                <PopularServices onSelectService={handlePopularServiceSelect} />
+                <PopularServices />
                 <TestBanner />
                 <Reliability />
                 <FinalCTA />

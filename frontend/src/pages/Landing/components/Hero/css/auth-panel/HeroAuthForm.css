@@ -346,6 +346,15 @@
     font-size: 15px;
 }
 
+.auth-mode-link {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
 .login-register button,
 .login-register a {
     border: 0;

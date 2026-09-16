@@ -1,4 +1,5 @@
 import re
+from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
@@ -37,3 +38,24 @@ class OrderStatusResponse(BaseModel):
     payment_status: str | None = None
     dispatch_status: str | None = None
     message: str | None = None
+
+
+class CreateBalanceTopUpRequest(BaseModel):
+    amount: Decimal = Field(ge=10, le=100_000, max_digits=8, decimal_places=2)
+    payment_method: Literal["sbp"]
+    idempotence_key: UUID
+
+
+class CreateBalanceTopUpResponse(BaseModel):
+    top_up_id: int
+    payment_id: str | None = None
+    confirmation_url: str | None = None
+    status: str
+
+
+class BalanceTopUpStatusResponse(BaseModel):
+    id: int
+    status: str
+    amount: str
+    currency: str
+    balance: str

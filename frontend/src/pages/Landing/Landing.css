@@ -444,7 +444,7 @@ a {
 
 .landing-order-card-section .order-card-scene {
     left: 0;
-    top: -50px;
+    top: 0;
     width: min(1440px, 100%);
     margin: 0 auto;
 }
@@ -544,6 +544,7 @@ a {
     margin: 5px 0 0;
 
     color: var(--muted);
+    font-size: clamp(14px, 1.25vw, 18px);
 }
 
 .order-card-footer {

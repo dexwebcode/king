@@ -1,11 +1,12 @@
 .stats {
     position: relative;
     grid-area: stats;
-    width: 100%;
+    /* The stats can use the grid gap, but always stop 20px before the auth column. */
+    width: calc(100% + var(--hero-column-gap, 0px) - 20px);
     min-width: 0;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: clamp(12px, 1.5vw, 20px);
+    gap: clamp(8px, 1vw, 12px);
 }
 
 @media (min-width: 1101px) {
@@ -16,14 +17,14 @@
 
 .stat-card {
     min-width: 0;
-    min-height: 112px;
-    padding: 22px;
+    min-height: clamp(68px, 7.2vw, 92px);
+    padding: clamp(10px, 1.1vw, 14px);
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: clamp(7px, .8vw, 10px);
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, .10);
-    border-radius: 16px;
+    border-radius: clamp(12px, 1.25vw, 16px);
     background: rgba(255, 255, 255, .028);
     box-shadow: 0 24px 64px rgba(0, 0, 0, .22), inset 0 1px 0 rgba(255, 255, 255, .04);
     backdrop-filter: blur(20px);
@@ -41,16 +42,16 @@
 .hero.landing-section-reveal--visible .stat-card:nth-child(4) { animation-delay: 3.19s; }
 
 .stat-icon {
-    width: 42px;
-    height: 42px;
-    flex: 0 0 42px;
+    width: clamp(26px, 2.5vw, 32px);
+    height: clamp(26px, 2.5vw, 32px);
+    flex: 0 0 clamp(26px, 2.5vw, 32px);
     display: grid;
     place-items: center;
     border: 1px solid rgba(255, 209, 90, .28);
-    border-radius: 12px;
+    border-radius: clamp(7px, .7vw, 9px);
     background: rgba(255, 209, 90, .06);
     color: var(--gold);
-    font-size: 17px;
+    font-size: clamp(11px, 1vw, 14px);
 }
 
 .stat-card div { min-width: 0; }
@@ -59,14 +60,14 @@
 
 .stat-card strong {
     color: #f5f5f2;
-    font-size: clamp(18px, 1.5vw, 23px);
+    font-size: clamp(13px, 1.2vw, 19px);
     line-height: 1.15;
 }
 
 .stat-card small {
-    margin-top: 6px;
+    margin-top: 3px;
     color: var(--muted);
-    font-size: 14px;
+    font-size: clamp(10px, .85vw, 13px);
     line-height: 1.35;
 }
 
@@ -85,7 +86,6 @@
 
 @media (max-width: 520px) {
     .stats { grid-template-columns: 1fr; }
-    .stat-card { min-height: 94px; padding: 18px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

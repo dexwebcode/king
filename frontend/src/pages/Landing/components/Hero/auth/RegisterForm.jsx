@@ -8,7 +8,7 @@ import { validatePassword } from './validatePassword'
 import { validateEmail } from './validateEmail'
 
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import showIcon from '../../../../../assets/icons/show.png'
 import dontShowIcon from '../../../../../assets/icons/dont_show.png'
 import accountIcon from '../../../../../assets/icons/accaunt.png'
@@ -37,7 +37,9 @@ export default function RegisterForm({
     setIsAuth,
 
     // ------ Показывать переключатель на вход ------ //
-    showModeSwitch = true
+    showModeSwitch = true,
+    onAuthSuccess,
+    onModeChange
 
 }) {
     const [showPassword, setShowPassword] = useState(false)
@@ -143,7 +145,9 @@ export default function RegisterForm({
 
             // ------ Изменяем состояние авторизации ------ //
             setIsAuth(true)
-            if (hasPendingCheckoutDraft()) {
+            if (onAuthSuccess) {
+                await onAuthSuccess()
+            } else if (hasPendingCheckoutDraft()) {
                 navigate('/main', { state: { section: 'create', resumeCheckout: true } })
             } else {
                 navigate('/catalog')
@@ -317,9 +321,9 @@ export default function RegisterForm({
                         Уже есть аккаунт?
                     </span>
 
-                    <Link to="/login">
+                    <button type="button" className="auth-mode-link" onClick={onModeChange}>
                         Войти
-                    </Link>
+                    </button>
                 </div>
             )}
 

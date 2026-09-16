@@ -8,7 +8,11 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import IntegrityError
 
-from backend.core.config import REFERRAL_REWARD_PERCENT, YOOKASSA_RETURN_URL
+from backend.core.config import (
+    REFERRAL_REWARD_PERCENT,
+    YOOKASSA_BALANCE_RETURN_URL,
+    YOOKASSA_RETURN_URL,
+)
 from backend.core.database import SessionLocal
 from backend.services.get_price import (
     calculate_order_amount,
@@ -31,6 +35,7 @@ from .repository import (
     claim_payment_reconciliation,
     claim_order_for_dispatch,
     complete_order_dispatch,
+    create_balance_topup_attempt,
     create_balance_transaction,
     create_expense,
     create_order_with_payment_attempt,
@@ -116,6 +121,18 @@ def _payment_response(attempt) -> dict:
         confirmation_url = YOOKASSA_RETURN_URL
     return {
         "order_id": attempt["order_id"],
+        "payment_id": attempt.get("provider_payment_id"),
+        "confirmation_url": confirmation_url,
+        "status": attempt["status"],
+    }
+
+
+def _topup_response(attempt) -> dict:
+    confirmation_url = attempt.get("confirmation_url")
+    if attempt.get("processed_at") is not None and not confirmation_url:
+        confirmation_url = YOOKASSA_BALANCE_RETURN_URL
+    return {
+        "top_up_id": attempt["id"],
         "payment_id": attempt.get("provider_payment_id"),
         "confirmation_url": confirmation_url,
         "status": attempt["status"],
@@ -341,12 +358,167 @@ def create_order_payment(
         raise
 
 
+def _validate_idempotent_topup(attempt, *, user_id: int, amount: Decimal) -> None:
+    if (
+        (attempt.get("purpose") or "order") != "balance_topup"
+        or attempt.get("user_id") != user_id
+        or _money(attempt.get("amount")) != amount
+    ):
+        raise PaymentConflictError(
+            "Этот idempotence_key уже использован для другого платежа"
+        )
+
+
+def _create_or_get_topup_attempt(
+    *,
+    user_id: int,
+    amount: Decimal,
+    idempotence_key: str,
+):
+    session = SessionLocal()
+    try:
+        with session.begin():
+            attempt = get_attempt_by_idempotence_key(
+                session,
+                user_id=user_id,
+                idempotence_key=idempotence_key,
+            )
+            if attempt is not None:
+                _validate_idempotent_topup(
+                    attempt,
+                    user_id=user_id,
+                    amount=amount,
+                )
+                return attempt
+            return create_balance_topup_attempt(
+                session,
+                user_id=user_id,
+                amount=amount,
+                idempotence_key=idempotence_key,
+            )
+    except IntegrityError:
+        session.rollback()
+        attempt = get_attempt_by_idempotence_key(
+            session,
+            user_id=user_id,
+            idempotence_key=idempotence_key,
+        )
+        if attempt is None:
+            raise
+        _validate_idempotent_topup(
+            attempt,
+            user_id=user_id,
+            amount=amount,
+        )
+        return attempt
+    finally:
+        session.close()
+
+
+def create_balance_topup_payment(
+    *,
+    user_id: int,
+    amount: Decimal,
+    payment_method: str,
+    idempotence_key: str,
+) -> dict:
+    if payment_method != "sbp":
+        raise ValueError("Неподдерживаемый способ оплаты")
+    amount = _money(amount)
+    if amount < Decimal("10.00") or amount > Decimal("100000.00"):
+        raise ValueError("Сумма пополнения должна быть от 10 до 100 000 рублей")
+
+    attempt = _create_or_get_topup_attempt(
+        user_id=user_id,
+        amount=amount,
+        idempotence_key=idempotence_key,
+    )
+    if attempt.get("provider_payment_id") and attempt.get("confirmation_url"):
+        return _topup_response(attempt)
+    if attempt.get("processed_at") is not None:
+        return _topup_response(attempt)
+
+    payment = None
+    try:
+        payment = create_yookassa_payment(
+            attempt_id=attempt["id"],
+            order_id=None,
+            user_id=attempt["user_id"],
+            amount=amount,
+            idempotence_key=idempotence_key,
+            purpose="balance_topup",
+        )
+        actual_payment_method = _payment_method_type(payment)
+        if actual_payment_method != "sbp":
+            raise PaymentVerificationError(
+                "ЮKassa создала неподдерживаемый способ оплаты"
+            )
+        confirmation_url = _confirmation_url(payment)
+        payment_status = str(getattr(payment, "status", "pending"))
+        if not getattr(payment, "id", None):
+            raise PaymentVerificationError("ЮKassa не вернула ID платежа")
+        if payment_status not in {"succeeded", "canceled"} and not confirmation_url:
+            raise PaymentVerificationError("ЮKassa не вернула ссылку подтверждения")
+
+        session = SessionLocal()
+        try:
+            with session.begin():
+                saved_attempt = set_attempt_payment_details(
+                    session,
+                    attempt_id=attempt["id"],
+                    payment_id=str(payment.id),
+                    payment_status=payment_status,
+                    confirmation_url=confirmation_url,
+                )
+                if saved_attempt is None:
+                    raise PaymentConflictError("Платёж уже связан с другим ID")
+        finally:
+            session.close()
+
+        if payment_status == "succeeded":
+            process_verified_payment(payment)
+            saved_attempt = {
+                **dict(saved_attempt),
+                "status": "processed",
+                "processed_at": datetime.now(MOSCOW_TIMEZONE),
+            }
+        return _topup_response(saved_attempt)
+    except Exception as error:
+        session = SessionLocal()
+        try:
+            with session.begin():
+                payment_id = str(getattr(payment, "id", "")) if payment else ""
+                if payment_id and _payment_method_type(payment) == "sbp":
+                    set_attempt_payment_details(
+                        session,
+                        attempt_id=attempt["id"],
+                        payment_id=payment_id,
+                        payment_status=str(getattr(payment, "status", "pending")),
+                        confirmation_url=_confirmation_url(payment),
+                    )
+                set_attempt_error(
+                    session,
+                    attempt_id=attempt["id"],
+                    status="verification_failed" if payment_id else "creation_failed",
+                    error_message=f"{type(error).__name__}: {error}",
+                )
+        finally:
+            session.close()
+        raise
+
+
 def _validate_payment(payment, attempt) -> Decimal:
     metadata = getattr(payment, "metadata", {}) or {}
     if str(metadata.get("payment_attempt_id")) != str(attempt["id"]):
         raise PaymentVerificationError("payment_attempt_id платежа не совпадает")
-    if str(metadata.get("order_id")) != str(attempt["order_id"]):
+    attempt_purpose = attempt.get("purpose") or "order"
+    payment_purpose = str(metadata.get("purpose") or "order")
+    if payment_purpose != attempt_purpose:
+        raise PaymentVerificationError("Назначение платежа не совпадает")
+    if attempt_purpose == "order" and str(metadata.get("order_id")) != str(attempt["order_id"]):
         raise PaymentVerificationError("order_id платежа не совпадает")
+    if attempt_purpose == "balance_topup" and metadata.get("order_id") not in {None, ""}:
+        raise PaymentVerificationError("У пополнения не должно быть order_id")
     if str(metadata.get("user_id")) != str(attempt["user_id"]):
         raise PaymentVerificationError("user_id платежа не совпадает")
 
@@ -396,6 +568,55 @@ def process_verified_payment(payment) -> int | None:
                     payment_id=payment_id,
                     payment_status=payment_status or "pending",
                     confirmation_url=_confirmation_url(payment),
+                )
+                return None
+
+            attempt_purpose = attempt.get("purpose") or "order"
+            if attempt_purpose == "balance_topup":
+                user = lock_user(session, attempt["user_id"])
+                if user is None:
+                    raise PaymentVerificationError("Пользователь не найден")
+                balance_before = _money(user["balance"])
+                balance_after = balance_before + payment_amount
+                operation_date = _legacy_now()
+                transaction_id = create_balance_transaction(
+                    session,
+                    user_id=attempt["user_id"],
+                    amount=payment_amount,
+                    balance_before=balance_before,
+                    date=operation_date,
+                    external_id=payment_id,
+                )
+                create_expense(
+                    session,
+                    user_id=attempt["user_id"],
+                    related_id=transaction_id,
+                    balance_before=balance_before,
+                    balance_after=balance_after,
+                    amount=payment_amount,
+                    date=operation_date,
+                    expense_type=2,
+                )
+                referral_percent = _money(REFERRAL_REWARD_PERCENT)
+                if referral_percent < 0 or referral_percent > 100:
+                    raise RuntimeError("Некорректный REFERRAL_REWARD_PERCENT")
+                referral_reward = (
+                    payment_amount * referral_percent / Decimal("100")
+                ).quantize(MONEY_STEP, rounding=ROUND_HALF_UP)
+                add_referral_reward(
+                    session,
+                    user_id=attempt["user_id"],
+                    reward=referral_reward,
+                )
+                set_user_balance(
+                    session,
+                    user_id=attempt["user_id"],
+                    balance=balance_after,
+                )
+                mark_payment_processed(
+                    session,
+                    attempt_id=attempt["id"],
+                    transaction_id=transaction_id,
                 )
                 return None
 

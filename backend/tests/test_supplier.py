@@ -7,6 +7,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from backend.admin import dependencies as admin_dependencies
+from backend.admin.service import get_admin_supplier_balance
 from backend.auth.security import create_access_token
 from backend.main import app
 from backend.services.get_price import calculate_supplier_order_cost
@@ -118,6 +119,20 @@ class SupplierClientTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(SupplierRejectedError, "Not enough funds"):
             get_supplier_balance()
+
+    @patch("backend.admin.service.get_supplier_balance")
+    def test_admin_balance_is_fetched_from_api_on_every_request(self, supplier_balance):
+        supplier_balance.side_effect = [
+            SupplierBalance(Decimal("100.00"), "RUB"),
+            SupplierBalance(Decimal("125.50"), "RUB"),
+        ]
+
+        first, _ = get_admin_supplier_balance()
+        second, _ = get_admin_supplier_balance()
+
+        self.assertEqual(first.balance, Decimal("100.00"))
+        self.assertEqual(second.balance, Decimal("125.50"))
+        self.assertEqual(supplier_balance.call_count, 2)
 
     def test_supplier_cost_never_uses_public_price(self):
         service = {

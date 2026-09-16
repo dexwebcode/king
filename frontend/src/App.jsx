@@ -5,8 +5,9 @@ import Landing from "./pages/Landing/Landing";
 import Catalog from "./pages/Catalog/Catalog";
 import Main from "./pages/Main/Main";
 import Payment from "./pages/Payment/Payment";
-import AuthPage from "./pages/Auth/AuthPage";
 import Admin from "./pages/Admin/Admin";
+import Reviews from "./pages/Reviews/Reviews";
+import Faq from "./pages/Faq/Faq";
 import { AUTH_CHANGED_EVENT, isAuth } from "./pages/Landing/components/Hero/auth/authApi";
 
 export default function App() {
@@ -59,14 +60,8 @@ export default function App() {
                 element={isAuthenticated ? <Navigate to="/catalog" replace /> : <Landing />}
             />
             <Route path="/catalog" element={<Catalog />} />
-            <Route
-                path="/login"
-                element={isAuthenticated ? <Navigate to="/catalog" replace /> : <AuthPage mode="login" />}
-            />
-            <Route
-                path="/register"
-                element={isAuthenticated ? <Navigate to="/catalog" replace /> : <AuthPage mode="register" />}
-            />
+            <Route path="/reviews" element={<Reviews isAuthenticated={isAuthenticated} />} />
+            <Route path="/faq" element={<Faq />} />
             <Route
                 path="/payment/success"
                 element={isAuthenticated ? <Payment /> : <Navigate to="/" replace />}

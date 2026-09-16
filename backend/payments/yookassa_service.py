@@ -4,6 +4,7 @@ from yookassa import Configuration, Payment
 from yookassa.domain.exceptions import BadRequestError
 
 from backend.core.config import (
+    YOOKASSA_BALANCE_RETURN_URL,
     YOOKASSA_RETURN_URL,
     YOOKASSA_SECRET_KEY,
     YOOKASSA_SHOP_ID,
@@ -34,14 +35,25 @@ def configure_yookassa() -> None:
 def create_yookassa_payment(
     *,
     attempt_id: int,
-    order_id: int,
+    order_id: int | None,
     user_id: int,
     amount: Decimal,
     idempotence_key: str,
+    purpose: str = "order",
 ):
     configure_yookassa()
 
     try:
+        if purpose not in {"order", "balance_topup"}:
+            raise ValueError("Неподдерживаемое назначение платежа")
+        metadata = {
+            "payment_attempt_id": str(attempt_id),
+            "user_id": str(user_id),
+            "purpose": purpose,
+        }
+        if order_id is not None:
+            metadata["order_id"] = str(order_id)
+
         return Payment.create(
             {
                 "amount": {
@@ -54,14 +66,18 @@ def create_yookassa_payment(
                 "capture": True,
                 "confirmation": {
                     "type": "redirect",
-                    "return_url": YOOKASSA_RETURN_URL,
+                    "return_url": (
+                        YOOKASSA_BALANCE_RETURN_URL
+                        if purpose == "balance_topup"
+                        else YOOKASSA_RETURN_URL
+                    ),
                 },
-                "description": f"Заказ King Promotion №{order_id}",
-                "metadata": {
-                    "payment_attempt_id": str(attempt_id),
-                    "order_id": str(order_id),
-                    "user_id": str(user_id),
-                },
+                "description": (
+                    "Пополнение баланса King Promotion"
+                    if purpose == "balance_topup"
+                    else f"Заказ King Promotion №{order_id}"
+                ),
+                "metadata": metadata,
             },
             idempotence_key,
         )

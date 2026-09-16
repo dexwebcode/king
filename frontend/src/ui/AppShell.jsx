@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import logo from "../assets/logo.png";
+import Header from "../pages/Landing/components/Header/Header";
 import { logoutUser } from "../pages/Landing/components/Hero/auth/authApi";
 
 
@@ -73,26 +73,13 @@ export function AppShell({
 
 export function InternalHeader({ menuOpen = false, onMenuToggle, onLogin, showAuthenticatedMenu = true }) {
     const token = localStorage.getItem("token");
-    if (token) {
-        if (!showAuthenticatedMenu) return null;
-        return (
-            <div className="kp-floating-menu-control">
-                <MenuToggle menuOpen={menuOpen} onMenuToggle={onMenuToggle} />
-            </div>
-        );
-    }
-
     return (
-        <header className="kp-header">
-            <Link className="kp-brand" to={token ? "/catalog" : "/"} aria-label="KingPromotion">
-                <img src={logo} alt="" />
-                <span><strong>KING</strong><small>PROMOTION</small></span>
-            </Link>
-            <div className="kp-header-spacer" aria-hidden="true" />
-            <div className="kp-account-actions">
-                <button className="kp-button kp-button--small" type="button" onClick={onLogin}>Войти</button>
-            </div>
-        </header>
+        <Header
+            showAuthButton={!token || showAuthenticatedMenu}
+            initiallyDark
+            actionLabel={token ? "Меню" : "Авторизация"}
+            onAction={token ? onMenuToggle : onLogin}
+        />
     );
 }
 

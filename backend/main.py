@@ -15,6 +15,7 @@ from backend.admin.router import router as admin_router
 from backend.core.config import FRONTEND_URL
 from backend.payments.router import router as payments_router
 from backend.services.get_price import get_price
+from backend.reviews.router import router as reviews_router
 
 
 # Создание экземпляра приложения FastAPI с указанием названия и версии
@@ -41,6 +42,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(payments_router)
 app.include_router(admin_router)
+app.include_router(reviews_router)
 
 @app.get("/price")
 def price(platform: str | None = Query(default=None, max_length=32)):

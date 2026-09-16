@@ -20,10 +20,18 @@ from backend.services.supplier import (
 )
 from .repository import (
     get_account_summary,
+    get_balance_topup_for_user,
     get_order_for_user,
     get_user_orders,
 )
-from .schemas import CreateOrderRequest, CreateOrderResponse, OrderStatusResponse
+from .schemas import (
+    BalanceTopUpStatusResponse,
+    CreateBalanceTopUpRequest,
+    CreateBalanceTopUpResponse,
+    CreateOrderRequest,
+    CreateOrderResponse,
+    OrderStatusResponse,
+)
 from .service import (
     OrderNotDispatchedError,
     OrderNotFoundError,
@@ -31,6 +39,7 @@ from .service import (
     PaymentVerificationError,
     ServiceNotFoundError,
     cancel_order_with_supplier,
+    create_balance_topup_payment,
     create_order_payment,
     dispatch_order,
     refill_order_with_supplier,
@@ -91,6 +100,79 @@ def create_order_endpoint(
             status_code=502,
             detail="Не удалось создать платёж. Попробуйте ещё раз.",
         ) from error
+
+
+@router.post(
+    "/api/balance/top-ups",
+    response_model=CreateBalanceTopUpResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_balance_topup_endpoint(
+    data: CreateBalanceTopUpRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    try:
+        return create_balance_topup_payment(
+            user_id=current_user["id"],
+            amount=data.amount,
+            payment_method=data.payment_method,
+            idempotence_key=str(data.idempotence_key),
+        )
+    except PaymentConflictError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except YooKassaNotConfiguredError as error:
+        logger.warning("YooKassa configuration error: %s", error)
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except YooKassaPaymentMethodUnavailableError as error:
+        logger.warning("YooKassa SBP is unavailable: %s", error)
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except Exception as error:
+        logger.exception("YooKassa balance top-up creation failed")
+        raise HTTPException(
+            status_code=502,
+            detail="Не удалось создать платёж. Попробуйте ещё раз.",
+        ) from error
+
+
+@router.get(
+    "/api/balance/top-ups/{top_up_id}",
+    response_model=BalanceTopUpStatusResponse,
+)
+def balance_topup_status_endpoint(
+    top_up_id: int,
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user),
+):
+    session = SessionLocal()
+    try:
+        top_up = get_balance_topup_for_user(
+            session,
+            top_up_id,
+            current_user["id"],
+        )
+        account = get_account_summary(session, current_user["id"])
+    finally:
+        session.close()
+    if top_up is None or account is None:
+        raise HTTPException(status_code=404, detail="Пополнение не найдено")
+    if (
+        top_up["processed_at"] is None
+        and top_up["provider_payment_id"]
+        and top_up["status"] != "canceled"
+    ):
+        background_tasks.add_task(
+            reconcile_payment_if_due,
+            top_up["provider_payment_id"],
+        )
+    return {
+        "id": top_up["id"],
+        "status": top_up["status"],
+        "amount": format(top_up["amount"], ".2f"),
+        "currency": top_up["currency"],
+        "balance": format(account["balance"], ".2f"),
+    }
 
 
 def _order_message(order) -> str | None:

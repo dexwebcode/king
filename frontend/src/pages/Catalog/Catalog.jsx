@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useLayoutEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import instagramIcon from "../../assets/social_icons/instagram.svg";
@@ -15,7 +15,7 @@ import spotifyIcon from "../../assets/social_icons/Spotify.png";
 import appleMusicIcon from "../../assets/social_icons/Apple_Musikl.png";
 import HeroRegisterForm from "../Landing/components/Hero/HeroRegisterForm";
 import { AUTH_CHANGED_EVENT, logoutUser } from "../Landing/components/Hero/auth/authApi";
-import { AccountMenu, InternalHeader, MenuToggle } from "../../ui/AppShell";
+import { AccountMenu, InternalHeader } from "../../ui/AppShell";
 import "../Landing/Landing.css";
 import "./Catalog.css";
 
@@ -140,13 +140,19 @@ export default function Catalog() {
     const [items, setItems] = useState([]);
     const [status, setStatus] = useState("loading");
     const [search, setSearch] = useState("");
-    const [platform, setPlatform] = useState("all");
+    const [platform, setPlatform] = useState(
+        () => new URLSearchParams(window.location.search).get("platform") || "all"
+    );
     const [serviceType, setServiceType] = useState("all");
     const [account, setAccount] = useState(null);
     const [isAdmin, setIsAdmin] = useState(false);
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
     const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
     const deferredSearch = useDeferredValue(search.trim().toLowerCase());
+
+    useLayoutEffect(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }, []);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -282,8 +288,6 @@ export default function Catalog() {
             <InternalHeader
                 menuOpen={isAccountMenuOpen}
                 onMenuToggle={hasSession ? openAccountMenu : openAuthPrompt}
-                onLogin={openAuthPrompt}
-                showAuthenticatedMenu={false}
             />
             <section className={`catalog-controls container ${hasSession ? "is-authenticated" : ""}`} aria-label="Поиск и выбор социальной сети">
                 <div className="catalog-section-title" aria-hidden="true">Каталог услуг</div>
@@ -316,7 +320,6 @@ export default function Catalog() {
                             placeholder="Найти услугу"
                         />
                     </label>
-                    {hasSession && <MenuToggle menuOpen={isAccountMenuOpen} onMenuToggle={openAccountMenu} className="catalog-menu-toggle" />}
                 </div>
             </section>
 
@@ -333,13 +336,11 @@ export default function Catalog() {
             />
 
             {isAuthPromptOpen && (
-                <div className="catalog-auth-overlay" role="dialog" aria-modal="true" aria-labelledby="catalog-auth-title">
+                <div className="catalog-auth-overlay" role="dialog" aria-modal="true" aria-label="Авторизация">
                     <button className="catalog-auth-overlay-backdrop" type="button" aria-label="Закрыть авторизацию" onClick={() => setIsAuthPromptOpen(false)} />
                     <section className="catalog-auth-card">
                         <button className="catalog-auth-close" type="button" aria-label="Закрыть авторизацию" onClick={() => setIsAuthPromptOpen(false)}>×</button>
-                        <p>Оформление заказа</p>
-                        <h2 id="catalog-auth-title">Авторизируйтесь, чтобы продолжить</h2>
-                        <HeroRegisterForm initialMode="login" />
+                        <HeroRegisterForm />
                     </section>
                 </div>
             )}

@@ -42,7 +42,7 @@ export default function Admin() {
         if (requestError.status === 403) setForbidden(true);
         setError(requestError.message || "Не удалось загрузить админ-панель");
     }, []);
-    const loadBalance = useCallback(async (refresh = false) => setBalance(await adminRequest(`/api/admin/supplier/balance${refresh ? "?refresh=true" : ""}`)), []);
+    const loadBalance = useCallback(async () => setBalance(await adminRequest("/api/admin/supplier/balance")), []);
     const loadOrders = useCallback(async () => {
         const data = await adminRequest("/api/admin/orders/attention");
         setOrders(Array.isArray(data?.items) ? data.items : []);
@@ -64,7 +64,7 @@ export default function Admin() {
     async function handleRefresh() {
         try {
             setRefreshing(true); setError("");
-            await Promise.all([loadBalance(true), loadOrders()]);
+            await Promise.all([loadBalance(), loadOrders()]);
         } catch (requestError) { handleRequestError(requestError); }
         finally { setRefreshing(false); }
     }
@@ -74,7 +74,7 @@ export default function Admin() {
             setRetryingId(orderId); setError(""); setNotice("");
             const result = await adminRequest(`/api/admin/orders/${orderId}/retry-dispatch`, { method: "POST" });
             setNotice(result.dispatch_status === "completed" ? `Заказ №${orderId} отправлен поставщику.` : `Заказ №${orderId}: ${result.dispatch_status}.`);
-            await Promise.all([loadBalance(true), loadOrders()]);
+            await Promise.all([loadBalance(), loadOrders()]);
         } catch (requestError) { handleRequestError(requestError); }
         finally { setRetryingId(null); }
     }

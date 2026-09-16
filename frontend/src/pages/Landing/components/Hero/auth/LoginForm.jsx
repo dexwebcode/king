@@ -6,7 +6,7 @@ import {
     loginWithVk
 } from './authApi'
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import * as VKID from '@vkid/sdk'
 import showIcon from '../../../../../assets/icons/show.png'
 import dontShowIcon from '../../../../../assets/icons/dont_show.png'
@@ -35,7 +35,8 @@ export default function LoginForm({
     // ------ Изменение режима login/register ------ //
     showModeSwitch = true,
     expandedSocialButtons = false,
-    onAuthSuccess
+    onAuthSuccess,
+    onModeChange
 
 }) {
     const [showPassword, setShowPassword] = useState(false)
@@ -397,9 +398,9 @@ export default function LoginForm({
                         Нет аккаунта?
                     </span>
 
-                    <Link to="/register">
+                    <button type="button" className="auth-mode-link" onClick={onModeChange}>
                         Зарегистрируйтесь
-                    </Link>
+                    </button>
                 </div>
             )}
         </form>

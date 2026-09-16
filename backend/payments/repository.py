@@ -101,6 +101,33 @@ def create_order_with_payment_attempt(
     return order, attempt
 
 
+def create_balance_topup_attempt(
+    session: Session,
+    *,
+    user_id: int,
+    amount: Decimal,
+    idempotence_key: str,
+):
+    return session.execute(
+        text("""
+            INSERT INTO migration_temp.payment_attempts (
+                provider, idempotence_key, user_id, order_id,
+                amount, currency, status, purpose
+            ) VALUES (
+                :provider, CAST(:idempotence_key AS UUID), :user_id, NULL,
+                :amount, 'RUB', 'creating', 'balance_topup'
+            )
+            RETURNING *
+        """),
+        {
+            "provider": PAYMENT_PROVIDER,
+            "idempotence_key": idempotence_key,
+            "user_id": user_id,
+            "amount": amount,
+        },
+    ).mappings().one()
+
+
 def get_attempt_by_idempotence_key(
     session: Session,
     *,
@@ -119,7 +146,7 @@ def get_attempt_by_idempotence_key(
                 o.qnt AS order_quantity,
                 o.amount AS order_amount
             FROM migration_temp.payment_attempts AS p
-            JOIN migration_temp.orders AS o ON o.id = p.order_id
+            LEFT JOIN migration_temp.orders AS o ON o.id = p.order_id
             WHERE p.provider = :provider
               AND p.idempotence_key = CAST(:idempotence_key AS UUID)
               AND p.user_id = :user_id
@@ -131,6 +158,20 @@ def get_attempt_by_idempotence_key(
             "idempotence_key": idempotence_key,
             "user_id": user_id,
         },
+    ).mappings().first()
+
+
+def get_balance_topup_for_user(session: Session, top_up_id: int, user_id: int):
+    return session.execute(
+        text("""
+            SELECT *
+            FROM migration_temp.payment_attempts
+            WHERE id = :top_up_id
+              AND user_id = :user_id
+              AND purpose = 'balance_topup'
+            LIMIT 1
+        """),
+        {"top_up_id": top_up_id, "user_id": user_id},
     ).mappings().first()
 
 
