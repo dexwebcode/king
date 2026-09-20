@@ -45,9 +45,3 @@
 .footer-sections > div:last-child {
     align-self: start;
 }
-
-@media (max-width: 480px) {
-    .footer-sections {
-        grid-template-columns: 1fr;
-    }
-}

@@ -42,16 +42,3 @@
 
     line-height: 1.6;
 }
-
-@media (max-width: 640px) {
-
-    .test-banner {
-        grid-template-columns: 1fr;
-    }
-
-    .test-image {
-        width: 110px;
-        height: 80px;
-    }
-
-}

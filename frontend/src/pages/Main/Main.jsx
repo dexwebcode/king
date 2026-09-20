@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import OrderCard from "../Landing/components/OrderCard/OrderCard";
 import { AppShell, EmptyState, PageHeader, Panel, StatusBadge } from "../../ui/AppShell";
@@ -16,14 +16,17 @@ import {
     clearPendingCheckoutDraft,
     readPendingCheckoutDraft,
 } from "../../ui/orderDraft";
+import BalanceSection from "./BalanceSection";
 import "./Main.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
 export default function Main() {
     const location = useLocation();
+    const navigate = useNavigate();
+    const sectionFromQuery = new URLSearchParams(location.search).get("section");
     const [pendingDraft, setPendingDraft] = useState(readPendingCheckoutDraft);
-    const [section, setSection] = useState(location.state?.section || (pendingDraft ? "create" : "orders"));
+    const [section, setSection] = useState(sectionFromQuery || location.state?.section || (pendingDraft ? "create" : "orders"));
     const [account, setAccount] = useState(null);
     const [orders, setOrders] = useState([]);
     const [services, setServices] = useState([]);
@@ -31,8 +34,10 @@ export default function Main() {
     const [error, setError] = useState("");
 
     useEffect(() => {
-        if (location.state?.section) setSection(location.state.section);
-    }, [location.state]);
+        const querySection = new URLSearchParams(location.search).get("section");
+        if (querySection) setSection(querySection);
+        else if (location.state?.section) setSection(location.state.section);
+    }, [location.search, location.state]);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -72,8 +77,18 @@ export default function Main() {
     const descriptions = {
         create: "Пять коротких шагов: площадка, тип услуги, тариф, параметры и проверка.",
         orders: "Статусы оплаты и выполнения заказов обновляются автоматически.",
-        balance: "Текущий пользовательский баланс KingPromotion.",
+        balance: "Управляйте средствами и пополняйте баланс удобным способом.",
     };
+
+    const returnedFromPayment = new URLSearchParams(location.search).get("topup") === "return";
+
+    const handleBalanceChange = useCallback((nextBalance) => {
+        setAccount((currentAccount) => currentAccount ? { ...currentAccount, balance: nextBalance } : currentAccount);
+    }, []);
+
+    const handlePaymentSettled = useCallback(() => {
+        if (returnedFromPayment) navigate("/main?section=balance", { replace: true });
+    }, [navigate, returnedFromPayment]);
 
     return (
         <AppShell active={section} account={account} onSectionChange={setSection} contentClassName={section === "create" ? "main-wide" : ""}>
@@ -125,11 +140,12 @@ export default function Main() {
                     )}
 
                     {section === "balance" && (
-                        <Panel className="balance-panel">
-                            <p className="kp-eyebrow">Доступно сейчас</p>
-                            <strong>{formatMoney(account?.balance)} ₽</strong>
-                            <p>Баланс обновляется после подтверждённых финансовых операций.</p>
-                        </Panel>
+                        <BalanceSection
+                            balance={account?.balance}
+                            returnedFromPayment={returnedFromPayment}
+                            onBalanceChange={handleBalanceChange}
+                            onPaymentSettled={handlePaymentSettled}
+                        />
                     )}
                 </>
             )}

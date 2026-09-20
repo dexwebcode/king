@@ -87,14 +87,6 @@
     width: min(100%, 1050px);
 }
 
-@media (min-width: 1451px) {
-    .hero-actions .hero-action-primary,
-    .hero-actions .hero-action-catalog {
-        position: relative;
-        left: 0;
-    }
-}
-
 .hero-advantages-text {
     min-height: 58px;
     padding: 12px 16px;

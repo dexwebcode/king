@@ -1,9 +1,60 @@
-.payment-page { min-height: calc(100dvh - 78px); display: grid; place-items: center; }
-.payment-card { width: min(620px,100%); padding: clamp(28px,5vw,48px); display: flex; align-items: center; flex-direction: column; text-align: center; }
-.payment-status-mark { width: 62px; height: 62px; margin-bottom: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--kp-gold); color: #15120b; font-size: 27px; font-weight: 900; box-shadow: 0 0 32px rgba(255,209,90,.2); }
-.payment-card--completed .payment-status-mark { background: #7ee59d; }
-.payment-card--review .payment-status-mark, .payment-card--canceled .payment-status-mark, .payment-card--error .payment-status-mark { background: #ffc17d; }
-.payment-card h1 { margin: 0 0 15px; font-size: clamp(31px,5vw,47px); line-height: 1.06; }
-.payment-card > p:not(.kp-eyebrow) { max-width: 490px; margin: 0 0 22px; color: var(--kp-text-muted); font-size: 15px; line-height: 1.65; }
-.payment-actions { width: 100%; margin-top: 25px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-@media (max-width: 520px) { .payment-actions { grid-template-columns: 1fr; } }
+.payment-page {
+    min-height: calc(100dvh - 78px);
+    display: grid;
+    place-items: center;
+}
+
+.payment-card {
+    width: min(620px, 100%);
+    padding: clamp(28px, 5vw, 48px);
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+}
+
+.payment-status-mark {
+    width: 62px;
+    height: 62px;
+    margin-bottom: 22px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--kp-gold);
+    color: #15120b;
+    font-size: 27px;
+    font-weight: 900;
+    box-shadow: 0 0 32px rgba(255, 209, 90, .2);
+}
+
+.payment-card--completed .payment-status-mark {
+    background: #7ee59d;
+}
+
+.payment-card--review .payment-status-mark,
+.payment-card--canceled .payment-status-mark,
+.payment-card--error .payment-status-mark {
+    background: #ffc17d;
+}
+
+.payment-card h1 {
+    margin: 0 0 15px;
+    font-size: clamp(31px, 5vw, 47px);
+    line-height: 1.06;
+}
+
+.payment-card>p:not(.kp-eyebrow) {
+    max-width: 490px;
+    margin: 0 0 22px;
+    color: var(--kp-text-muted);
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+.payment-actions {
+    width: 100%;
+    margin-top: 25px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}

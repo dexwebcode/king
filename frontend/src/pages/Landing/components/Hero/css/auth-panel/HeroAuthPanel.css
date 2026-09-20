@@ -82,34 +82,3 @@
 .hero-auth-panel .login-submit {
     height: 54px;
 }
-
-@media (max-width: 1050px) {
-
-    .hero-auth-panel {
-        right: 0;
-        width: min(550px, 100%);
-        padding: 56px 40px 46px;
-    }
-
-}
-
-@media (max-width: 800px) {
-
-    .hero-auth-panel {
-        position: relative;
-        top: auto;
-        right: auto;
-        width: 100%;
-        padding: 46px 15px;
-        transform: none;
-    }
-
-}
-
-@media (prefers-reduced-motion: reduce) {
-
-    .hero-auth-panel {
-        animation: none;
-    }
-
-}

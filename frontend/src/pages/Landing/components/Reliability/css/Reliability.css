@@ -160,35 +160,3 @@
     }
 }
 
-@media (max-width: 1000px) {
-    .reliability-card:nth-child(odd) {
-        --reliability-start-x: 50%;
-    }
-
-    .reliability-card:nth-child(even) {
-        --reliability-start-x: -50%;
-    }
-}
-
-@media (max-width: 640px) {
-    .reliability-grid {
-        min-height: 0;
-    }
-
-    .reliability-card,
-    .reliability-card:nth-child(n) {
-        --reliability-start-x: 0%;
-        min-height: 150px;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .reliability-card,
-    .reliability-card::before,
-    .reliability-card p {
-        opacity: 1;
-        filter: none;
-        transform: none;
-        animation: none !important;
-    }
-}

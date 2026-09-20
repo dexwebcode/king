@@ -60,14 +60,3 @@
         translate: 0 0;
     }
 }
-
-@media (prefers-reduced-motion: reduce) {
-
-    .hero h1,
-    .hero-subtitle,
-    .hero-actions,
-    .hero-reviews {
-        animation: none;
-    }
-
-}

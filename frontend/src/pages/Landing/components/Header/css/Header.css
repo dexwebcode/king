@@ -334,54 +334,7 @@
     line-height: 1;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .auth-modal,
-    .auth-modal-panel {
-        animation: none;
-    }
-}
 
 .button-large {
     padding: 0 28px;
-}
-
-@media (max-width: 1180px) {
-    .site-header.container {
-        grid-template-columns: auto 1fr auto;
-    }
-
-    .main-nav {
-        display: none;
-    }
-}
-
-@media (max-width: 640px) {
-    .site-header.container {
-        height: 66px;
-        padding-inline: var(--page-gutter);
-    }
-
-    .brand-mark {
-        font-size: 24px;
-    }
-
-    .brand small {
-        letter-spacing: .16em;
-    }
-
-    .header-actions .button {
-        min-width: 0;
-        padding-inline: 15px;
-    }
-}
-
-@media (max-width: 390px) {
-    .brand small {
-        display: none;
-    }
-
-    .header-actions .button {
-        padding-inline: 12px;
-        font-size: 13px;
-    }
 }

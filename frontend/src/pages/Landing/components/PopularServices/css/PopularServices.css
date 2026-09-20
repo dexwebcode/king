@@ -127,19 +127,3 @@
     border-color: transparent;
     background: transparent;
 }
-
-@media (max-width: 900px) {
-    .popular-services-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 560px) {
-    .popular-services-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .popular-service-card {
-        min-height: 0;
-    }
-}

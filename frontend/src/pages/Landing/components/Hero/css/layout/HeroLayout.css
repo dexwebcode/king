@@ -59,14 +59,3 @@
 .hero--left .hero-content {
     left: auto;
 }
-
-@media (min-width: 1101px) {
-    .hero--left .hero-content {
-        transform: none;
-    }
-
-    .hero--left .hero-copy {
-        align-content: start;
-        padding-top: 80px;
-    }
-}

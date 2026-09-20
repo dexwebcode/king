@@ -262,20 +262,3 @@
         color: #f5f5f2;
     }
 }
-
-@media (prefers-reduced-motion: reduce) {
-    .how-grid::before {
-        opacity: 1;
-        transform: scaleX(1);
-        animation: none !important;
-    }
-
-    .how-step,
-    .how-step>span,
-    .how-step h3 {
-        opacity: 1;
-        filter: none;
-        transform: none;
-        animation: none !important;
-    }
-}
