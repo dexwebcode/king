@@ -120,7 +120,6 @@ export default function Reviews({ isAuthenticated }) {
                 </> : <EmptyState><h3>Пока нет отзывов</h3><p>Станьте первым, кто поделится своим опытом.</p>{cta}</EmptyState>)}
             </section>
         </AppShell>
-        <Footer />
         {notice && <div className="reviews-notice kp-status kp-status--success" role="status"><i />{notice}</div>}
         {modal === "prompt" && <Modal title="Войдите в аккаунт" onClose={() => setModal(null)} className="reviews-modal">
             <div className="review-form"><h2>Войдите в аккаунт</h2><p>Чтобы оставить отзыв, необходимо войти в аккаунт.</p><div className="reviews-dialog-actions"><button className="kp-button" type="button" onClick={() => setModal("auth")}>Войти</button><button className="kp-button kp-button--secondary" type="button" onClick={() => setModal(null)}>Отмена</button></div></div>

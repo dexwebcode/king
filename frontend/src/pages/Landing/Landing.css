@@ -553,3 +553,21 @@ a {
 
     border-top: 1px solid var(--line);
 }
+
+.hero,
+.hero.landing-section-reveal,
+.hero.landing-section-reveal--visible {
+    filter: none !important;
+    transform: none !important;
+    translate: none !important;
+    will-change: auto !important;
+}
+
+.hero-content,
+.hero-visual,
+.hero-form-column {
+    filter: none !important;
+    transform: none !important;
+    translate: none !important;
+    will-change: auto !important;
+}

@@ -6,12 +6,16 @@
     position: relative;
     z-index: 4;
     width: 110%;
+    max-width: 550px;
+    min-width: 450px;
     padding: 55px;
     border: 1px solid rgba(255, 255, 255, 0.078);
     border-radius: clamp(12px, 1.25vw, 16px);
     background: rgba(48, 48, 48, 0.063);
     box-shadow: 0 24px 64px rgba(0, 0, 0, .22), inset 0 1px 0 rgba(255, 255, 255, .04);
-    backdrop-filter: blur(20px);
+
+    -webkit-backdrop-filter: blur(25px);
+    backdrop-filter: blur(25px);
 }
 
 @keyframes heroAuthPanelReveal {

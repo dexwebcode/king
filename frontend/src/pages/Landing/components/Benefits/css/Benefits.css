@@ -1,9 +1,9 @@
-.benefits-section > .section-heading {
+.benefits-section>.section-heading {
     margin-bottom: clamp(24px, 4vw, 46px);
     text-align: center;
 }
 
-.benefits-section > .section-heading h2 {
+.benefits-section>.section-heading h2 {
     font-size: clamp(26px, 3.7vw, 46px);
 }
 
@@ -97,7 +97,7 @@
 .benefit-card h3 {
     margin: 0;
     color: #f7f7f4;
-    font-size: 23px;
+    font-size: 22px;
     line-height: 1.2;
     white-space: pre-line;
 }
@@ -192,13 +192,11 @@
     transform: scale(1.02);
 }
 
-.benefit-grid:has(.benefit-card:hover, .benefit-card:focus-within)
-    .benefit-card:not(:hover):not(:focus-within) .benefit-card-panel {
+.benefit-grid:has(.benefit-card:hover, .benefit-card:focus-within) .benefit-card:not(:hover):not(:focus-within) .benefit-card-panel {
     opacity: .42;
     transform: scale(.97);
 }
 
-.benefit-grid:has(.benefit-card:hover, .benefit-card:focus-within)
-    .benefit-card:nth-child(3n + 2):not(:hover):not(:focus-within) .benefit-card-panel {
+.benefit-grid:has(.benefit-card:hover, .benefit-card:focus-within) .benefit-card:nth-child(3n + 2):not(:hover):not(:focus-within) .benefit-card-panel {
     transform: translateX(-50%) scale(.97);
 }
