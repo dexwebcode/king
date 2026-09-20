@@ -70,7 +70,7 @@
     align-items: center;
     gap: clamp(16px, 2vw, 28px);
     overflow: hidden;
-    border: 1px solid rgba(255, 209, 90, .16);
+    border: 1px solid rgba(6, 6, 6, 0.16);
     border-radius: 22px;
     background:
         radial-gradient(circle at 100% 50%, rgba(255, 201, 75, .11), transparent 42%),

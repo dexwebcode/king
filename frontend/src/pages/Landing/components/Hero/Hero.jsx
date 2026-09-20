@@ -9,15 +9,7 @@ import "./css/actions/HeroActions.css";
 import "./css/benefits/HeroBenefits.css";
 import "./css/platforms/HeroPlatforms.css";
 import "./css/auth-panel/HeroAuthPanel.css";
-import "./css/responsive/HeroResponsive.css";
 import "./css/Visual.css";
-
-
-const heroBenefits = [
-    { label: "Старт от 30 ₽", icon: "₽" },
-    { label: "Поддержка 24/7", icon: "?" },
-    { label: "Высокая скорость", icon: "⚡" },
-];
 
 export default function Hero({
     isOrderGuideActive = false,

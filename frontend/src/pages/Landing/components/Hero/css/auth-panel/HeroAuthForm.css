@@ -9,7 +9,7 @@
 .login-field label {
     display: block;
     margin-bottom: 11px;
-    color: #e7e7e7;
+    color: #bcbcbc;
     font-size: 14px;
     font-weight: 600;
 }
@@ -24,18 +24,18 @@
     margin-bottom: 11px;
     border: 0;
     background: transparent;
-    color: #e7ae32;
+    color: #c6c6c6;
     font-size: 14px;
     cursor: pointer;
 }
 
 .login-input-wrapper {
-    height: 67px;
+    height: 100%;
     display: flex;
     align-items: center;
     padding: 0 18px;
     gap: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.062);
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.025);
     transition:

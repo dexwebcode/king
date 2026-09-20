@@ -2,9 +2,8 @@ export const platforms = ['Instagram', 'TikTok', 'YouTube', 'Telegram', 'VK', 'T
 
 export const stats = [
     ['100 000 +', 'Выполненных заказов'],
-    ['5 лет', 'Успешной работы'],
     ['500 +', 'Довольных клиентов'],
-    ['24/7', 'Поддержка без выходных'],
+    ['5 лет', 'Успешной работы'],
 ];
 
 export const benefits = [

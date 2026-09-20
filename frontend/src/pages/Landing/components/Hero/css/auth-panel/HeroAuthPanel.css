@@ -5,30 +5,13 @@
 .hero-auth-panel {
     position: relative;
     z-index: 4;
-    width: min(480px, 100%);
-    min-width: 0;
-    height: 100%;
-    padding: 50px;
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 24px;
-    background: rgba(255, 255, 255, 0.028);
-    box-shadow:
-        0 24px 64px rgba(0, 0, 0, 0.28),
-        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    width: 110%;
+    padding: 55px;
+    border: 1px solid rgba(255, 255, 255, 0.078);
+    border-radius: clamp(12px, 1.25vw, 16px);
+    background: rgba(48, 48, 48, 0.063);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .22), inset 0 1px 0 rgba(255, 255, 255, .04);
     backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    animation: heroAuthPanelReveal 0.95s ease 1.85s both;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-@media (min-width: 1101px) {
-
-    .hero-auth-panel {
-        align-self: flex-end;
-        height: auto;
-        transform: translate(0, 48px);
-    }
 }
 
 @keyframes heroAuthPanelReveal {
@@ -42,7 +25,7 @@
 }
 
 .hero-auth-panel-header {
-    margin-bottom: 28px;
+    margin-bottom: 46px;
     text-align: center;
 }
 
@@ -60,7 +43,7 @@
 .hero-auth-panel-header p {
     margin: 10px 0 0;
     color: #92959b;
-    font-size: 15px;
+    font-size: 18px;
 }
 
 .hero-auth-panel .Registration-content {
@@ -68,7 +51,7 @@
 }
 
 .hero-auth-panel .login-field {
-    margin-bottom: 18px;
+    margin-bottom: 20px;
 }
 
 .hero-auth-panel .login-input-wrapper {
@@ -76,9 +59,9 @@
 }
 
 .hero-auth-panel .Buttons-container {
-    margin-top: 22px;
+    margin-top: 50px;
 }
 
 .hero-auth-panel .login-submit {
-    height: 54px;
+    height: 55px;
 }

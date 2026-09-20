@@ -7,10 +7,7 @@
     display: inline-flex;
     flex-direction: column;
     align-items: center;
-
     font-size: clamp(74px, 7.6vw, 118px);
-
-    line-height: 0.9;
 
     letter-spacing: 0;
 
@@ -33,9 +30,8 @@
 
 .hero--left .hero-main-title {
     display: block;
-    width: 100%;
-    max-width: 100%;
-    font-size: clamp(1vw, 3vw, 5vw);
+    width: 110%;
+    font-size: clamp(2vw, 3.7vw, 6vw);
     letter-spacing: 0;
     line-height: 1;
 }
@@ -50,3 +46,5 @@
 .hero--left .hero-title-promotion {
     text-align: left;
 }
+
+

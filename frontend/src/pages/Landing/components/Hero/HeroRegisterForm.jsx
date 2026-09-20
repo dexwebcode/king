@@ -28,7 +28,7 @@ export default function HeroRegisterForm({ onAuthSuccess }) {
                         password={password}
                         setLogin={setLogin}
                         setPassword={setPassword}
-                        setIsAuth={() => {}}
+                        setIsAuth={() => { }}
                         onAuthSuccess={onAuthSuccess}
                         onModeChange={() => setMode("register")}
                         showModeSwitch
@@ -45,7 +45,7 @@ export default function HeroRegisterForm({ onAuthSuccess }) {
                         setRepeatPassword={setRepeatPassword}
                         setPasswordHint={setPasswordHint}
                         setEmailHint={setEmailHint}
-                        setIsAuth={() => {}}
+                        setIsAuth={() => { }}
                         onAuthSuccess={onAuthSuccess}
                         onModeChange={() => setMode("login")}
                         showModeSwitch
