@@ -95,83 +95,24 @@
     white-space: nowrap;
 }
 
-.balance-layout {
-    display: grid;
-    grid-template-columns: minmax(0, .82fr) minmax(430px, 1.18fr);
-    align-items: start;
-    gap: clamp(16px, 2.4vw, 28px);
-}
-
-.balance-card {
-    position: relative;
-    min-height: 326px;
-    overflow: hidden;
-    padding: clamp(26px, 4vw, 42px);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    background: radial-gradient(circle at 88% 12%, rgba(255, 209, 90, .19), transparent 38%), linear-gradient(145deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .018));
-}
-
-.balance-card::after {
-    content: "₽";
-    position: absolute;
-    right: -20px;
-    bottom: -66px;
-    color: rgba(255, 209, 90, .045);
-    font-size: 270px;
-    font-weight: 900;
-    line-height: 1;
-    transform: rotate(-7deg);
-}
-
-.balance-card-copy,
-.balance-card>strong,
-.balance-card-note {
-    position: relative;
-    z-index: 1;
-}
-
-.balance-card-copy>p:last-child {
-    max-width: 310px;
-    margin: 0;
-    color: var(--kp-text-muted);
-    font-size: 14px;
-    line-height: 1.55;
-}
-
-.balance-card>strong {
-    display: block;
-    margin: 34px 0;
-    color: var(--kp-gold);
-    font-size: clamp(43px, 5.4vw, 72px);
-    line-height: .95;
-    letter-spacing: -.045em;
-    overflow-wrap: anywhere;
-}
-
-.balance-card>strong span {
-    font-size: .52em;
-    font-weight: 750;
-}
-
-.balance-card-note {
+.balance-page-title {
     display: flex;
     align-items: center;
-    gap: 8px;
-    color: var(--kp-text-muted);
-    font-size: 12px;
+    flex-wrap: wrap;
+    gap: .35em;
 }
 
-.balance-card-note i {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #69d98a;
-    box-shadow: 0 0 12px rgba(105, 217, 138, .6);
+.balance-page-title strong {
+    color: var(--kp-gold);
+    font-size: .62em;
+    font-weight: 800;
+    letter-spacing: -.025em;
+    white-space: nowrap;
 }
 
 .top-up-panel {
+    width: min(760px, 100%);
+    margin: 0 auto;
     padding: clamp(24px, 3vw, 36px);
 }
 
@@ -484,13 +425,15 @@
     box-shadow: 0 0 10px rgba(105, 217, 138, .55);
 }
 
-.top-up-status--canceled {
+.top-up-status--canceled,
+.top-up-status--failed {
     border-color: rgba(255, 145, 92, .25);
     background: rgba(255, 145, 92, .07);
     color: #ffc4a4;
 }
 
-.top-up-status--canceled i {
+.top-up-status--canceled i,
+.top-up-status--failed i {
     background: #ff915c;
     box-shadow: none;
 }

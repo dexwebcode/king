@@ -63,6 +63,10 @@ export default function App() {
             <Route path="/reviews" element={<Reviews isAuthenticated={isAuthenticated} />} />
             <Route path="/faq" element={<Faq />} />
             <Route
+                path="/payment/pending"
+                element={isAuthenticated ? <Payment /> : <Navigate to="/" replace />}
+            />
+            <Route
                 path="/payment/success"
                 element={isAuthenticated ? <Payment /> : <Navigate to="/" replace />}
             />

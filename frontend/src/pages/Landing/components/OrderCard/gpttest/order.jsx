@@ -52,6 +52,12 @@ const paymentMethods = [
     caption: "Оплата через ЮKassa по QR-коду или в приложении банка",
     mark: "QR",
   },
+  {
+    id: "crystalpay",
+    name: "CrystalPAY",
+    caption: "Оплата картой, криптовалютой или другим доступным способом",
+    mark: "CP",
+  },
 ];
 
 const serviceTypeIcons = {
@@ -213,7 +219,7 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
 
       setRecipientLink(String(preset.recipient_link || ""));
       setPaymentMethod(preset.payment_method || "sbp");
-      setStep(nextServiceId ? 4 : nextType ? 2 : 1);
+      setStep(nextServiceId ? 3 : nextType ? 2 : 1);
 
       return true;
     }
@@ -328,9 +334,9 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
     if (!selectedService) return;
 
     setQuantity((current) =>
-      current >= quantityMin && current <= quantityMax
+      current >= 0 && current <= quantityMax
         ? current
-        : quantityMin,
+        : 0,
     );
   }, [selectedService, quantityMin, quantityMax]);
 
@@ -386,13 +392,13 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
   const linkValid = isValidRecipientLink(recipientLink);
 
   const sliderProgress =
-    selectedService && quantityMax > quantityMin
+    selectedService && quantityMax > 0
       ? ((Math.min(
         quantityMax,
-        Math.max(quantityMin, quantity),
+        Math.max(0, quantity),
       ) -
-        quantityMin) /
-        (quantityMax - quantityMin)) *
+        0) /
+        quantityMax) *
       100
       : 0;
 
@@ -445,7 +451,7 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
 
   function selectConcreteService(item) {
     setServiceId(providerServiceId(item));
-    setQuantity(Number(item.min || 1));
+    setQuantity(0);
     setQuantityTouched(false);
     setRecipientLink("");
     setValidationMessage("");
@@ -465,9 +471,12 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
   function normalizeQuantity() {
     if (!selectedService) return;
 
+    const enteredValue = Number(quantity);
+    if (enteredValue === 0) return;
+
     const safeValue = Math.min(
       quantityMax,
-      Math.max(quantityMin, Number(quantity) || quantityMin),
+      Math.max(quantityMin, enteredValue || quantityMin),
     );
 
     const normalizedValue = Math.round(safeValue);
@@ -477,7 +486,7 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
     setValidationMessage("");
   }
 
-  function confirmQuantity() {
+  function goToNextStep() {
     if (!selectedService) {
       setValidationMessage("Сначала выберите услугу");
       return;
@@ -562,6 +571,9 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
       return;
     }
 
+    const checkoutWindow = window.open("about:blank", "king-payment-checkout");
+    if (checkoutWindow) checkoutWindow.opener = null;
+
     try {
       setPaymentLoading(true);
       setValidationMessage("");
@@ -586,6 +598,7 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
       if (
         !response.ok ||
         !data?.order_id ||
+        !data?.attempt_id ||
         !data?.confirmation_url
       ) {
         throw new Error(
@@ -594,12 +607,18 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
       }
 
       clearPendingCheckoutDraft();
-      localStorage.setItem(
-        "pending_order_id",
-        String(data.order_id),
-      );
-      window.location.assign(data.confirmation_url);
+      localStorage.setItem("pending_order_id", String(data.order_id));
+      localStorage.setItem("king_pending_payment", JSON.stringify({
+        attempt_id: data.attempt_id,
+        purpose: "order",
+        provider: data.provider || draft.payment_method,
+        checkout_url: data.confirmation_url,
+        order_id: data.order_id,
+      }));
+      if (checkoutWindow) checkoutWindow.location.replace(data.confirmation_url);
+      navigate("/payment/pending?attempt=" + data.attempt_id);
     } catch (error) {
+      checkoutWindow?.close();
       setValidationMessage(
         error.message || "Не удалось создать платёж",
       );
@@ -787,7 +806,7 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
             <input
               id="wizard-quantity-input"
               type="number"
-              min={quantityMin}
+              min={0}
               max={quantityMax}
               step={quantityStep}
               value={quantity}
@@ -801,13 +820,10 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
           <input
             className="wizard-range"
             type="range"
-            min={quantityMin}
+            min={0}
             max={quantityMax}
             step={quantityStep}
-            value={Math.min(
-              quantityMax,
-              Math.max(quantityMin, quantity),
-            )}
+            value={Math.min(quantityMax, Math.max(0, quantity))}
             style={{
               "--wizard-range-progress": `${sliderProgress}%`,
             }}
@@ -818,7 +834,7 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
 
           <div className="wizard-range-values">
             <span>
-              {quantityMin.toLocaleString("ru-RU")}
+              0
             </span>
             <span>
               {quantityMax.toLocaleString("ru-RU")}
@@ -826,12 +842,12 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
           </div>
 
           <button
-            className="wizard-confirm-quantity"
+            className="wizard-next-step"
             type="button"
-            onClick={confirmQuantity}
+            onClick={goToNextStep}
             disabled={!quantityValid}
           >
-            Подтвердить количество
+            К следующему шагу
           </button>
         </div>
 

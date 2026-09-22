@@ -1,0 +1,10 @@
+on_http_request:
+  - expressions:
+      - "req.url.path != '/api/payments/crystalpay/callback' || req.method != 'POST'"
+    actions:
+      - type: custom-response
+        config:
+          status_code: 404
+          content: Not Found
+          headers:
+            Content-Type: text/plain; charset=utf-8

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import Header from "../pages/Landing/components/Header/Header";
 import { logoutUser } from "../pages/Landing/components/Hero/auth/authApi";
+import logo from "../assets/logo.png";
 
 
 const API_URL = import.meta.env.VITE_API_URL || "";
@@ -56,7 +57,15 @@ export function AppShell({
 
     return (
         <div className={`kp-app-shell ${token ? "is-authenticated" : ""}`}>
-            <InternalHeader menuOpen={isMenuOpen} onMenuToggle={() => setIsMenuOpen((value) => !value)} onLogin={onLogin} />
+            {token ? (
+                <MenuToggle
+                    menuOpen={isMenuOpen}
+                    onMenuToggle={() => setIsMenuOpen((value) => !value)}
+                    className="kp-floating-menu-control"
+                />
+            ) : (
+                <InternalHeader menuOpen={isMenuOpen} onLogin={onLogin} />
+            )}
             <AccountMenu
                 open={isMenuOpen}
                 onClose={() => setIsMenuOpen(false)}
@@ -86,7 +95,7 @@ export function InternalHeader({ menuOpen = false, onMenuToggle, onLogin, showAu
 export function MenuToggle({ menuOpen = false, onMenuToggle, className = "" }) {
     return (
         <button className={`kp-menu-toggle ${menuOpen ? "is-open" : ""} ${className}`.trim()} type="button" aria-label="Открыть меню аккаунта" aria-expanded={menuOpen} onClick={onMenuToggle}>
-            <span /><span /><span />
+            <img src={logo} alt="" />
         </button>
     );
 }

@@ -1,84 +1,170 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { AppShell, Panel, StatusBadge } from "../../ui/AppShell";
 import "./Payment.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
-const MAX_STATUS_CHECKS = 30;
+const PENDING_PAYMENT_KEY = "king_pending_payment";
 const STATUS_CHECK_INTERVAL = 2000;
+const MAX_STATUS_CHECKS = 90;
 
 const statusContent = {
-    checking: ["Проверяем оплату", "Получаем статус платежа", "Это займёт несколько секунд. Не закрывайте страницу."],
-    pending: ["Платёж обрабатывается", "Ожидаем подтверждение ЮKassa", "Если деньги уже списаны, статус обновится после уведомления платёжной системы."],
-    dispatching: ["Оплата подтверждена", "Передаём заказ поставщику", "Платёж принят. Безопасно проверяем рабочий баланс и создаём заказ."],
-    completed: ["Заказ принят", "Заказ передан поставщику", "Создание подтверждено. Текущий статус можно отслеживать в разделе «Мои заказы»."],
-    waiting: ["Заказ принят", "Заказ сохранён в очереди", "Оплата подтверждена. Заказ не потерян и будет отправлен после восстановления доступа или пополнения рабочего баланса."],
-    review: ["Требуется проверка", "Заказ проверяет администратор", "Оплата подтверждена. Повторная автоматическая отправка остановлена, чтобы исключить дублирование."],
-    canceled: ["Оплата отменена", "Платёж не завершён", "Баланс не изменён. Вернитесь к заказу и создайте новый платёж."],
-    error: ["Не удалось проверить", "Статус временно недоступен", "Заказ сохранён. Откройте «Мои заказы» или повторите проверку позднее."],
+    checking: ["Проверяем оплату", "Получаем статус платежа", "Страница оплаты открыта отдельно. Этот сайт можно оставить открытым."],
+    pending: ["Ожидаем оплату", "Платёж ещё не подтверждён", "Завершите оплату в отдельной вкладке. Статус обновится автоматически."],
+    dispatching: ["Оплата подтверждена", "Передаём заказ поставщику", "Платёж принят. Заказ готовится к запуску."],
+    completed: ["Оплата подтверждена", "Операция завершена", "Результат сохранён в вашем личном кабинете."],
+    canceled: ["Оплата остановлена", "Платёж больше не обрабатывается сайтом", "Ссылка удалена из активной попытки, заказ и баланс не изменены."],
+    expired: ["Срок оплаты истёк", "Создайте новый платёж", "Эта попытка оплаты больше не активна."],
+    review: ["Нужна проверка", "Платёж остановлен", "Провайдер сообщил об оплате после отмены. Операция не выполнена автоматически."],
+    error: ["Не удалось проверить", "Статус временно недоступен", "Повторите проверку или вернитесь в личный кабинет."],
 };
 
+function readIntent() {
+    try {
+        const raw = localStorage.getItem(PENDING_PAYMENT_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+}
+
+function errorMessage(payload, fallback) {
+    if (typeof payload?.detail === "string") return payload.detail;
+    return fallback;
+}
+
 export default function Payment() {
+    const intent = useMemo(readIntent, []);
+    const queryAttempt = new URLSearchParams(window.location.search).get("attempt");
+    const attemptId = queryAttempt || intent?.attempt_id;
     const [pageStatus, setPageStatus] = useState("checking");
-    const [orderStatus, setOrderStatus] = useState("");
-    const content = statusContent[pageStatus];
+    const [payment, setPayment] = useState(null);
+    const [checkoutUrl, setCheckoutUrl] = useState(intent?.checkout_url || "");
+    const [requestError, setRequestError] = useState("");
+    const [canceling, setCanceling] = useState(false);
+    const content = statusContent[pageStatus] || statusContent.error;
+
+    const checkStatus = useCallback(async () => {
+        if (!attemptId) {
+            setPageStatus("error");
+            setRequestError("Не найден идентификатор платежа");
+            return true;
+        }
+        const token = localStorage.getItem("token");
+        const response = await fetch(API_URL + "/api/payment-attempts/" + attemptId, {
+            headers: { Authorization: "Bearer " + token },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(errorMessage(data, "Не удалось проверить платёж"));
+        setPayment(data);
+        if (data.confirmation_url) setCheckoutUrl(data.confirmation_url);
+        setRequestError("");
+
+        if (data.status === "processed") {
+            if (data.purpose === "order" && !["completed", "insufficient_supplier_balance", "supplier_unavailable", "unknown", "rejected", "save_failed"].includes(data.dispatch_status)) {
+                setPageStatus("dispatching");
+                return false;
+            }
+            setPageStatus("completed");
+            localStorage.removeItem(PENDING_PAYMENT_KEY);
+            localStorage.removeItem("pending_balance_top_up_id");
+            localStorage.removeItem("pending_order_id");
+            return true;
+        }
+        if (["cancel_requested", "canceled"].includes(data.status)) {
+            setPageStatus("canceled");
+            localStorage.removeItem(PENDING_PAYMENT_KEY);
+            return true;
+        }
+        if (["expired", "wrongamount", "failed", "unavailable", "creation_failed", "verification_failed"].includes(data.status)) {
+            setPageStatus("expired");
+            return true;
+        }
+        if (data.status === "paid_after_cancel") {
+            setPageStatus("review");
+            localStorage.removeItem(PENDING_PAYMENT_KEY);
+            return true;
+        }
+        setPageStatus("pending");
+        return false;
+    }, [attemptId]);
 
     useEffect(() => {
-        const orderId = localStorage.getItem("pending_order_id");
-        const token = localStorage.getItem("token");
         let active = true;
         let timeoutId;
-        if (!orderId || !token) { setPageStatus("error"); return undefined; }
-
-        const schedule = (attempt) => {
-            if (attempt + 1 < MAX_STATUS_CHECKS) timeoutId = window.setTimeout(() => checkStatus(attempt + 1), STATUS_CHECK_INTERVAL);
-            else setPageStatus("error");
-        };
-
-        async function checkStatus(attempt) {
+        let checks = 0;
+        async function poll() {
             try {
-                const response = await fetch(`${API_URL}/api/orders/${orderId}`, { headers: { Authorization: `Bearer ${token}` } });
-                if (!response.ok) throw new Error();
-                const order = await response.json();
+                const finished = await checkStatus();
+                if (!active || finished) return;
+            } catch (error) {
                 if (!active) return;
-                setOrderStatus(order.status || "");
-
-                if (order.payment_status === "canceled" || order.status === "Оплата отменена") {
-                    localStorage.removeItem("pending_order_id"); setPageStatus("canceled"); return;
-                }
-                if (order.payment_status !== "processed") { setPageStatus("pending"); schedule(attempt); return; }
-
-                const dispatch = order.dispatch_status || "not_started";
-                if (dispatch === "completed") {
-                    localStorage.removeItem("pending_order_id"); setPageStatus("completed"); return;
-                }
-                if (["insufficient_supplier_balance", "supplier_unavailable"].includes(dispatch)) {
-                    localStorage.removeItem("pending_order_id"); setPageStatus("waiting"); return;
-                }
-                if (["unknown", "rejected", "save_failed"].includes(dispatch) || order.status === "Требует проверки") {
-                    localStorage.removeItem("pending_order_id"); setPageStatus("review"); return;
-                }
-                setPageStatus("dispatching");
-                schedule(attempt);
-            } catch {
-                if (active) schedule(attempt);
+                setRequestError(error.message || "Не удалось проверить платёж");
             }
+            checks += 1;
+            if (checks >= MAX_STATUS_CHECKS) {
+                setPageStatus("error");
+                return;
+            }
+            timeoutId = window.setTimeout(poll, STATUS_CHECK_INTERVAL);
         }
+        poll();
+        return () => {
+            active = false;
+            window.clearTimeout(timeoutId);
+        };
+    }, [checkStatus]);
 
-        checkStatus(0);
-        return () => { active = false; window.clearTimeout(timeoutId); };
-    }, []);
+    function openCheckout() {
+        if (!checkoutUrl) return;
+        const checkoutWindow = window.open(checkoutUrl, "king-payment-checkout");
+        if (checkoutWindow) checkoutWindow.opener = null;
+    }
+
+    async function cancelPayment() {
+        if (!attemptId || canceling) return;
+        setCanceling(true);
+        setRequestError("");
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch(API_URL + "/api/payment-attempts/" + attemptId + "/cancel", {
+                method: "POST",
+                headers: { Authorization: "Bearer " + token },
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(errorMessage(data, "Не удалось остановить оплату"));
+            const checkoutWindow = window.open("", "king-payment-checkout");
+            checkoutWindow?.close();
+            setPayment(data);
+            setCheckoutUrl("");
+            setPageStatus("canceled");
+            localStorage.removeItem(PENDING_PAYMENT_KEY);
+        } catch (error) {
+            setRequestError(error.message || "Не удалось остановить оплату");
+        } finally {
+            setCanceling(false);
+        }
+    }
+
+    const canCancel = ["checking", "pending", "error"].includes(pageStatus);
+    const canOpen = Boolean(checkoutUrl) && canCancel;
 
     return (
-        <AppShell active="orders" contentClassName="payment-page">
-            <Panel className={`payment-card payment-card--${pageStatus}`}>
-                <div className="payment-status-mark" aria-hidden="true">{pageStatus === "completed" ? "✓" : ["canceled", "error"].includes(pageStatus) ? "!" : "…"}</div>
+        <AppShell active={payment?.purpose === "balance_topup" ? "balance" : "orders"} contentClassName="payment-page">
+            <Panel className={"payment-card payment-card--" + pageStatus}>
+                <div className="payment-status-mark" aria-hidden="true">{pageStatus === "completed" ? "✓" : ["canceled", "expired", "review", "error"].includes(pageStatus) ? "!" : "…"}</div>
                 <p className="kp-eyebrow">{content[0]}</p>
                 <h1>{content[1]}</h1>
                 <p>{content[2]}</p>
-                {orderStatus && <StatusBadge status={orderStatus}>{orderStatus}</StatusBadge>}
-                <div className="payment-actions"><Link className="kp-button" to="/main" state={{ section: "orders" }}>Мои заказы</Link><Link className="kp-button kp-button--secondary" to="/catalog">Каталог</Link></div>
+                {payment?.status && <StatusBadge status={payment.status}>{payment.status}</StatusBadge>}
+                {requestError && <p className="payment-error" role="alert">{requestError}</p>}
+                <div className="payment-actions payment-actions--stacked">
+                    {canOpen && <button className="kp-button" type="button" onClick={openCheckout}>Открыть страницу оплаты</button>}
+                    {canCancel && <button className="kp-button kp-button--danger" type="button" onClick={cancelPayment} disabled={canceling}>{canceling ? "Останавливаем…" : "Прекратить оплату"}</button>}
+                    <button className="kp-button kp-button--secondary" type="button" onClick={() => checkStatus().catch((error) => setRequestError(error.message))}>Проверить статус</button>
+                    <Link className="kp-button kp-button--secondary" to={payment?.purpose === "balance_topup" ? "/main?section=balance" : "/main"} state={payment?.purpose === "order" ? { section: "orders" } : undefined}>Вернуться в кабинет</Link>
+                </div>
             </Panel>
         </AppShell>
     );

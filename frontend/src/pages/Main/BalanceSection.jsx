@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { Panel } from "../../ui/AppShell";
 import { formatMoney } from "../../ui/catalogMeta";
@@ -63,11 +64,11 @@ function PaymentMethodCard({ method, selected, onSelect }) {
 }
 
 export default function BalanceSection({
-    balance,
     returnedFromPayment = false,
     onBalanceChange,
     onPaymentSettled,
 }) {
+    const navigate = useNavigate();
     const methods = useMemo(availablePaymentMethods, []);
     const [amount, setAmount] = useState("");
     const [selectedMethod, setSelectedMethod] = useState(methods[0]?.id || "");
@@ -76,6 +77,7 @@ export default function BalanceSection({
     const [paymentStatus, setPaymentStatus] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const statusAttempts = useRef(0);
+    const idempotenceKey = useRef(crypto.randomUUID());
 
     useEffect(() => {
         const pendingTopUpId = localStorage.getItem(PENDING_TOP_UP_KEY);
@@ -113,6 +115,13 @@ export default function BalanceSection({
                     localStorage.removeItem(PENDING_TOP_UP_KEY);
                     setRequestError("");
                     setPaymentStatus("canceled");
+                    onPaymentSettled?.();
+                    return;
+                }
+                if (["failed", "unavailable", "wrongamount", "expired"].includes(data.status)) {
+                    localStorage.removeItem(PENDING_TOP_UP_KEY);
+                    setRequestError("");
+                    setPaymentStatus("failed");
                     onPaymentSettled?.();
                     return;
                 }
@@ -165,6 +174,8 @@ export default function BalanceSection({
             return;
         }
 
+        const checkoutWindow = window.open("about:blank", "king-payment-checkout");
+        if (checkoutWindow) checkoutWindow.opener = null;
         setIsSubmitting(true);
         setRequestError("");
         setPaymentStatus("");
@@ -179,17 +190,29 @@ export default function BalanceSection({
                 body: JSON.stringify({
                     amount: parseAmount(amount).toFixed(2),
                     payment_method: method.apiValue,
-                    idempotence_key: crypto.randomUUID(),
+                    idempotence_key: idempotenceKey.current,
                 }),
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(getErrorMessage(data, "Не удалось создать платёж"));
-            if (!data?.top_up_id || !data?.confirmation_url) {
+            const topUpId = data?.top_up_id;
+            const attemptId = data?.attempt_id;
+            const checkoutUrl = data?.confirmation_url;
+            if (!topUpId || !attemptId || !checkoutUrl) {
                 throw new Error("Платёж создан без ссылки для перехода в банк");
             }
-            localStorage.setItem(PENDING_TOP_UP_KEY, String(data.top_up_id));
-            window.location.assign(data.confirmation_url);
+            localStorage.setItem(PENDING_TOP_UP_KEY, String(topUpId));
+            localStorage.setItem("king_pending_payment", JSON.stringify({
+                attempt_id: attemptId,
+                purpose: "balance_topup",
+                provider: data.provider || method.id,
+                checkout_url: checkoutUrl,
+                top_up_id: topUpId,
+            }));
+            if (checkoutWindow) checkoutWindow.location.replace(checkoutUrl);
+            navigate("/payment/pending?attempt=" + attemptId);
         } catch (error) {
+            checkoutWindow?.close();
             setRequestError(error.message || "Не удалось создать платёж. Попробуйте ещё раз.");
             setIsSubmitting(false);
         }
@@ -197,24 +220,15 @@ export default function BalanceSection({
 
     const statusMessages = {
         checking: "Проверяем статус пополнения…",
-        pending: "Платёж обрабатывается. Баланс обновится после подтверждения ЮKassa.",
+        pending: "Платёж обрабатывается. Баланс обновится после подтверждения платёжной системой.",
         processed: "Баланс успешно пополнен.",
         canceled: "Платёж отменён. Баланс не изменён.",
-        delayed: "Подтверждение занимает больше времени. Баланс обновится автоматически после уведомления ЮKassa.",
+        failed: "Платёж не завершён. Баланс не изменён.",
+        delayed: "Подтверждение занимает больше времени. Баланс обновится автоматически после уведомления платёжной системы.",
     };
 
     return (
-        <div className="balance-layout">
-            <Panel className="balance-card">
-                <div className="balance-card-copy">
-                    <p className="kp-eyebrow">Доступно сейчас</p>
-                    <p>Средства для оплаты услуг KingPromotion</p>
-                </div>
-                <strong>{formatMoney(balance)} <span>₽</span></strong>
-                <div className="balance-card-note"><i /> Обновляется после подтверждённых операций</div>
-            </Panel>
-
-            <Panel className="top-up-panel">
+        <Panel className="top-up-panel">
                 <div className="top-up-heading">
                     <div>
                         <p className="kp-eyebrow">Пополнение</p>
@@ -287,9 +301,10 @@ export default function BalanceSection({
                         {isSubmitting ? "Создаём платёж…" : "Перейти к оплате"}
                         {!isSubmitting && <span aria-hidden="true">→</span>}
                     </button>
-                    <p className="top-up-legal">Нажимая кнопку, вы перейдёте на защищённую страницу ЮKassa.</p>
+                    <p className="top-up-legal">
+                        Нажимая кнопку, вы перейдёте на защищённую страницу {methods.find((item) => item.id === selectedMethod)?.provider || "платёжной системы"}.
+                    </p>
                 </form>
-            </Panel>
-        </div>
+        </Panel>
     );
 }

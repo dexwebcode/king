@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
@@ -85,3 +86,63 @@ YOOKASSA_CONNECT_TIMEOUT_SECONDS = float(
 YOOKASSA_READ_TIMEOUT_SECONDS = float(
     os.getenv("YOOKASSA_READ_TIMEOUT_SECONDS", "12")
 )
+
+CRYSTALPAY_AUTH_LOGIN = os.getenv("CRYSTALPAY_AUTH_LOGIN", "").strip()
+CRYSTALPAY_AUTH_SECRET = os.getenv("CRYSTALPAY_AUTH_SECRET", "").strip()
+CRYSTALPAY_SALT = os.getenv("CRYSTALPAY_SALT", "").strip()
+CRYSTALPAY_CALLBACK_URL = os.getenv("CRYSTALPAY_CALLBACK_URL", "").strip()
+CRYSTALPAY_REDIRECT_URL = os.getenv(
+    "CRYSTALPAY_REDIRECT_URL",
+    f"{FRONTEND_URL}/payment/success",
+).strip()
+CRYSTALPAY_ORDER_REDIRECT_URL = os.getenv(
+    "CRYSTALPAY_ORDER_REDIRECT_URL",
+    f"{FRONTEND_URL}/payment/success",
+).strip()
+CRYSTALPAY_API_URL = os.getenv(
+    "CRYSTALPAY_API_URL",
+    "https://api.crystalpay.io/v3/",
+).rstrip("/") + "/"
+CRYSTALPAY_INVOICE_LIFETIME_MINUTES = int(
+    os.getenv("CRYSTALPAY_INVOICE_LIFETIME_MINUTES", "60")
+)
+CRYSTALPAY_TIMEOUT_SECONDS = float(
+    os.getenv("CRYSTALPAY_TIMEOUT_SECONDS", "12")
+)
+
+
+def validate_payment_url(
+    name: str,
+    value: str,
+    *,
+    allow_local_http: bool = False,
+) -> None:
+    parsed = urlparse(value)
+    hostname = (parsed.hostname or "").lower()
+    is_local_http = (
+        allow_local_http
+        and parsed.scheme == "http"
+        and hostname in {"localhost", "127.0.0.1"}
+    )
+    if (parsed.scheme != "https" or not hostname) and not is_local_http:
+        raise RuntimeError(f"{name} должен быть публичным HTTPS URL")
+    if hostname == "example.com":
+        raise RuntimeError(f"{name} содержит тестовый или локальный адрес")
+
+
+if CRYSTALPAY_CALLBACK_URL:
+    validate_payment_url("CRYSTALPAY_CALLBACK_URL", CRYSTALPAY_CALLBACK_URL)
+    if urlparse(CRYSTALPAY_CALLBACK_URL).path != "/api/payments/crystalpay/callback":
+        raise RuntimeError("CRYSTALPAY_CALLBACK_URL содержит неверный путь")
+if CRYSTALPAY_REDIRECT_URL:
+    validate_payment_url(
+        "CRYSTALPAY_REDIRECT_URL",
+        CRYSTALPAY_REDIRECT_URL,
+        allow_local_http=True,
+    )
+if CRYSTALPAY_ORDER_REDIRECT_URL:
+    validate_payment_url(
+        "CRYSTALPAY_ORDER_REDIRECT_URL",
+        CRYSTALPAY_ORDER_REDIRECT_URL,
+        allow_local_http=True,
+    )

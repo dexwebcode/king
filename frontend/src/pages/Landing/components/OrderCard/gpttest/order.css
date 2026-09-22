@@ -543,7 +543,7 @@
     font-size: 14px;
 }
 
-.wizard-confirm-quantity {
+.wizard-next-step {
     width: 100%;
     min-height: 48px;
     margin-top: 18px;
@@ -566,12 +566,12 @@
         opacity .18s ease;
 }
 
-.wizard-confirm-quantity:not(:disabled):hover {
+.wizard-next-step:not(:disabled):hover {
     transform: translateY(-1px);
     filter: brightness(1.04);
 }
 
-.wizard-confirm-quantity:disabled {
+.wizard-next-step:disabled {
     opacity: .4;
     cursor: not-allowed;
     filter: grayscale(.15);

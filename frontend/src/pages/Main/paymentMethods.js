@@ -9,6 +9,16 @@ export const PAYMENT_METHODS = [
         apiValue: "sbp",
         enabled: true,
     },
+    {
+        id: "crystalpay",
+        name: "CrystalPAY",
+        description: "Оплата удобным способом на странице CrystalPAY",
+        provider: "CrystalPAY",
+        badge: "Новый способ",
+        endpoint: "/api/payments/crystalpay/create",
+        apiValue: "crystalpay",
+        enabled: true,
+    },
 ];
 
 export function availablePaymentMethods() {

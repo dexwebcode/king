@@ -15,7 +15,8 @@ import spotifyIcon from "../../assets/social_icons/Spotify.png";
 import appleMusicIcon from "../../assets/social_icons/Apple_Musikl.png";
 import HeroRegisterForm from "../Landing/components/Hero/HeroRegisterForm";
 import { AUTH_CHANGED_EVENT, logoutUser } from "../Landing/components/Hero/auth/authApi";
-import { AccountMenu, InternalHeader } from "../../ui/AppShell";
+import { AccountMenu, InternalHeader, MenuToggle } from "../../ui/AppShell";
+import CatalogSearch from "./CatalogSearch";
 import "../Landing/Landing.css";
 import "./Catalog.css";
 
@@ -53,7 +54,6 @@ const platformIcons = {
 };
 
 const catalogPlatformOrder = [
-    "all",
     "instagram",
     "telegram",
     "tiktok",
@@ -140,9 +140,12 @@ export default function Catalog() {
     const [items, setItems] = useState([]);
     const [status, setStatus] = useState("loading");
     const [search, setSearch] = useState("");
-    const [platform, setPlatform] = useState(
-        () => new URLSearchParams(window.location.search).get("platform") || "all"
-    );
+    const [platform, setPlatform] = useState(() => {
+        const requestedPlatform = new URLSearchParams(window.location.search)
+            .get("platform")
+            ?.toLowerCase();
+        return requestedPlatform && requestedPlatform !== "all" ? requestedPlatform : null;
+    });
     const [serviceType, setServiceType] = useState("all");
     const [account, setAccount] = useState(null);
     const [isAdmin, setIsAdmin] = useState(false);
@@ -223,13 +226,12 @@ export default function Catalog() {
         items.map((item) => String(item.platform || item.soc || "").toLowerCase()).filter(Boolean)
     );
     const platforms = [
-        "all",
-        ...catalogPlatformOrder.filter((item) => item !== "all" && availablePlatformSet.has(item)),
+        ...catalogPlatformOrder.filter((item) => availablePlatformSet.has(item)),
         ...[...availablePlatformSet].filter((item) => !catalogPlatformOrder.includes(item)).sort(),
     ];
-    const platformItems = platform === "all"
-        ? items
-        : items.filter((item) => String(item.platform || item.soc || "").toLowerCase() === platform);
+    const platformItems = platform
+        ? items.filter((item) => String(item.platform || item.soc || "").toLowerCase() === platform)
+        : items;
     const serviceTypes = [
         "all",
         ...new Set(platformItems.map(serviceCategory).filter(Boolean)),
@@ -237,16 +239,26 @@ export default function Catalog() {
     const filteredItems = items
         .filter((item) => {
             const itemPlatform = String(item.platform || item.soc || "").toLowerCase();
-            const haystack = `${cleanServiceName(item.name)} ${item.type || ""} ${itemPlatform}`.toLowerCase();
+            const itemType = serviceCategory(item);
+            const haystack = [
+                cleanServiceName(item.name),
+                item.name,
+                item.type,
+                item.service_type,
+                item.description,
+                itemPlatform,
+                displayPlatform(itemPlatform),
+                displayServiceType(itemType),
+            ].filter(Boolean).join(" ").toLowerCase();
 
-            return (platform === "all" || platform === itemPlatform)
+            return (!platform || platform === itemPlatform)
                 && (serviceType === "all" || matchesServiceType(item, serviceType))
                 && (!deferredSearch || haystack.includes(deferredSearch));
         })
         .sort((left, right) => serviceRate(left) - serviceRate(right));
 
     function selectPlatform(nextPlatform) {
-        setPlatform(nextPlatform);
+        setPlatform((currentPlatform) => currentPlatform === nextPlatform ? null : nextPlatform);
         setServiceType("all");
     }
 
@@ -272,10 +284,6 @@ export default function Catalog() {
         setIsAccountMenuOpen(false);
     }
 
-    function openAccountMenu() {
-        setIsAccountMenuOpen(true);
-    }
-
     function openAuthPrompt() {
         closeAccountMenu();
         setIsAuthPromptOpen(true);
@@ -285,41 +293,47 @@ export default function Catalog() {
         <main className="catalog-page">
             <div className="catalog-glow catalog-glow--one" />
             <div className="catalog-glow catalog-glow--two" />
-            <InternalHeader
-                menuOpen={isAccountMenuOpen}
-                onMenuToggle={hasSession ? openAccountMenu : openAuthPrompt}
-            />
+            {hasSession ? (
+                null
+            ) : (
+                <InternalHeader
+                    menuOpen={isAccountMenuOpen}
+                    onLogin={openAuthPrompt}
+                />
+            )}
             <section className={`catalog-controls container ${hasSession ? "is-authenticated" : ""}`} aria-label="Поиск и выбор социальной сети">
                 <div className="catalog-section-title" aria-hidden="true">Каталог услуг</div>
-                <div className="catalog-socials" aria-label="Выбор социальной сети">
-                    {platforms.map((itemPlatform) => {
-                        const icon = platformIcons[itemPlatform];
-                        const label = itemPlatform === "all" ? "Все соцсети" : displayPlatform(itemPlatform);
+                <div className="catalog-filter-bar">
+                    <div className="catalog-filter-group">
+                    <div className="catalog-socials" aria-label="Выбор социальной сети">
+                        {platforms.map((itemPlatform) => {
+                            const icon = platformIcons[itemPlatform];
+                            const label = displayPlatform(itemPlatform);
 
-                        return (
-                            <button
-                                key={itemPlatform}
-                                type="button"
-                                className={platform === itemPlatform ? "active" : ""}
-                                onClick={() => selectPlatform(itemPlatform)}
-                                aria-label={label}
-                                title={label}
-                            >
-                                {itemPlatform === "all" ? <span>Все</span> : icon ? <img src={icon} alt="" /> : <span>{label.slice(0, 1)}</span>}
-                            </button>
-                        );
-                    })}
-                </div>
-                <div className="catalog-header-actions">
-                    <label className="catalog-search">
-                        <span>Поиск по каталогу</span>
-                        <input
-                            type="search"
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Найти услугу"
+                            return (
+                                <button
+                                    key={itemPlatform}
+                                    type="button"
+                                    className={platform === itemPlatform ? "active" : ""}
+                                    onClick={() => selectPlatform(itemPlatform)}
+                                    aria-label={`${label}${platform === itemPlatform ? ", сбросить фильтр" : ""}`}
+                                    aria-pressed={platform === itemPlatform}
+                                    title={label}
+                                >
+                                    {icon ? <img src={icon} alt="" /> : <span>{label.slice(0, 1)}</span>}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <CatalogSearch value={search} onChange={setSearch} />
+                    </div>
+                    {hasSession && (
+                        <MenuToggle
+                            menuOpen={isAccountMenuOpen}
+                            onMenuToggle={() => setIsAccountMenuOpen((value) => !value)}
+                            className="catalog-menu-toggle"
                         />
-                    </label>
+                    )}
                 </div>
             </section>
 

@@ -58,3 +58,28 @@
     grid-template-columns: 1fr 1fr;
     gap: 10px;
 }
+
+.payment-actions--stacked {
+    grid-template-columns: 1fr;
+}
+
+.kp-button--danger {
+    border: 1px solid rgba(255, 115, 115, .55);
+    background: rgba(255, 86, 86, .09);
+    color: #ffb0a7;
+}
+
+.kp-button--danger:hover {
+    border-color: rgba(255, 115, 115, .85);
+    background: rgba(255, 86, 86, .16);
+}
+
+.payment-error {
+    width: 100%;
+    margin: 18px 0 0 !important;
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 115, 115, .35);
+    border-radius: 12px;
+    background: rgba(255, 86, 86, .08);
+    color: #ffc2ba !important;
+}

@@ -4,11 +4,13 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from threading import Lock
 from time import monotonic
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import IntegrityError
 
 from backend.core.config import (
+    CRYSTALPAY_ORDER_REDIRECT_URL,
     REFERRAL_REWARD_PERCENT,
     YOOKASSA_BALANCE_RETURN_URL,
     YOOKASSA_RETURN_URL,
@@ -51,14 +53,17 @@ from .repository import (
     mark_order_cancel_requested,
     mark_order_paid,
     mark_payment_canceled,
+    mark_payment_paid_after_cancel,
     mark_payment_processed,
     mark_supplier_precheck_unavailable,
     record_supplier_order_for_review,
     set_attempt_error,
     set_attempt_payment_details,
+    set_attempt_status,
     set_user_balance,
     update_order_from_supplier,
 )
+from .crystalpay_service import crystalpay_client, validate_crystalpay_configuration
 from .yookassa_service import create_yookassa_payment, get_yookassa_payment
 
 
@@ -121,9 +126,12 @@ def _payment_response(attempt) -> dict:
         confirmation_url = YOOKASSA_RETURN_URL
     return {
         "order_id": attempt["order_id"],
+        "attempt_id": attempt["id"],
         "payment_id": attempt.get("provider_payment_id"),
         "confirmation_url": confirmation_url,
         "status": attempt["status"],
+        "provider": attempt.get("provider") or "yookassa",
+        "purpose": "order",
     }
 
 
@@ -133,9 +141,12 @@ def _topup_response(attempt) -> dict:
         confirmation_url = YOOKASSA_BALANCE_RETURN_URL
     return {
         "top_up_id": attempt["id"],
+        "attempt_id": attempt["id"],
         "payment_id": attempt.get("provider_payment_id"),
         "confirmation_url": confirmation_url,
         "status": attempt["status"],
+        "provider": attempt.get("provider") or "yookassa",
+        "purpose": "balance_topup",
     }
 
 
@@ -177,6 +188,7 @@ def _create_or_get_attempt(
     recipient_link: str,
     amount: Decimal,
     idempotence_key: str,
+    provider: str = "yookassa",
 ):
     session = SessionLocal()
     try:
@@ -185,6 +197,7 @@ def _create_or_get_attempt(
                 session,
                 user_id=user_id,
                 idempotence_key=idempotence_key,
+                provider=provider,
             )
             if attempt is not None:
                 _validate_idempotent_attempt(
@@ -207,6 +220,7 @@ def _create_or_get_attempt(
                 amount=amount,
                 created_at=_legacy_now(),
                 idempotence_key=idempotence_key,
+                provider=provider,
             )
             return attempt
     except IntegrityError:
@@ -215,6 +229,7 @@ def _create_or_get_attempt(
             session,
             user_id=user_id,
             idempotence_key=idempotence_key,
+            provider=provider,
         )
         if attempt is None:
             raise
@@ -231,18 +246,15 @@ def _create_or_get_attempt(
         session.close()
 
 
-def create_order_payment(
+def _prepare_order_attempt(
     *,
     user_id: int,
     service_id: str | int,
     quantity: int,
     recipient_link: str,
-    payment_method: str,
     idempotence_key: str,
-) -> dict:
-    if payment_method != "sbp":
-        raise ValueError("Неподдерживаемый способ оплаты")
-
+    provider: str,
+):
     service = get_service_by_id(service_id)
     if service is None:
         raise ServiceNotFoundError("Выбранная услуга больше недоступна")
@@ -264,7 +276,7 @@ def create_order_payment(
     if not platform or len(platform) > 9:
         raise ServiceNotFoundError("У услуги некорректно указана площадка")
 
-    attempt = _create_or_get_attempt(
+    return _create_or_get_attempt(
         user_id=user_id,
         service_id=persisted_service_id,
         platform=platform,
@@ -272,6 +284,29 @@ def create_order_payment(
         recipient_link=recipient_link,
         amount=amount,
         idempotence_key=idempotence_key,
+        provider=provider,
+    )
+
+
+def create_order_payment(
+    *,
+    user_id: int,
+    service_id: str | int,
+    quantity: int,
+    recipient_link: str,
+    payment_method: str,
+    idempotence_key: str,
+) -> dict:
+    if payment_method != "sbp":
+        raise ValueError("Неподдерживаемый способ оплаты")
+
+    attempt = _prepare_order_attempt(
+        user_id=user_id,
+        service_id=service_id,
+        quantity=quantity,
+        recipient_link=recipient_link,
+        idempotence_key=idempotence_key,
+        provider="yookassa",
     )
 
     if attempt.get("provider_payment_id") and attempt.get("confirmation_url"):
@@ -358,6 +393,97 @@ def create_order_payment(
         raise
 
 
+async def create_crystalpay_order_payment(
+    *,
+    user_id: int,
+    service_id: str | int,
+    quantity: int,
+    recipient_link: str,
+    idempotence_key: str,
+) -> dict:
+    validate_crystalpay_configuration(require_salt=True)
+    attempt = _prepare_order_attempt(
+        user_id=user_id,
+        service_id=service_id,
+        quantity=quantity,
+        recipient_link=recipient_link,
+        idempotence_key=idempotence_key,
+        provider="crystalpay",
+    )
+    if attempt.get("provider_payment_id") and attempt.get("confirmation_url"):
+        return _payment_response(attempt)
+    if attempt.get("processed_at") is not None:
+        return _payment_response(attempt)
+
+    invoice = None
+    try:
+        logger.info(
+            "Creating CrystalPAY order invoice order_id=%s internal_payment_id=%s",
+            attempt["order_id"],
+            attempt["id"],
+        )
+        invoice = await crystalpay_client.create_invoice(
+            amount=_money(attempt["amount"]),
+            extra=str(attempt["id"]),
+            invoice_type="purchase",
+            description=f"Оплата заказа KingPromotion #{attempt['order_id']}",
+            redirect_url=CRYSTALPAY_ORDER_REDIRECT_URL,
+        )
+        invoice_id = str(invoice.get("id") or "").strip()
+        checkout_url = str(invoice.get("url") or "").strip()
+        if not invoice_id:
+            raise PaymentVerificationError("CrystalPAY не вернул ID инвойса")
+        if not checkout_url:
+            raise PaymentVerificationError("CrystalPAY не вернул ссылку на оплату")
+        parsed_checkout_url = urlparse(checkout_url)
+        if parsed_checkout_url.scheme != "https" or parsed_checkout_url.hostname != "pay.crystalpay.io":
+            raise PaymentVerificationError("CrystalPAY вернул некорректную ссылку на оплату")
+        if str(invoice.get("type") or "") != "purchase":
+            raise PaymentVerificationError("CrystalPAY вернул некорректный тип инвойса")
+        if str(invoice.get("currency") or "").upper() != "RUB":
+            raise PaymentVerificationError("CrystalPAY вернул некорректную валюту инвойса")
+        if _money(invoice.get("rub_amount")) != _money(attempt["amount"]):
+            raise PaymentVerificationError("CrystalPAY вернул некорректную сумму инвойса")
+
+        session = SessionLocal()
+        try:
+            with session.begin():
+                saved_attempt = set_attempt_payment_details(
+                    session,
+                    attempt_id=attempt["id"],
+                    payment_id=invoice_id,
+                    payment_status="created",
+                    confirmation_url=checkout_url,
+                )
+                if saved_attempt is None:
+                    raise PaymentConflictError("Платёж уже связан с другим ID")
+        finally:
+            session.close()
+        return _payment_response(saved_attempt)
+    except Exception as error:
+        session = SessionLocal()
+        try:
+            with session.begin():
+                invoice_id = str((invoice or {}).get("id") or "")
+                if invoice_id:
+                    set_attempt_payment_details(
+                        session,
+                        attempt_id=attempt["id"],
+                        payment_id=invoice_id,
+                        payment_status="creation_failed",
+                        confirmation_url=str((invoice or {}).get("url") or "") or None,
+                    )
+                set_attempt_error(
+                    session,
+                    attempt_id=attempt["id"],
+                    status="creation_failed",
+                    error_message=f"{type(error).__name__}: {error}",
+                )
+        finally:
+            session.close()
+        raise
+
+
 def _validate_idempotent_topup(attempt, *, user_id: int, amount: Decimal) -> None:
     if (
         (attempt.get("purpose") or "order") != "balance_topup"
@@ -374,6 +500,7 @@ def _create_or_get_topup_attempt(
     user_id: int,
     amount: Decimal,
     idempotence_key: str,
+    provider: str = "yookassa",
 ):
     session = SessionLocal()
     try:
@@ -382,6 +509,7 @@ def _create_or_get_topup_attempt(
                 session,
                 user_id=user_id,
                 idempotence_key=idempotence_key,
+                provider=provider,
             )
             if attempt is not None:
                 _validate_idempotent_topup(
@@ -395,6 +523,7 @@ def _create_or_get_topup_attempt(
                 user_id=user_id,
                 amount=amount,
                 idempotence_key=idempotence_key,
+                provider=provider,
             )
     except IntegrityError:
         session.rollback()
@@ -402,6 +531,7 @@ def _create_or_get_topup_attempt(
             session,
             user_id=user_id,
             idempotence_key=idempotence_key,
+            provider=provider,
         )
         if attempt is None:
             raise
@@ -505,6 +635,324 @@ def create_balance_topup_payment(
         finally:
             session.close()
         raise
+
+
+async def create_crystalpay_topup(
+    *,
+    user_id: int,
+    amount: Decimal,
+    idempotence_key: str,
+) -> dict:
+    validate_crystalpay_configuration(require_salt=True)
+    amount = _money(amount)
+    if amount < Decimal("10.00") or amount > Decimal("100000.00"):
+        raise ValueError("Сумма пополнения должна быть от 10 до 100 000 рублей")
+
+    attempt = _create_or_get_topup_attempt(
+        user_id=user_id,
+        amount=amount,
+        idempotence_key=idempotence_key,
+        provider="crystalpay",
+    )
+    if attempt.get("provider_payment_id") and attempt.get("confirmation_url"):
+        return _topup_response(attempt)
+
+    invoice = None
+    try:
+        logger.info("Creating CrystalPAY invoice internal_payment_id=%s", attempt["id"])
+        invoice = await crystalpay_client.create_invoice(
+            amount=amount,
+            extra=str(attempt["id"]),
+        )
+        invoice_id = str(invoice.get("id") or "").strip()
+        checkout_url = str(invoice.get("url") or "").strip()
+        if not invoice_id:
+            raise PaymentVerificationError("CrystalPAY не вернул ID инвойса")
+        if not checkout_url:
+            raise PaymentVerificationError("CrystalPAY не вернул ссылку на оплату")
+        parsed_checkout_url = urlparse(checkout_url)
+        if parsed_checkout_url.scheme != "https" or parsed_checkout_url.hostname != "pay.crystalpay.io":
+            raise PaymentVerificationError("CrystalPAY вернул некорректную ссылку на оплату")
+        if str(invoice.get("type") or "") != "topup":
+            raise PaymentVerificationError("CrystalPAY вернул некорректный тип инвойса")
+        if str(invoice.get("currency") or "").upper() != "RUB":
+            raise PaymentVerificationError("CrystalPAY вернул некорректную валюту инвойса")
+
+        session = SessionLocal()
+        try:
+            with session.begin():
+                saved_attempt = set_attempt_payment_details(
+                    session,
+                    attempt_id=attempt["id"],
+                    payment_id=invoice_id,
+                    payment_status="created",
+                    confirmation_url=checkout_url,
+                )
+                if saved_attempt is None:
+                    raise PaymentConflictError("Платёж уже связан с другим ID")
+        finally:
+            session.close()
+
+        logger.info(
+            "CrystalPAY invoice created internal_payment_id=%s invoice_id=%s",
+            attempt["id"],
+            invoice_id,
+        )
+        return _topup_response(saved_attempt)
+    except Exception as error:
+        session = SessionLocal()
+        try:
+            with session.begin():
+                invoice_id = str((invoice or {}).get("id") or "")
+                if invoice_id:
+                    set_attempt_payment_details(
+                        session,
+                        attempt_id=attempt["id"],
+                        payment_id=invoice_id,
+                        payment_status="creation_failed",
+                        confirmation_url=str((invoice or {}).get("url") or "") or None,
+                    )
+                set_attempt_error(
+                    session,
+                    attempt_id=attempt["id"],
+                    status="creation_failed",
+                    error_message=f"{type(error).__name__}: {error}",
+                )
+        finally:
+            session.close()
+        logger.warning(
+            "CrystalPAY invoice creation failed internal_payment_id=%s error=%s",
+            attempt["id"],
+            type(error).__name__,
+        )
+        raise
+
+
+def _process_crystalpay_topup_invoice(invoice_id: str, invoice: dict) -> bool:
+    verified_invoice_id = str(invoice.get("id") or "")
+    if verified_invoice_id != invoice_id:
+        raise PaymentVerificationError("ID инвойса CrystalPAY не совпадает")
+    if str(invoice.get("type") or "") != "topup":
+        raise PaymentVerificationError("Некорректный тип инвойса CrystalPAY")
+    currency = str(invoice.get("amount_currency") or invoice.get("currency") or "").upper()
+    if currency != "RUB":
+        raise PaymentVerificationError("Валюта инвойса CrystalPAY не совпадает")
+
+    state = str(invoice.get("state") or "").lower()
+    if not state:
+        raise PaymentVerificationError("CrystalPAY не вернул статус инвойса")
+
+    session = SessionLocal()
+    try:
+        with session.begin():
+            attempt = get_attempt_by_payment_id(
+                session,
+                invoice_id,
+                for_update=True,
+                provider="crystalpay",
+            )
+            if attempt is None:
+                raise PaymentVerificationError("Инвойс CrystalPAY не найден")
+            if str(invoice.get("extra") or "") != str(attempt["id"]):
+                raise PaymentVerificationError("Связь инвойса CrystalPAY не совпадает")
+            if attempt.get("purpose") != "balance_topup" or attempt.get("order_id") is not None:
+                raise PaymentVerificationError("Инвойс не является пополнением баланса")
+            if attempt.get("processed_at") is not None:
+                logger.info(
+                    "Duplicate CrystalPAY callback invoice_id=%s internal_payment_id=%s",
+                    invoice_id,
+                    attempt["id"],
+                )
+                return False
+            if attempt.get("status") in {"cancel_requested", "canceled", "paid_after_cancel"}:
+                if state == "payed":
+                    mark_payment_paid_after_cancel(session, attempt["id"])
+                return False
+            if state != "payed":
+                set_attempt_status(session, attempt_id=attempt["id"], status=state)
+                logger.info(
+                    "CrystalPAY invoice not credited invoice_id=%s state=%s",
+                    invoice_id,
+                    state,
+                )
+                return False
+
+            actual_amount = _money(invoice.get("rub_amount"))
+            if actual_amount <= 0 or actual_amount > Decimal("99999999.99"):
+                raise PaymentVerificationError("Некорректная оплаченная сумма CrystalPAY")
+            user = lock_user(session, attempt["user_id"])
+            if user is None:
+                raise PaymentVerificationError("Пользователь платежа не найден")
+
+            balance_before = _money(user["balance"])
+            balance_after = balance_before + actual_amount
+            operation_date = _legacy_now()
+            transaction_id = create_balance_transaction(
+                session,
+                user_id=attempt["user_id"],
+                amount=actual_amount,
+                balance_before=balance_before,
+                date=operation_date,
+                external_id=invoice_id,
+                provider="crystalpay",
+            )
+            create_expense(
+                session,
+                user_id=attempt["user_id"],
+                related_id=transaction_id,
+                balance_before=balance_before,
+                balance_after=balance_after,
+                amount=actual_amount,
+                date=operation_date,
+                expense_type=2,
+            )
+            referral_percent = _money(REFERRAL_REWARD_PERCENT)
+            if referral_percent < 0 or referral_percent > 100:
+                raise RuntimeError("Некорректный REFERRAL_REWARD_PERCENT")
+            referral_reward = (
+                actual_amount * referral_percent / Decimal("100")
+            ).quantize(MONEY_STEP, rounding=ROUND_HALF_UP)
+            add_referral_reward(
+                session,
+                user_id=attempt["user_id"],
+                reward=referral_reward,
+            )
+            set_user_balance(
+                session,
+                user_id=attempt["user_id"],
+                balance=balance_after,
+            )
+            mark_payment_processed(
+                session,
+                attempt_id=attempt["id"],
+                transaction_id=transaction_id,
+                credited_amount=actual_amount,
+            )
+            logger.info(
+                "CrystalPAY balance credited internal_payment_id=%s invoice_id=%s amount=%s",
+                attempt["id"],
+                invoice_id,
+                actual_amount,
+            )
+            return True
+    finally:
+        session.close()
+
+
+def _process_crystalpay_order_invoice(invoice_id: str, invoice: dict) -> int | bool:
+    if str(invoice.get('id') or '') != invoice_id:
+        raise PaymentVerificationError('ID инвойса CrystalPAY не совпадает')
+    if str(invoice.get('type') or '') != 'purchase':
+        raise PaymentVerificationError('Некорректный тип инвойса CrystalPAY')
+    currency = str(invoice.get('amount_currency') or invoice.get('currency') or '').upper()
+    if currency != 'RUB':
+        raise PaymentVerificationError('Валюта инвойса CrystalPAY не совпадает')
+    state = str(invoice.get('state') or '').lower()
+    if not state:
+        raise PaymentVerificationError('CrystalPAY не вернул статус инвойса')
+
+    session = SessionLocal()
+    try:
+        with session.begin():
+            attempt = get_attempt_by_payment_id(
+                session, invoice_id, for_update=True, provider='crystalpay',
+            )
+            if attempt is None:
+                raise PaymentVerificationError('Инвойс CrystalPAY не найден')
+            if str(invoice.get('extra') or '') != str(attempt['id']):
+                raise PaymentVerificationError('Связь инвойса CrystalPAY не совпадает')
+            if (attempt.get('purpose') or 'order') != 'order' or attempt.get('order_id') is None:
+                raise PaymentVerificationError('Инвойс не является оплатой заказа')
+            if attempt.get('processed_at') is not None:
+                return False
+            if attempt.get('status') in {'cancel_requested', 'canceled', 'paid_after_cancel'}:
+                if state == 'payed':
+                    mark_payment_paid_after_cancel(session, attempt['id'])
+                return False
+            if state != 'payed':
+                set_attempt_status(session, attempt_id=attempt['id'], status=state)
+                return False
+
+            payment_amount = _money(invoice.get('rub_amount'))
+            if payment_amount != _money(attempt['amount']):
+                raise PaymentVerificationError('Сумма платежа CrystalPAY не совпадает')
+            user = lock_user(session, attempt['user_id'])
+            order = lock_order(session, attempt['order_id'])
+            if user is None or order is None:
+                raise PaymentVerificationError('Пользователь или заказ не найден')
+            if order['user_id'] != attempt['user_id']:
+                raise PaymentVerificationError('Заказ принадлежит другому пользователю')
+            if _money(order['amount']) != payment_amount:
+                raise PaymentVerificationError('Стоимость заказа изменилась')
+            if order['status'] not in {'Ожидает оплаты', 'Оплата отменена'}:
+                raise PaymentConflictError(f"Заказ нельзя оплатить в статусе {order['status']}")
+
+            balance_before = _money(user['balance'])
+            balance_after_credit = balance_before + payment_amount
+            operation_date = _legacy_now()
+            transaction_id = create_balance_transaction(
+                session, user_id=attempt['user_id'], amount=payment_amount,
+                balance_before=balance_before, date=operation_date,
+                external_id=invoice_id, provider='crystalpay',
+            )
+            create_expense(
+                session, user_id=attempt['user_id'], related_id=transaction_id,
+                balance_before=balance_before, balance_after=balance_after_credit,
+                amount=payment_amount, date=operation_date, expense_type=2,
+            )
+            referral_percent = _money(REFERRAL_REWARD_PERCENT)
+            referral_reward = (payment_amount * referral_percent / Decimal('100')).quantize(
+                MONEY_STEP, rounding=ROUND_HALF_UP,
+            )
+            add_referral_reward(session, user_id=attempt['user_id'], reward=referral_reward)
+            balance_after_order = balance_after_credit - _money(order['amount'])
+            create_expense(
+                session, user_id=attempt['user_id'], related_id=order['id'],
+                balance_before=balance_after_credit, balance_after=balance_after_order,
+                amount=-_money(order['amount']), date=operation_date, expense_type=0,
+            )
+            set_user_balance(session, user_id=attempt['user_id'], balance=balance_after_order)
+            mark_order_paid(session, order['id'])
+            mark_payment_processed(session, attempt_id=attempt['id'], transaction_id=transaction_id)
+            return order['id']
+    finally:
+        session.close()
+
+
+def process_crystalpay_invoice(invoice_id: str, invoice: dict) -> bool | int:
+    invoice_type = str(invoice.get('type') or '')
+    if invoice_type == 'topup':
+        return _process_crystalpay_topup_invoice(invoice_id, invoice)
+    if invoice_type == 'purchase':
+        return _process_crystalpay_order_invoice(invoice_id, invoice)
+    raise PaymentVerificationError('Неподдерживаемый тип инвойса CrystalPAY')
+
+
+async def reconcile_crystalpay_invoice_if_due(invoice_id: str) -> None:
+    session = SessionLocal()
+    try:
+        with session.begin():
+            claimed = claim_payment_reconciliation(
+                session,
+                invoice_id,
+                provider="crystalpay",
+            )
+    finally:
+        session.close()
+    if not claimed:
+        return
+
+    try:
+        invoice = await crystalpay_client.get_invoice(invoice_id)
+        result = process_crystalpay_invoice(invoice_id, invoice)
+        if type(result) is int:
+            dispatch_order(result)
+    except Exception as error:
+        logger.warning(
+            "CrystalPAY reconciliation failed invoice_id=%s error=%s",
+            invoice_id,
+            type(error).__name__,
+        )
 
 
 def _validate_payment(payment, attempt) -> Decimal:

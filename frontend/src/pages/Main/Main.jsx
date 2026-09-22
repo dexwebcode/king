@@ -97,7 +97,12 @@ export default function Main() {
                     {section !== "create" && (
                         <PageHeader
                             eyebrow="Личный кабинет"
-                            title={section === "orders" ? "Мои заказы" : "Баланс"}
+                            title={section === "orders" ? "Мои заказы" : (
+                                <span className="balance-page-title">
+                                    <span>Баланс</span>
+                                    <strong>{formatMoney(account?.balance)} ₽</strong>
+                                </span>
+                            )}
                             description={descriptions[section]}
                         />
                     )}
@@ -141,7 +146,6 @@ export default function Main() {
 
                     {section === "balance" && (
                         <BalanceSection
-                            balance={account?.balance}
                             returnedFromPayment={returnedFromPayment}
                             onBalanceChange={handleBalanceChange}
                             onPaymentSettled={handlePaymentSettled}

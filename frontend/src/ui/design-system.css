@@ -105,40 +105,22 @@
     width: 46px;
     height: 46px;
     display: grid;
-    place-content: center;
-    gap: 5px;
-    border: 1px solid rgba(255, 209, 90, .42);
-    border-radius: 14px;
-    background: rgba(255, 209, 90, .08);
+    place-items: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
     cursor: pointer;
-    transition: transform .2s ease, background .2s ease;
+    transition: transform .2s ease;
 }
 
-.kp-menu-toggle:hover,
-.kp-menu-toggle.is-open {
+.kp-menu-toggle:hover {
     transform: translateY(-2px);
-    background: rgba(255, 209, 90, .17);
 }
 
-.kp-menu-toggle span {
-    display: block;
-    width: 19px;
-    height: 2px;
-    border-radius: 9px;
-    background: var(--kp-gold);
-    transition: transform .2s ease, opacity .2s ease;
-}
-
-.kp-menu-toggle.is-open span:nth-child(1) {
-    transform: translateY(7px) rotate(45deg);
-}
-
-.kp-menu-toggle.is-open span:nth-child(2) {
-    opacity: 0;
-}
-
-.kp-menu-toggle.is-open span:nth-child(3) {
-    transform: translateY(-7px) rotate(-45deg);
+.kp-menu-toggle img {
+    width: 46px;
+    height: 46px;
+    object-fit: contain;
 }
 
 .kp-menu-backdrop {
@@ -298,6 +280,10 @@
     width: min(var(--kp-page-width), calc(100% - 32px));
     margin: 0 auto;
     padding: calc(78px + clamp(34px, 6vw, 72px)) 0 80px;
+}
+
+.kp-app-shell.is-authenticated .kp-page {
+    padding-top: clamp(34px, 6vw, 72px);
 }
 
 .kp-page-header {

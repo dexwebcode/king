@@ -22,15 +22,20 @@ from .repository import (
     get_account_summary,
     get_balance_topup_for_user,
     get_order_for_user,
+    get_payment_attempt_for_user,
+    request_payment_cancellation,
     get_user_orders,
 )
 from .schemas import (
     BalanceTopUpStatusResponse,
     CreateBalanceTopUpRequest,
     CreateBalanceTopUpResponse,
+    CreateCrystalPayTopUpRequest,
+    CreateCrystalPayTopUpResponse,
     CreateOrderRequest,
     CreateOrderResponse,
     OrderStatusResponse,
+    PaymentAttemptStatusResponse,
 )
 from .service import (
     OrderNotDispatchedError,
@@ -40,13 +45,24 @@ from .service import (
     ServiceNotFoundError,
     cancel_order_with_supplier,
     create_balance_topup_payment,
+    create_crystalpay_order_payment,
+    create_crystalpay_topup,
     create_order_payment,
     dispatch_order,
     refill_order_with_supplier,
+    reconcile_crystalpay_invoice_if_due,
     reconcile_payment_if_due,
+    process_crystalpay_invoice,
     sync_order_safely,
     sync_order_with_supplier,
     verify_payment_notification,
+)
+from .crystalpay_service import (
+    CrystalPayError,
+    CrystalPayNotConfiguredError,
+    crystalpay_client,
+    validate_crystalpay_configuration,
+    verify_callback_signature,
 )
 from .yookassa_service import (
     YooKassaNotConfiguredError,
@@ -69,18 +85,23 @@ MAX_WEBHOOK_BODY_SIZE = 64 * 1024
     response_model=CreateOrderResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def create_order_endpoint(
+async def create_order_endpoint(
     data: CreateOrderRequest,
     current_user: dict = Depends(get_current_user),
 ):
     try:
+        arguments = {
+            "user_id": current_user["id"],
+            "service_id": data.service_id,
+            "quantity": data.quantity,
+            "recipient_link": str(data.recipient_link),
+            "idempotence_key": str(data.idempotence_key),
+        }
+        if data.payment_method == "crystalpay":
+            return await create_crystalpay_order_payment(**arguments)
         return create_order_payment(
-            user_id=current_user["id"],
-            service_id=data.service_id,
-            quantity=data.quantity,
-            recipient_link=str(data.recipient_link),
+            **arguments,
             payment_method=data.payment_method,
-            idempotence_key=str(data.idempotence_key),
         )
     except ServiceNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
@@ -92,6 +113,15 @@ def create_order_endpoint(
     except YooKassaPaymentMethodUnavailableError as error:
         logger.warning("YooKassa SBP is unavailable: %s", error)
         raise HTTPException(status_code=503, detail=str(error)) from error
+    except CrystalPayNotConfiguredError as error:
+        logger.error("CrystalPAY configuration error: %s", error)
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except CrystalPayError as error:
+        logger.warning("CrystalPAY order invoice creation failed: %s", type(error).__name__)
+        raise HTTPException(
+            status_code=502,
+            detail="Не удалось создать платёж. Попробуйте ещё раз.",
+        ) from error
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     except Exception as error:
@@ -160,19 +190,160 @@ def balance_topup_status_endpoint(
     if (
         top_up["processed_at"] is None
         and top_up["provider_payment_id"]
-        and top_up["status"] != "canceled"
+        and top_up["status"] not in {
+            "canceled",
+            "failed",
+            "expired",
+            "wrongamount",
+            "unavailable",
+        }
     ):
-        background_tasks.add_task(
-            reconcile_payment_if_due,
-            top_up["provider_payment_id"],
-        )
+        if top_up["provider"] == "yookassa":
+            background_tasks.add_task(
+                reconcile_payment_if_due,
+                top_up["provider_payment_id"],
+            )
+        elif top_up["provider"] == "crystalpay":
+            background_tasks.add_task(
+                reconcile_crystalpay_invoice_if_due,
+                top_up["provider_payment_id"],
+            )
     return {
         "id": top_up["id"],
         "status": top_up["status"],
         "amount": format(top_up["amount"], ".2f"),
+        "credited_amount": (
+            format(top_up["credited_amount"], ".2f")
+            if top_up.get("credited_amount") is not None
+            else None
+        ),
         "currency": top_up["currency"],
+        "provider": top_up["provider"],
         "balance": format(account["balance"], ".2f"),
     }
+
+
+def _payment_attempt_response(attempt, account=None) -> dict:
+    status_value = str(attempt.get('status') or 'pending')
+    messages = {
+        'cancel_requested': 'Оплата остановлена на сайте. Ссылка удалена из активного платежа.',
+        'paid_after_cancel': 'Провайдер принял платёж после отмены. Операция остановлена и требует проверки поддержки.',
+        'processed': 'Платёж подтверждён.',
+        'expired': 'Срок действия платежа истёк.',
+        'canceled': 'Платёж отменён.',
+    }
+    return {
+        'id': attempt['id'],
+        'purpose': attempt.get('purpose') or 'order',
+        'provider': attempt.get('provider') or 'yookassa',
+        'status': status_value,
+        'amount': format(attempt['amount'], '.2f'),
+        'currency': attempt.get('currency') or 'RUB',
+        'confirmation_url': None if status_value in {'cancel_requested', 'canceled', 'paid_after_cancel'} else attempt.get('confirmation_url'),
+        'order_id': attempt.get('order_id'),
+        'balance': format(account['balance'], '.2f') if account is not None else None,
+        'dispatch_status': attempt.get('dispatch_status'),
+        'message': messages.get(status_value),
+    }
+
+
+@router.get('/api/payment-attempts/{attempt_id}', response_model=PaymentAttemptStatusResponse)
+async def payment_attempt_status_endpoint(
+    attempt_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    session = SessionLocal()
+    try:
+        attempt = get_payment_attempt_for_user(session, attempt_id, current_user['id'])
+    finally:
+        session.close()
+    if attempt is None:
+        raise HTTPException(status_code=404, detail='Платёж не найден')
+    if (
+        attempt.get('processed_at') is None
+        and attempt.get('provider_payment_id')
+        and attempt.get('status') not in {'cancel_requested', 'canceled', 'expired', 'paid_after_cancel'}
+    ):
+        if attempt.get('provider') == 'crystalpay':
+            await reconcile_crystalpay_invoice_if_due(attempt['provider_payment_id'])
+        else:
+            reconcile_payment_if_due(attempt['provider_payment_id'])
+    session = SessionLocal()
+    try:
+        attempt = get_payment_attempt_for_user(session, attempt_id, current_user['id'])
+        account = get_account_summary(session, current_user['id'])
+    finally:
+        session.close()
+    return _payment_attempt_response(attempt, account)
+
+
+@router.post('/api/payment-attempts/{attempt_id}/cancel', response_model=PaymentAttemptStatusResponse)
+async def cancel_payment_attempt_endpoint(
+    attempt_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    session = SessionLocal()
+    try:
+        attempt = get_payment_attempt_for_user(session, attempt_id, current_user['id'])
+    finally:
+        session.close()
+    if attempt is None:
+        raise HTTPException(status_code=404, detail='Платёж не найден')
+    if attempt.get('processed_at') is not None or attempt.get('status') == 'processed':
+        raise HTTPException(status_code=409, detail='Оплаченный платёж нельзя отменить')
+    if attempt.get('provider') == 'crystalpay' and attempt.get('provider_payment_id'):
+        invoice = await crystalpay_client.get_invoice(attempt['provider_payment_id'])
+        if str(invoice.get('state') or '').lower() == 'payed':
+            result = process_crystalpay_invoice(attempt['provider_payment_id'], invoice)
+            if type(result) is int:
+                dispatch_order(result)
+            raise HTTPException(status_code=409, detail='Платёж уже подтверждён провайдером')
+    session = SessionLocal()
+    try:
+        with session.begin():
+            canceled = request_payment_cancellation(session, attempt_id, current_user['id'])
+        account = get_account_summary(session, current_user['id'])
+    finally:
+        session.close()
+    if canceled is None:
+        raise HTTPException(status_code=409, detail='Платёж уже завершён или отменён')
+    return _payment_attempt_response(canceled, account)
+
+
+@router.post(
+    "/api/payments/crystalpay/create",
+    response_model=CreateCrystalPayTopUpResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_crystalpay_topup_endpoint(
+    data: CreateCrystalPayTopUpRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    try:
+        return await create_crystalpay_topup(
+            user_id=current_user["id"],
+            amount=data.amount,
+            idempotence_key=str(data.idempotence_key),
+        )
+    except PaymentConflictError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except CrystalPayNotConfiguredError as error:
+        logger.error("CrystalPAY configuration error: %s", error)
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except (CrystalPayError, PaymentVerificationError) as error:
+        logger.warning("CrystalPAY invoice creation failed: %s", type(error).__name__)
+        raise HTTPException(
+            status_code=502,
+            detail="Не удалось создать платёж. Попробуйте ещё раз.",
+        ) from error
+    except Exception as error:
+        logger.exception("CrystalPAY invoice creation failed")
+        raise HTTPException(
+            status_code=502,
+            detail="Не удалось создать платёж. Попробуйте ещё раз.",
+        ) from error
 
 
 def _order_message(order) -> str | None:
@@ -222,12 +393,14 @@ def order_status_endpoint(
     elif (
         order["processed_at"] is None
         and order["provider_payment_id"]
-        and order["payment_status"] != "canceled"
+        and order["payment_status"] not in {"canceled", "cancel_requested", "paid_after_cancel"}
     ):
-        background_tasks.add_task(
-            reconcile_payment_if_due,
-            order["provider_payment_id"],
+        reconciliation = (
+            reconcile_crystalpay_invoice_if_due
+            if order.get("provider") == "crystalpay"
+            else reconcile_payment_if_due
         )
+        background_tasks.add_task(reconciliation, order["provider_payment_id"])
 
     return {
         "id": order["id"],
@@ -445,3 +618,63 @@ async def yookassa_webhook(
         )
         background_tasks.add_task(dispatch_order, order_id)
     return {"status": "ok"}
+
+
+@router.post("/api/payments/crystalpay/callback")
+async def crystalpay_callback(request: Request, background_tasks: BackgroundTasks):
+    body = await request.body()
+    if len(body) > MAX_WEBHOOK_BODY_SIZE:
+        raise HTTPException(status_code=413, detail="Слишком большой callback")
+    try:
+        payload = json.loads(body)
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        raise HTTPException(status_code=400, detail="Некорректный JSON") from error
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Некорректный callback")
+
+    invoice_id = str(payload.get("id") or "").strip()
+    signature = str(payload.get("signature") or "").strip()
+    if not invoice_id or not signature:
+        raise HTTPException(status_code=400, detail="ID или подпись отсутствуют")
+    try:
+        validate_crystalpay_configuration(require_salt=True)
+    except CrystalPayNotConfiguredError as error:
+        logger.error("CrystalPAY callback configuration error: %s", error)
+        raise HTTPException(status_code=503, detail="CrystalPAY не настроен") from error
+
+    signature_valid = verify_callback_signature(invoice_id, signature)
+    logger.info(
+        "CrystalPAY callback received invoice_id=%s signature_valid=%s",
+        invoice_id,
+        signature_valid,
+    )
+    if not signature_valid:
+        raise HTTPException(status_code=401, detail="Некорректная подпись")
+
+    try:
+        invoice = await crystalpay_client.get_invoice(invoice_id)
+        result = process_crystalpay_invoice(invoice_id, invoice)
+        if type(result) is int:
+            background_tasks.add_task(dispatch_order, result)
+        credited = bool(result)
+    except PaymentVerificationError as error:
+        logger.warning(
+            "CrystalPAY callback verification failed invoice_id=%s error=%s",
+            invoice_id,
+            error,
+        )
+        raise HTTPException(status_code=400, detail="Платёж не подтверждён") from error
+    except CrystalPayNotConfiguredError as error:
+        logger.error("CrystalPAY callback configuration error: %s", error)
+        raise HTTPException(status_code=503, detail="CrystalPAY не настроен") from error
+    except CrystalPayError as error:
+        logger.warning(
+            "CrystalPAY callback API error invoice_id=%s error=%s",
+            invoice_id,
+            type(error).__name__,
+        )
+        raise HTTPException(status_code=502, detail="Ошибка проверки платежа") from error
+    except Exception as error:
+        logger.exception("CrystalPAY callback processing failed invoice_id=%s", invoice_id)
+        raise HTTPException(status_code=500, detail="Ошибка обработки платежа") from error
+    return {"status": "ok", "credited": credited}

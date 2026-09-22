@@ -55,6 +55,7 @@ def create_order_with_payment_attempt(
     amount: Decimal,
     created_at: str,
     idempotence_key: str,
+    provider: str = PAYMENT_PROVIDER,
 ):
     order = session.execute(
         text("""
@@ -91,7 +92,7 @@ def create_order_with_payment_attempt(
             RETURNING *
         """),
         {
-            "provider": PAYMENT_PROVIDER,
+            "provider": provider,
             "idempotence_key": idempotence_key,
             "user_id": user_id,
             "order_id": order["id"],
@@ -107,6 +108,7 @@ def create_balance_topup_attempt(
     user_id: int,
     amount: Decimal,
     idempotence_key: str,
+    provider: str = PAYMENT_PROVIDER,
 ):
     return session.execute(
         text("""
@@ -120,7 +122,7 @@ def create_balance_topup_attempt(
             RETURNING *
         """),
         {
-            "provider": PAYMENT_PROVIDER,
+            "provider": provider,
             "idempotence_key": idempotence_key,
             "user_id": user_id,
             "amount": amount,
@@ -134,6 +136,7 @@ def get_attempt_by_idempotence_key(
     user_id: int,
     idempotence_key: str,
     for_update: bool = False,
+    provider: str = PAYMENT_PROVIDER,
 ):
     lock_clause = "FOR UPDATE" if for_update else ""
     return session.execute(
@@ -154,7 +157,7 @@ def get_attempt_by_idempotence_key(
             {lock_clause}
         """),
         {
-            "provider": PAYMENT_PROVIDER,
+            "provider": provider,
             "idempotence_key": idempotence_key,
             "user_id": user_id,
         },
@@ -180,6 +183,7 @@ def get_attempt_by_payment_id(
     payment_id: str,
     *,
     for_update: bool = False,
+    provider: str = PAYMENT_PROVIDER,
 ):
     lock_clause = "FOR UPDATE" if for_update else ""
     return session.execute(
@@ -191,11 +195,73 @@ def get_attempt_by_payment_id(
             LIMIT 1
             {lock_clause}
         """),
-        {"provider": PAYMENT_PROVIDER, "payment_id": payment_id},
+        {"provider": provider, "payment_id": payment_id},
     ).mappings().first()
 
 
-def claim_payment_reconciliation(session: Session, payment_id: str) -> bool:
+def get_payment_attempt_for_user(session: Session, attempt_id: int, user_id: int):
+    return session.execute(
+        text('''
+            SELECT p.*, o.status AS order_status
+            FROM migration_temp.payment_attempts AS p
+            LEFT JOIN migration_temp.orders AS o ON o.id = p.order_id
+            WHERE p.id = :attempt_id
+              AND p.user_id = :user_id
+            LIMIT 1
+        '''),
+        {'attempt_id': attempt_id, 'user_id': user_id},
+    ).mappings().first()
+
+
+def request_payment_cancellation(session: Session, attempt_id: int, user_id: int):
+    attempt = session.execute(
+        text('''
+            UPDATE migration_temp.payment_attempts
+            SET status = 'cancel_requested',
+                confirmation_url = NULL,
+                updated_at = NOW()
+            WHERE id = :attempt_id
+              AND user_id = :user_id
+              AND processed_at IS NULL
+              AND status NOT IN ('canceled', 'expired', 'paid_after_cancel')
+            RETURNING *
+        '''),
+        {'attempt_id': attempt_id, 'user_id': user_id},
+    ).mappings().first()
+    if attempt is not None and attempt.get('order_id') is not None:
+        session.execute(
+            text('''
+                UPDATE migration_temp.orders
+                SET status = 'Оплата отменена'
+                WHERE id = :order_id
+                  AND user_id = :user_id
+                  AND status = 'Ожидает оплаты'
+            '''),
+            {'order_id': attempt['order_id'], 'user_id': user_id},
+        )
+    return attempt
+
+
+def mark_payment_paid_after_cancel(session: Session, attempt_id: int) -> None:
+    session.execute(
+        text('''
+            UPDATE migration_temp.payment_attempts
+            SET status = 'paid_after_cancel',
+                last_error = 'Provider accepted payment after local cancellation',
+                updated_at = NOW()
+            WHERE id = :attempt_id
+              AND processed_at IS NULL
+        '''),
+        {'attempt_id': attempt_id},
+    )
+
+
+def claim_payment_reconciliation(
+    session: Session,
+    payment_id: str,
+    *,
+    provider: str = PAYMENT_PROVIDER,
+) -> bool:
     return session.execute(
         text("""
             UPDATE migration_temp.payment_attempts
@@ -203,11 +269,11 @@ def claim_payment_reconciliation(session: Session, payment_id: str) -> bool:
             WHERE provider = :provider
               AND provider_payment_id = :payment_id
               AND processed_at IS NULL
-              AND status <> 'canceled'
+              AND status NOT IN ('canceled', 'cancel_requested', 'paid_after_cancel')
               AND updated_at < NOW() - INTERVAL '5 seconds'
             RETURNING id
         """),
-        {"provider": PAYMENT_PROVIDER, "payment_id": payment_id},
+        {"provider": provider, "payment_id": payment_id},
     ).first() is not None
 
 
@@ -229,6 +295,7 @@ def set_attempt_payment_details(
                 updated_at = NOW()
             WHERE id = :attempt_id
               AND (provider_payment_id IS NULL OR provider_payment_id = :payment_id)
+              AND status NOT IN ('cancel_requested', 'canceled', 'paid_after_cancel')
             RETURNING *
         """),
         {
@@ -270,6 +337,7 @@ def get_order_for_user(session: Session, order_id: int, user_id: int):
             SELECT
                 o.*,
                 p.status AS payment_status,
+                p.provider,
                 p.provider_payment_id,
                 p.currency,
                 p.processed_at,
@@ -398,6 +466,7 @@ def create_balance_transaction(
     balance_before: Decimal,
     date: str,
     external_id: str,
+    provider: str = PAYMENT_PROVIDER,
 ) -> int:
     return session.execute(
         text("""
@@ -413,7 +482,7 @@ def create_balance_transaction(
             "user_id": str(user_id),
             "amount": amount,
             "balance_before": balance_before,
-            "provider": PAYMENT_PROVIDER,
+            "provider": provider,
             "date": date,
             "external_id": external_id,
         },
@@ -476,6 +545,7 @@ def mark_payment_processed(
     *,
     attempt_id: int,
     transaction_id: int,
+    credited_amount: Decimal | None = None,
 ) -> None:
     session.execute(
         text("""
@@ -483,11 +553,35 @@ def mark_payment_processed(
             SET status = 'processed',
                 transaction_id = :transaction_id,
                 processed_at = NOW(),
+                credited_amount = COALESCE(:credited_amount, credited_amount),
                 last_error = NULL,
                 updated_at = NOW()
             WHERE id = :attempt_id
         """),
-        {"attempt_id": attempt_id, "transaction_id": transaction_id},
+        {
+            "attempt_id": attempt_id,
+            "transaction_id": transaction_id,
+            "credited_amount": credited_amount,
+        },
+    )
+
+
+def set_attempt_status(
+    session: Session,
+    *,
+    attempt_id: int,
+    status: str,
+) -> None:
+    session.execute(
+        text("""
+            UPDATE migration_temp.payment_attempts
+            SET status = :status,
+                last_error = NULL,
+                updated_at = NOW()
+            WHERE id = :attempt_id
+              AND processed_at IS NULL
+        """),
+        {"attempt_id": attempt_id, "status": status[:32]},
     )
 
 
