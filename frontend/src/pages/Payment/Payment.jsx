@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { AppShell, Panel, StatusBadge } from "../../ui/AppShell";
+import { updateCachedBalance } from "../../ui/dataCache";
 import "./Payment.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
@@ -62,6 +63,7 @@ export default function Payment() {
         setRequestError("");
 
         if (data.status === "processed") {
+            updateCachedBalance(data.balance);
             if (data.purpose === "order" && !["completed", "insufficient_supplier_balance", "supplier_unavailable", "unknown", "rejected", "save_failed"].includes(data.dispatch_status)) {
                 setPageStatus("dispatching");
                 return false;
@@ -151,7 +153,7 @@ export default function Payment() {
     const canOpen = Boolean(checkoutUrl) && canCancel;
 
     return (
-        <AppShell active={payment?.purpose === "balance_topup" ? "balance" : "orders"} contentClassName="payment-page">
+        <AppShell active={payment?.purpose === "balance_topup" ? "balance" : "orders"} contentClassName="payment-page" title="Оплата">
             <Panel className={"payment-card payment-card--" + pageStatus}>
                 <div className="payment-status-mark" aria-hidden="true">{pageStatus === "completed" ? "✓" : ["canceled", "expired", "review", "error"].includes(pageStatus) ? "!" : "…"}</div>
                 <p className="kp-eyebrow">{content[0]}</p>
@@ -163,7 +165,7 @@ export default function Payment() {
                     {canOpen && <button className="kp-button" type="button" onClick={openCheckout}>Открыть страницу оплаты</button>}
                     {canCancel && <button className="kp-button kp-button--danger" type="button" onClick={cancelPayment} disabled={canceling}>{canceling ? "Останавливаем…" : "Прекратить оплату"}</button>}
                     <button className="kp-button kp-button--secondary" type="button" onClick={() => checkStatus().catch((error) => setRequestError(error.message))}>Проверить статус</button>
-                    <Link className="kp-button kp-button--secondary" to={payment?.purpose === "balance_topup" ? "/main?section=balance" : "/main"} state={payment?.purpose === "order" ? { section: "orders" } : undefined}>Вернуться в кабинет</Link>
+                    <Link className="kp-button kp-button--secondary" to={payment?.purpose === "balance_topup" ? "/main?section=balance" : "/main"} state={payment?.purpose === "order" ? { section: "orders", ordersView: "history" } : undefined}>Вернуться в кабинет</Link>
                 </div>
             </Panel>
         </AppShell>

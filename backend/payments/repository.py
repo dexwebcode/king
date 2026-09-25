@@ -199,6 +199,60 @@ def get_attempt_by_payment_id(
     ).mappings().first()
 
 
+def get_attempt_by_provider_order_id(
+    session: Session,
+    order_id: str,
+    *,
+    for_update: bool = False,
+    provider: str = PAYMENT_PROVIDER,
+):
+    lock_clause = "FOR UPDATE" if for_update else ""
+    return session.execute(
+        text(f"""
+            SELECT *
+            FROM migration_temp.payment_attempts
+            WHERE provider = :provider
+              AND provider_order_id = :order_id
+            LIMIT 1
+            {lock_clause}
+        """),
+        {"provider": provider, "order_id": order_id},
+    ).mappings().first()
+
+
+def set_attempt_heleket_details(
+    session: Session,
+    *,
+    attempt_id: int,
+    provider_order_id: str,
+    payment_id: str,
+    payment_status: str,
+    confirmation_url: str | None,
+):
+    return session.execute(
+        text("""
+            UPDATE migration_temp.payment_attempts
+            SET provider_order_id = COALESCE(provider_order_id, :provider_order_id),
+                provider_payment_id = :payment_id,
+                status = :payment_status,
+                confirmation_url = COALESCE(:confirmation_url, confirmation_url),
+                last_error = NULL,
+                updated_at = NOW()
+            WHERE id = :attempt_id
+              AND (provider_payment_id IS NULL OR provider_payment_id = :payment_id)
+              AND status NOT IN ('cancel_requested', 'canceled', 'paid_after_cancel')
+            RETURNING *
+        """),
+        {
+            "attempt_id": attempt_id,
+            "provider_order_id": provider_order_id,
+            "payment_id": payment_id,
+            "payment_status": payment_status,
+            "confirmation_url": confirmation_url,
+        },
+    ).mappings().first()
+
+
 def get_payment_attempt_for_user(session: Session, attempt_id: int, user_id: int):
     return session.execute(
         text('''
@@ -583,6 +637,66 @@ def set_attempt_status(
         """),
         {"attempt_id": attempt_id, "status": status[:32]},
     )
+
+
+def list_expired_unpaid_attempts(
+    session: Session,
+    *,
+    timeout_minutes: int,
+    limit: int = 50,
+):
+    """Попытки, которые так и не были оплачены в течение окна оплаты."""
+    return session.execute(
+        text("""
+            SELECT *
+            FROM migration_temp.payment_attempts
+            WHERE processed_at IS NULL
+              AND status NOT IN ('canceled', 'cancel_requested', 'expired', 'paid_after_cancel')
+              AND created_at <= NOW() - (:timeout_minutes * INTERVAL '1 minute')
+            ORDER BY created_at
+            LIMIT :limit
+        """),
+        {"timeout_minutes": timeout_minutes, "limit": limit},
+    ).mappings().all()
+
+
+def expire_payment_attempt(
+    session: Session,
+    *,
+    attempt_id: int,
+    order_id: int | None,
+) -> bool:
+    """Помечает попытку истёкшей и снимает её заказ с ожидания оплаты.
+
+    Условия в UPDATE не дают отменить платёж, который провайдер подтвердил
+    между выборкой и записью: такая попытка просто не обновится.
+    """
+    expired = session.execute(
+        text("""
+            UPDATE migration_temp.payment_attempts
+            SET status = 'expired',
+                confirmation_url = NULL,
+                updated_at = NOW()
+            WHERE id = :attempt_id
+              AND processed_at IS NULL
+              AND status NOT IN ('canceled', 'cancel_requested', 'expired', 'paid_after_cancel')
+            RETURNING id
+        """),
+        {"attempt_id": attempt_id},
+    ).first()
+    if expired is None:
+        return False
+    if order_id is not None:
+        session.execute(
+            text("""
+                UPDATE migration_temp.orders
+                SET status = 'Оплата отменена'
+                WHERE id = :order_id
+                  AND status = 'Ожидает оплаты'
+            """),
+            {"order_id": order_id},
+        )
+    return True
 
 
 def mark_payment_canceled(

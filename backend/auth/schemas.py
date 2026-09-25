@@ -39,6 +39,29 @@ def validate_login_value(value: str) -> str:
     return login.lower()
 
 
+def validate_password_value(value: str) -> str:
+    """Единые правила пароля для регистрации и смены пароля в аккаунте."""
+    if len(value) < 6:
+        raise ValueError("Пароль должен содержать минимум 6 символов")
+
+    if len(value) > 100:
+        raise ValueError("Пароль слишком длинный")
+
+    if not any(symbol.islower() for symbol in value):
+        raise ValueError("Пароль должен содержать строчную букву")
+
+    if not any(symbol.isupper() for symbol in value):
+        raise ValueError("Пароль должен содержать заглавную букву")
+
+    if not any(symbol.isdigit() for symbol in value):
+        raise ValueError("Пароль должен содержать цифру")
+
+    if any(symbol.isspace() for symbol in value):
+        raise ValueError("Пароль не должен содержать пробелы")
+
+    return value
+
+
 def normalize_token(value: str) -> str:
     token = value.strip()
 
@@ -96,10 +119,26 @@ class LoginRequest(BaseModel):
 
 
 # Схема для регистрации пользователя
-class RegisterRequest(EmailRequest):
+class RegisterRequest(BaseModel):
 
     login: str
+    # Почта необязательна: сейчас регистрация идёт только по логину.
+    email: EmailStr | None = None
     password: str
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_optional_email(cls, value):
+
+        if value is None:
+            return None
+
+        if not isinstance(value, str):
+            return value
+
+        normalized = value.strip().lower()
+
+        return normalized or None
 
     @field_validator("login")
     @classmethod
@@ -110,38 +149,7 @@ class RegisterRequest(EmailRequest):
     @field_validator("password")
     @classmethod
     def validate_register_password(cls, value: str) -> str:
-
-        if len(value) < 6:
-            raise ValueError(
-                "Пароль должен содержать минимум 6 символов"
-            )
-
-        if len(value) > 100:
-            raise ValueError(
-                "Пароль слишком длинный"
-            )
-
-        if not any(symbol.islower() for symbol in value):
-            raise ValueError(
-                "Пароль должен содержать строчную букву"
-            )
-
-        if not any(symbol.isupper() for symbol in value):
-            raise ValueError(
-                "Пароль должен содержать заглавную букву"
-            )
-
-        if not any(symbol.isdigit() for symbol in value):
-            raise ValueError(
-                "Пароль должен содержать цифру"
-            )
-
-        if any(symbol.isspace() for symbol in value):
-            raise ValueError(
-                "Пароль не должен содержать пробелы"
-            )
-
-        return value
+        return validate_password_value(value)
 
 
 # Схема проверки электронной почты

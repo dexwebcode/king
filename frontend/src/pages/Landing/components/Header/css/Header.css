@@ -110,7 +110,7 @@
     align-items: center;
     justify-content: center;
     border: 0;
-    border-radius: 9px;
+    border-radius: 15px;
     background: linear-gradient(135deg, #ffd15d, #f2ad25);
     color: #131313;
     font-size: 17px;
@@ -231,34 +231,109 @@
     width: auto;
 }
 
+/* =========================================================
+   БЕЛЫЙ КОНТУРНЫЙ ВАРИАНТ
+   Вторичные кнопки — белые: золото остаётся только у главных действий,
+   поэтому жёлтого на странице заметно меньше.
+========================================================= */
+
+.button-outline {
+    border-color: rgba(255, 255, 255, .26);
+    color: #f2f3f5;
+}
+
+.button-outline::before {
+    background: linear-gradient(135deg, #ffffff, #e4e6ea);
+}
+
+.button-outline .button-label {
+    color: #f2f3f5;
+}
+
+.button-outline:hover,
+.button-outline:focus-visible {
+    color: #131313;
+    border-color: rgba(255, 255, 255, .85);
+    box-shadow:
+        0 12px 30px rgba(0, 0, 0, .34),
+        0 0 22px rgba(255, 255, 255, .12);
+    transform: translateY(-2px);
+}
+
+.button-outline:hover .button-label,
+.button-outline:focus-visible .button-label {
+    color: #131313;
+}
+
 .header-actions .button {
     height: 44px;
     min-width: 112px;
     font-size: 14px;
-    opacity: 0;
-    visibility: hidden;
+    /* Кнопка в шапке есть всегда: пока панель авторизации на экране — потухшая
+       и не реагирует на наведение; после прокрутки ниже неё — белая, кликабельная,
+       при наведении — акцентная. */
+    opacity: .4;
+    visibility: visible;
     pointer-events: none;
-    transition: opacity .22s ease, visibility .22s ease, transform .35s ease, box-shadow .5s ease;
+    transition:
+        opacity .25s ease,
+        color .45s ease,
+        border-color .45s ease,
+        background .45s ease,
+        box-shadow .45s ease,
+        transform .35s ease;
 }
 
 .header-actions .button.is-visible {
     opacity: 1;
-    visibility: visible;
     pointer-events: auto;
 }
 
 .header-actions .button-gold {
-    border-color: #ffd15d;
-    background: linear-gradient(135deg, #ffd15d, #f2ad25);
-    color: #131313;
-    box-shadow: 0 12px 30px rgba(235, 170, 35, 0.18);
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .28);
+    background: transparent;
+    color: #f5f5f2;
+    box-shadow: none;
 }
 
 .header-actions .button-gold::before {
-    display: none;
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    display: block;
+    background: linear-gradient(135deg, #ffd15d, #f2ad25);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .45s ease;
 }
 
 .header-actions .button-gold .button-label {
+    position: relative;
+    z-index: 1;
+    color: #f5f5f2;
+    transition: color .45s ease;
+}
+
+/* Ховер только у активной (белой) кнопки — потухшая не подсвечивается. */
+.header-actions .button-gold.is-visible:hover,
+.header-actions .button-gold.is-visible:focus-visible {
+    border-color: #ffd15d;
+    color: #131313;
+    box-shadow: 0 8px 22px rgba(235, 170, 35, .22);
+    transform: translateY(-1px);
+}
+
+.header-actions .button-gold.is-visible:hover::before,
+.header-actions .button-gold.is-visible:focus-visible::before {
+    opacity: 1;
+}
+
+.header-actions .button-gold.is-visible:hover .button-label,
+.header-actions .button-gold.is-visible:focus-visible .button-label {
     color: #131313;
 }
 
@@ -324,14 +399,21 @@
     width: 34px;
     height: 34px;
     place-items: center;
-    border: 1px solid rgba(255, 209, 93, .7);
-    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, .24);
+    border-radius: 15px;
     background: rgba(12, 13, 16, .72);
-    color: #ffd15d;
-    box-shadow: 0 0 16px rgba(255, 209, 93, .16);
+    color: #f2f3f5;
+    box-shadow: 0 0 16px rgba(0, 0, 0, .32);
     cursor: pointer;
     font-size: 24px;
     line-height: 1;
+    transition: border-color .2s ease, background .2s ease, color .2s ease;
+}
+
+.auth-modal-close:hover {
+    border-color: rgba(255, 255, 255, .55);
+    background: rgba(255, 255, 255, .08);
+    color: #ffffff;
 }
 
 

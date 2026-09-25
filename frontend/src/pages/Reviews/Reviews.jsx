@@ -4,7 +4,7 @@ import Modal from "../../ui/Modal";
 import Footer from "../Landing/components/Footer/Footer";
 import HeroRegisterForm from "../Landing/components/Hero/HeroRegisterForm";
 import ReviewCard, { ReviewsSkeleton } from "./components/ReviewCard";
-import ReviewModal from "./components/ReviewModal";
+import ReviewForm from "./components/ReviewForm";
 import ReviewsStats from "./components/ReviewsStats";
 import { getMyReview, getReviews, getReviewStats } from "./reviewsApi";
 import "./Reviews.css";
@@ -67,12 +67,6 @@ export default function Reviews({ isAuthenticated }) {
         setNotice("Вы вошли в аккаунт. Теперь можно оставить отзыв.");
     }, []);
 
-    function openReview() {
-        if (!isAuthenticated) setModal("prompt");
-        else if (ownStatus === "error") setRevision((value) => value + 1);
-        else if (ownStatus === "ready") setModal("review");
-    }
-
     async function loadMore() {
         if (requests.current.more || nextOffset === null) return;
         const generation = requests.current.generation;
@@ -94,41 +88,52 @@ export default function Reviews({ isAuthenticated }) {
         }
     }
 
-    const ctaLabel = isAuthenticated && ownStatus === "error" ? "Повторить проверку" : myReview ? "Редактировать отзыв" : "Оставить отзыв";
-    const cta = <button className="kp-button" type="button" onClick={openReview} disabled={isAuthenticated && ownStatus === "loading"}>{ctaLabel}</button>;
     return <div className="reviews-page-shell">
-        <AppShell active="reviews" onLogin={() => setModal("auth")} contentClassName="reviews-page">
-            <PageHeader eyebrow="KingPromotion · Отзывы" title="Отзывы наших клиентов" description="Реальный опыт пользователей KingPromotion. Делитесь впечатлениями и помогайте нам становиться лучше." actions={cta} />
-            {isAuthenticated && ownStatus === "error" && <p role="alert" className="reviews-inline-error">Не удалось проверить ваш отзыв. Нажмите «Повторить проверку».</p>}
-            {status === "ready" && <ReviewsStats stats={stats} />}
-            <section aria-labelledby="reviews-list-title">
-                <div className="reviews-toolbar">
-                    <h2 id="reviews-list-title">Опыт наших клиентов</h2>
-                    <label className="reviews-sort"><span>Сортировка</span><select className="kp-field" value={sort} onChange={(event) => setSort(event.target.value)}>
-                        <option value="newest">Сначала новые</option><option value="oldest">Сначала старые</option><option value="highest">С высокой оценкой</option><option value="lowest">С низкой оценкой</option>
-                    </select></label>
+        <AppShell active="reviews" onLogin={() => setModal("auth")} contentClassName="reviews-page" title="Отзывы наших клиентов">
+            <PageHeader eyebrow="KingPromotion · Отзывы" description="Реальный опыт пользователей KingPromotion. Делитесь впечатлениями и помогайте нам становиться лучше." />
+            {isAuthenticated && ownStatus === "error" && <p role="alert" className="reviews-inline-error">Не удалось проверить ваш отзыв. Обновите страницу.</p>}
+            <div className="reviews-top">
+                {/* Левая колонка: общий рейтинг и под ним список отзывов. */}
+                <div className="reviews-main">
+                    {status === "ready" && <ReviewsStats stats={stats} />}
+
+                    <section aria-labelledby="reviews-list-title">
+                        <div className="reviews-toolbar">
+                            <h2 id="reviews-list-title">Опыт наших клиентов</h2>
+                            <label className="reviews-sort"><span>Сортировка</span><select className="kp-field" value={sort} onChange={(event) => setSort(event.target.value)}>
+                                <option value="newest">Сначала новые</option><option value="oldest">Сначала старые</option><option value="highest">С высокой оценкой</option><option value="lowest">С низкой оценкой</option>
+                            </select></label>
+                        </div>
+                        {status === "loading" && <ReviewsSkeleton />}
+                        {status === "error" && <EmptyState><h3>Не удалось загрузить отзывы</h3><p>Попробуйте ещё раз чуть позже.</p><button className="kp-button kp-button--secondary" type="button" onClick={() => setRevision((value) => value + 1)}>Попробовать снова</button></EmptyState>}
+                        {status === "ready" && (items.length ? <>
+                            <div className="reviews-grid">{items.map((review) => <ReviewCard key={review.id} review={review} />)}</div>
+                            <div className="reviews-more" aria-live="polite">
+                                {moreError && <p role="alert">Не удалось загрузить следующую страницу. Попробуйте ещё раз.</p>}
+                                {nextOffset !== null && <button className="kp-button kp-button--secondary" type="button" disabled={loadingMore} onClick={loadMore}>{loadingMore ? "Загружаем…" : moreError ? "Попробовать снова" : "Показать ещё"}</button>}
+                                <span className="reviews-loaded">Показано {items.length} из {stats.total}</span>
+                            </div>
+                        </> : <EmptyState><h3>Пока нет отзывов</h3><p>Станьте первым, кто поделится своим опытом.</p></EmptyState>)}
+                    </section>
                 </div>
-                {status === "loading" && <ReviewsSkeleton />}
-                {status === "error" && <EmptyState><h3>Не удалось загрузить отзывы</h3><p>Попробуйте ещё раз чуть позже.</p><button className="kp-button kp-button--secondary" type="button" onClick={() => setRevision((value) => value + 1)}>Попробовать снова</button></EmptyState>}
-                {status === "ready" && (items.length ? <>
-                    <div className="reviews-grid">{items.map((review) => <ReviewCard key={review.id} review={review} />)}</div>
-                    <div className="reviews-more" aria-live="polite">
-                        {moreError && <p role="alert">Не удалось загрузить следующую страницу. Попробуйте ещё раз.</p>}
-                        {nextOffset !== null && <button className="kp-button kp-button--secondary" type="button" disabled={loadingMore} onClick={loadMore}>{loadingMore ? "Загружаем…" : moreError ? "Попробовать снова" : "Показать ещё"}</button>}
-                        <span className="reviews-loaded">Показано {items.length} из {stats.total}</span>
-                    </div>
-                </> : <EmptyState><h3>Пока нет отзывов</h3><p>Станьте первым, кто поделится своим опытом.</p>{cta}</EmptyState>)}
-            </section>
+
+                <ReviewForm
+                    key={myReview?.id || "new"}
+                    review={myReview}
+                    onUnauthorized={() => setModal("prompt")}
+                    onConflict={() => setRevision((value) => value + 1)}
+                    onSaved={(review, edited) => {
+                        setMyReview(review);
+                        setNotice(edited ? "Спасибо! Ваш отзыв обновлён." : "Спасибо! Ваш отзыв опубликован.");
+                        setRevision((value) => value + 1);
+                    }}
+                />
+            </div>
         </AppShell>
         {notice && <div className="reviews-notice kp-status kp-status--success" role="status"><i />{notice}</div>}
         {modal === "prompt" && <Modal title="Войдите в аккаунт" onClose={() => setModal(null)} className="reviews-modal">
             <div className="review-form"><h2>Войдите в аккаунт</h2><p>Чтобы оставить отзыв, необходимо войти в аккаунт.</p><div className="reviews-dialog-actions"><button className="kp-button" type="button" onClick={() => setModal("auth")}>Войти</button><button className="kp-button kp-button--secondary" type="button" onClick={() => setModal(null)}>Отмена</button></div></div>
         </Modal>}
         {modal === "auth" && <Modal title="Авторизация" onClose={() => setModal(null)}><HeroRegisterForm onAuthSuccess={afterAuth} /></Modal>}
-        {modal === "review" && <ReviewModal review={myReview} onClose={() => setModal(null)} onUnauthorized={() => setModal("prompt")} onConflict={() => setRevision((value) => value + 1)} onSaved={(review, edited) => {
-            setMyReview(review); setModal(null);
-            setNotice(edited ? "Спасибо! Ваш отзыв обновлён." : "Спасибо! Ваш отзыв опубликован.");
-            setRevision((value) => value + 1);
-        }} />}
     </div>;
 }

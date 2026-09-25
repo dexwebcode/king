@@ -1,0 +1,353 @@
+.support-page,
+.ticket-page {
+    display: grid;
+    gap: 18px;
+}
+
+.support-hero {
+    margin-bottom: 6px;
+}
+
+.support-hero .kp-page-description {
+    margin-top: 0;
+}
+
+/* Табы */
+.support-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 5px;
+    width: max-content;
+    max-width: 100%;
+    border: 1px solid var(--kp-border);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .025);
+}
+
+.support-tabs button {
+    min-height: 40px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--kp-text-secondary);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .18s ease, color .18s ease;
+}
+
+.support-tabs button.is-active {
+    background: rgba(255, 209, 90, .12);
+    color: var(--kp-gold);
+}
+
+/* Форма */
+.support-form-panel {
+    width: min(760px, 100%);
+    padding: clamp(24px, 3vw, 36px);
+}
+
+.support-form {
+    display: grid;
+    gap: 22px;
+}
+
+.support-step-head h2 {
+    margin: 0 0 8px;
+    font-size: clamp(19px, 2.2vw, 24px);
+    letter-spacing: -.02em;
+}
+
+.support-step-head .kp-page-description {
+    margin: 0;
+}
+
+.support-field {
+    display: grid;
+    gap: 8px;
+}
+
+.support-field > span {
+    color: var(--kp-text-secondary);
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.support-field small {
+    color: var(--kp-text-muted);
+    font-size: 11px;
+    text-align: right;
+}
+
+.support-textarea {
+    resize: vertical;
+    min-height: 150px;
+    /* Больше воздуха сверху — текст не липнет к верхнему краю. */
+    padding: 24px 16px 16px;
+    line-height: 1.6;
+}
+
+.support-form-error {
+    margin: 0;
+    padding: 12px 14px;
+    color: #ffc4a4;
+    border: 1px solid rgba(255, 145, 92, .26);
+    border-radius: var(--kp-radius-sm);
+    background: rgba(255, 145, 92, .07);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.support-form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+/* Успех */
+.support-success {
+    max-width: 620px;
+    margin: 12px auto 0;
+    padding: clamp(28px, 5vw, 48px);
+    text-align: center;
+}
+
+.support-success-icon {
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 20px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(82, 211, 120, .12);
+    color: #69d98a;
+    font-size: 26px;
+    font-weight: 900;
+}
+
+.support-success h2 {
+    margin: 0 0 10px;
+    font-size: clamp(22px, 3vw, 30px);
+}
+
+.support-success p {
+    margin: 0 0 24px;
+    color: var(--kp-text-muted);
+}
+
+.support-success-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Сообщения состояний */
+.support-message {
+    padding: 36px;
+    color: var(--kp-text-muted);
+    text-align: center;
+}
+
+.support-message--error {
+    color: #ffc4a4;
+    border-color: rgba(255, 145, 92, .26);
+    background: rgba(255, 145, 92, .07);
+}
+
+.support-message .kp-button {
+    margin-top: 18px;
+}
+
+.support-muted {
+    color: var(--kp-text-muted);
+}
+
+/* Список обращений */
+.ticket-list {
+    display: grid;
+    gap: 10px;
+}
+
+.ticket-card {
+    padding: 18px;
+    display: grid;
+    gap: 10px;
+    border: 1px solid var(--kp-border);
+    border-radius: var(--kp-radius-md);
+    background: rgba(255, 255, 255, .018);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+
+.ticket-card:hover {
+    border-color: var(--kp-border-strong);
+    background: var(--kp-panel-hover);
+    transform: translateY(-1px);
+}
+
+.ticket-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ticket-id {
+    color: var(--kp-gold);
+    font-weight: 850;
+    letter-spacing: .02em;
+}
+
+.ticket-subject {
+    overflow: hidden;
+    font-size: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ticket-updated {
+    color: var(--kp-text-muted);
+    font-size: 12px;
+}
+
+/* Страница одного обращения */
+.ticket-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.ticket-header-copy h1 {
+    margin: 0;
+    font-size: clamp(28px, 4vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -.03em;
+}
+
+.ticket-header-copy p:last-child {
+    margin: 10px 0 0;
+    color: var(--kp-text-muted);
+    font-size: 14px;
+}
+
+.ticket-status {
+    margin-bottom: 6px;
+}
+
+.ticket-thread {
+    padding: clamp(16px, 3vw, 28px);
+}
+
+.ticket-messages {
+    display: grid;
+    gap: 14px;
+}
+
+.ticket-message {
+    max-width: 78%;
+    padding: 14px 16px;
+    display: grid;
+    gap: 8px;
+    border: 1px solid var(--kp-border);
+    border-radius: var(--kp-radius-md);
+    background: rgba(255, 255, 255, .025);
+}
+
+.ticket-message--mine {
+    justify-self: end;
+    border-color: rgba(255, 209, 90, .28);
+    background: rgba(255, 209, 90, .07);
+}
+
+.ticket-message--system {
+    justify-self: center;
+    max-width: 92%;
+    border-color: transparent;
+    background: rgba(255, 255, 255, .03);
+    color: var(--kp-text-muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+.ticket-message-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ticket-message-head strong {
+    font-size: 12px;
+    color: var(--kp-gold);
+}
+
+.ticket-message-head time {
+    color: var(--kp-text-muted);
+    font-size: 11px;
+}
+
+.ticket-message-text {
+    margin: 0;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+/* Форма ответа */
+.ticket-reply-form {
+    display: grid;
+    gap: 12px;
+}
+
+.ticket-reply-textarea {
+    resize: vertical;
+    min-height: 72px;
+    padding: 14px 16px;
+    line-height: 1.6;
+}
+
+.ticket-reply-form .kp-button {
+    justify-self: end;
+}
+
+/* Закрытое обращение */
+.ticket-closed {
+    padding: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.ticket-closed p {
+    margin: 0;
+    color: var(--kp-text-secondary);
+    font-weight: 700;
+}
+
+@media (max-width: 560px) {
+    .ticket-message {
+        max-width: 100%;
+    }
+
+    .ticket-reply-form .kp-button {
+        width: 100%;
+    }
+
+    .support-tabs {
+        width: 100%;
+    }
+
+    .support-tabs button {
+        flex: 1;
+        padding-inline: 10px;
+    }
+}

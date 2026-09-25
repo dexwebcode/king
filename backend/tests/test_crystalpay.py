@@ -4,7 +4,7 @@ import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from unittest.mock import AsyncMock, patch
 
 from fastapi import BackgroundTasks, HTTPException
@@ -17,6 +17,7 @@ from backend.payments.crystalpay_service import (
 from backend.payments.router import crystalpay_callback
 from backend.payments.service import (
     PaymentVerificationError,
+    create_crystalpay_order_payment,
     create_crystalpay_topup,
     process_crystalpay_invoice,
     reconcile_crystalpay_invoice_if_due,
@@ -116,7 +117,14 @@ def attempt(*, processed=False, amount="100.00"):
     }
 
 
-def invoice(*, state="payed", rub_amount="125.50", extra="501"):
+def invoice(*, state="payed", amount="125.50", rub_amount=None, extra="501", amount_currency="RUB"):
+    """Ответ CrystalPAY: `amount` — точная сумма, `rub_amount` — целые рубли.
+
+    Провайдер всегда отдаёт `rub_amount` округлённым до рубля, поэтому
+    заглушка по умолчанию выводит его из точной суммы, как это делает он сам.
+    """
+    if rub_amount is None:
+        rub_amount = str(Decimal(amount).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
     return {
         "error": False,
         "errors": [],
@@ -124,9 +132,9 @@ def invoice(*, state="payed", rub_amount="125.50", extra="501"):
         "state": state,
         "type": "topup",
         "currency": "RUB",
-        "amount_currency": "RUB",
+        "amount_currency": amount_currency,
         "rub_amount": rub_amount,
-        "amount": rub_amount,
+        "amount": amount,
         "extra": extra,
     }
 
@@ -186,6 +194,50 @@ class CrystalPayClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["payment_id"], "invoice-1")
         self.assertEqual(result["confirmation_url"], "https://pay.crystalpay.io/invoice-1")
         save.assert_called_once()
+
+
+    async def test_order_invoice_with_kopecks_is_created(self):
+        created = {
+            **attempt(amount="6114.13"),
+            "provider_payment_id": None,
+            "confirmation_url": None,
+        }
+        saved = {
+            **created,
+            "provider_payment_id": "invoice-kopeck",
+            "confirmation_url": "https://pay.crystalpay.io/?i=invoice-kopeck",
+            "status": "created",
+        }
+        with (
+            patch("backend.payments.service.validate_crystalpay_configuration"),
+            patch("backend.payments.service._prepare_order_attempt", return_value=created),
+            patch(
+                "backend.payments.service.crystalpay_client.create_invoice",
+                new=AsyncMock(return_value={
+                    "error": False,
+                    "errors": [],
+                    "id": "invoice-kopeck",
+                    "url": "https://pay.crystalpay.io/?i=invoice-kopeck",
+                    "type": "purchase",
+                    "currency": "RUB",
+                    "amount_currency": "RUB",
+                    "amount": "6114.13",
+                    "rub_amount": "6114",
+                }),
+            ),
+            patch("backend.payments.service.SessionLocal", return_value=FakeSession()),
+            patch("backend.payments.service.set_attempt_payment_details", return_value=saved),
+        ):
+            result = await create_crystalpay_order_payment(
+                user_id=151,
+                service_id=1,
+                quantity=1,
+                recipient_link="https://example.com",
+                idempotence_key="00000000-0000-0000-0000-000000000002",
+            )
+
+        self.assertEqual(result["confirmation_url"], "https://pay.crystalpay.io/?i=invoice-kopeck")
+        self.assertEqual(result["status"], "created")
 
 
 class CrystalPayCallbackTests(unittest.IsolatedAsyncioTestCase):
@@ -284,10 +336,10 @@ class CrystalPayAccountingTests(unittest.TestCase):
             patch("backend.payments.service.set_attempt_status"),
         )
 
-    def test_payed_topup_credits_verified_rub_amount(self):
+    def test_payed_topup_credits_exact_invoice_amount(self):
         patches = self.accounting_patches(attempt(amount="100.00"))
         with tuple_context(patches) as mocks:
-            credited = process_crystalpay_invoice("invoice-1", invoice(rub_amount="125.50"))
+            credited = process_crystalpay_invoice("invoice-1", invoice(amount="125.50"))
 
         create_transaction = mocks[3]
         set_balance = mocks[6]
@@ -372,7 +424,7 @@ class CrystalPayOrderAndCancellationTests(unittest.TestCase):
             "order_id": 601,
         }
         purchase_invoice = {
-            **invoice(rub_amount="100.00"),
+            **invoice(amount="100.00"),
             "type": "purchase",
         }
         order = {
@@ -412,6 +464,41 @@ class CrystalPayOrderAndCancellationTests(unittest.TestCase):
         self.assertFalse(result)
         late_payment.assert_called_once_with(unittest.mock.ANY, 501)
         create_transaction.assert_not_called()
+
+
+    def test_payed_purchase_with_kopecks_credits_exact_amount(self):
+        stored_attempt = {
+            **attempt(amount="392.32"),
+            "purpose": "order",
+            "order_id": 601,
+        }
+        purchase_invoice = {
+            **invoice(amount="392.32", amount_currency="BTC"),
+            "type": "purchase",
+        }
+        order = {
+            "id": 601,
+            "user_id": 151,
+            "amount": Decimal("392.32"),
+            "status": "Ожидает оплаты",
+        }
+        with (
+            patch("backend.payments.service.SessionLocal", return_value=FakeSession()),
+            patch("backend.payments.service.get_attempt_by_payment_id", return_value=stored_attempt),
+            patch("backend.payments.service.lock_user", return_value={"id": 151, "balance": Decimal("10.00")}),
+            patch("backend.payments.service.lock_order", return_value=order),
+            patch("backend.payments.service.create_balance_transaction", return_value=701) as create_transaction,
+            patch("backend.payments.service.create_expense"),
+            patch("backend.payments.service.add_referral_reward"),
+            patch("backend.payments.service.set_user_balance"),
+            patch("backend.payments.service.mark_order_paid") as mark_order_paid,
+            patch("backend.payments.service.mark_payment_processed"),
+        ):
+            result = process_crystalpay_invoice("invoice-1", purchase_invoice)
+
+        self.assertEqual(result, 601)
+        self.assertEqual(create_transaction.call_args.kwargs["amount"], Decimal("392.32"))
+        mark_order_paid.assert_called_once_with(unittest.mock.ANY, 601)
 
 
 class tuple_context:

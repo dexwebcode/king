@@ -73,7 +73,7 @@
     border: 1px solid rgba(6, 6, 6, 0.16);
     border-radius: 22px;
     background:
-        radial-gradient(circle at 100% 50%, rgba(255, 201, 75, .11), transparent 42%),
+        radial-gradient(circle at 100% 50%, rgba(255, 255, 255, .05), transparent 42%),
         linear-gradient(145deg, rgba(24, 25, 29, .98), rgba(12, 13, 16, .96));
     box-shadow: 0 24px 60px rgba(0, 0, 0, .16);
     transform-origin: top left;
@@ -106,7 +106,7 @@
     display: block;
     margin-top: 12px;
     padding: 0 0 10px;
-    color: #ffd15a;
+    color: #eef0f3;
     font-size: 16px;
     font-weight: 650;
     line-height: 1.5;
@@ -136,7 +136,7 @@
     display: grid;
     place-items: center;
     border-radius: 0 16px 16px 0;
-    background: radial-gradient(circle, rgba(255, 209, 90, .08), transparent 68%);
+    background: radial-gradient(circle, rgba(255, 255, 255, .05), transparent 68%);
 }
 
 .benefit-card-icon {
@@ -169,7 +169,7 @@
 .benefit-card:focus-within .benefit-card-panel {
     width: 117.5%;
     height: 117.5%;
-    border-color: rgba(255, 209, 90, .42);
+    border-color: rgba(255, 255, 255, .3);
     box-shadow: 0 34px 90px rgba(0, 0, 0, .58);
     transform: translateY(-6px);
 }

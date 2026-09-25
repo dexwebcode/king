@@ -64,7 +64,7 @@ def login_user(
 # функция для регистрации пользователя
 def register_user(
     login: str,
-    email: str,
+    email: str | None,
     password: str,
 ) -> dict:
 
@@ -75,7 +75,7 @@ def register_user(
         # Предварительно проверяем существование пользователя
         if get_user_by_login(session, login) is not None:
             raise UserAlreadyExistsError("login")
-        if get_user_by_email(session, email) is not None:
+        if email and get_user_by_email(session, email) is not None:
             raise UserAlreadyExistsError("email")
 
         # Хешируем пароль

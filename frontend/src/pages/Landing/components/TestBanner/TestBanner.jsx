@@ -9,7 +9,7 @@ export default function TestBanner() {
                 <h2>Протестируйте сервис бесплатно</h2>
                 <p>Получите 50 подписчиков в подарок для тестирования качества наших услуг</p>
             </div>
-            <button className="button button-gold">Получить тест →</button>
+            <button className="button button-outline">Получить тест →</button>
         </section>
     )
 }

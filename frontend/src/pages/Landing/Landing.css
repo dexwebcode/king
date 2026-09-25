@@ -259,7 +259,7 @@ a {
     border: 0;
     border-radius: 999px;
     background: transparent;
-    color: var(--gold);
+    color: rgba(255, 255, 255, .78);
     padding: 0;
     font-size: 56px;
     font-weight: 500;
@@ -282,11 +282,11 @@ a {
 }
 
 .scroll-top-button:hover {
-    color: #ffd15d;
+    color: #ffffff;
 }
 
 .scroll-top-button:focus-visible {
-    outline: 3px solid rgba(255, 209, 90, 0.35);
+    outline: 3px solid rgba(255, 255, 255, 0.35);
     outline-offset: 4px;
 }
 
@@ -345,7 +345,7 @@ a {
     border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 8px;
     background: rgba(13, 14, 17, 0.92);
-    color: var(--gold);
+    color: #f2f3f5;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.38);
     animation: orderGuideMessageReveal 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -364,7 +364,7 @@ a {
     width: clamp(70px, calc(17vw - 50px), 250px);
     height: 4px;
     border-radius: 999px;
-    background: linear-gradient(90deg, var(--gold), rgba(255, 209, 90, 0.15));
+    background: linear-gradient(90deg, rgba(255, 255, 255, .8), rgba(255, 255, 255, 0.12));
     transform: translateY(-50%);
     pointer-events: none;
     transform-origin: left center;
@@ -378,8 +378,8 @@ a {
     top: 50%;
     width: 12px;
     height: 12px;
-    border-top: 4px solid var(--gold);
-    border-right: 4px solid var(--gold);
+    border-top: 4px solid rgba(255, 255, 255, .8);
+    border-right: 4px solid rgba(255, 255, 255, .8);
     border-radius: 3px;
     transform: translateY(-50%) rotate(45deg);
 }

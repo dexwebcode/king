@@ -53,6 +53,21 @@ TELEGRAM_AUTH_SESSION_EXPIRE_MINUTES = int(
     os.getenv("TELEGRAM_AUTH_SESSION_EXPIRE_MINUTES", "10")
 )
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+TELEGRAM_BOT_ADMIN_CHAT_ID = os.getenv("TELEGRAM_BOT_ADMIN_CHAT_ID", "").strip()
+
+# Отдельный токен/чат для бота поддержки. Если не заданы — переиспользуем
+# основной токен и админский chat_id, уже присутствующие в .env.
+TELEGRAM_SUPPORT_BOT_TOKEN = (
+    os.getenv("TELEGRAM_SUPPORT_BOT_TOKEN", "").strip() or TELEGRAM_BOT_TOKEN
+)
+TELEGRAM_SUPPORT_CHAT_ID = (
+    os.getenv("TELEGRAM_SUPPORT_CHAT_ID", "").strip() or TELEGRAM_BOT_ADMIN_CHAT_ID
+)
+# Telegram user ID администраторов, которым разрешено управлять тикетами.
+TELEGRAM_SUPPORT_ADMIN_IDS = _parse_admin_user_ids(
+    os.getenv("TELEGRAM_SUPPORT_ADMIN_IDS", "")
+)
+
 TELEGRAM_BOT_BACKEND_SECRET = os.getenv(
     "TELEGRAM_BOT_BACKEND_SECRET",
     SECRET_KEY,
@@ -87,6 +102,18 @@ YOOKASSA_READ_TIMEOUT_SECONDS = float(
     os.getenv("YOOKASSA_READ_TIMEOUT_SECONDS", "12")
 )
 
+# Окно оплаты: заказ или пополнение, не оплаченные за это время, отменяются
+# автоматически фоновым обходом.
+PAYMENT_TIMEOUT_MINUTES = int(os.getenv("PAYMENT_TIMEOUT_MINUTES", "15"))
+# Как часто фоновый обход ищет просроченные платежи.
+PAYMENT_EXPIRY_SWEEP_SECONDS = int(
+    os.getenv("PAYMENT_EXPIRY_SWEEP_SECONDS", "60")
+)
+if PAYMENT_TIMEOUT_MINUTES <= 0 or PAYMENT_EXPIRY_SWEEP_SECONDS <= 0:
+    raise RuntimeError(
+        "PAYMENT_TIMEOUT_MINUTES и PAYMENT_EXPIRY_SWEEP_SECONDS должны быть больше нуля"
+    )
+
 CRYSTALPAY_AUTH_LOGIN = os.getenv("CRYSTALPAY_AUTH_LOGIN", "").strip()
 CRYSTALPAY_AUTH_SECRET = os.getenv("CRYSTALPAY_AUTH_SECRET", "").strip()
 CRYSTALPAY_SALT = os.getenv("CRYSTALPAY_SALT", "").strip()
@@ -103,11 +130,38 @@ CRYSTALPAY_API_URL = os.getenv(
     "CRYSTALPAY_API_URL",
     "https://api.crystalpay.io/v3/",
 ).rstrip("/") + "/"
-CRYSTALPAY_INVOICE_LIFETIME_MINUTES = int(
-    os.getenv("CRYSTALPAY_INVOICE_LIFETIME_MINUTES", "60")
+# Счёт у провайдера не должен жить дольше окна оплаты: иначе покупатель
+# успеет оплатить счёт уже отменённого заказа.
+CRYSTALPAY_INVOICE_LIFETIME_MINUTES = min(
+    int(os.getenv("CRYSTALPAY_INVOICE_LIFETIME_MINUTES", str(PAYMENT_TIMEOUT_MINUTES))),
+    PAYMENT_TIMEOUT_MINUTES,
 )
 CRYSTALPAY_TIMEOUT_SECONDS = float(
     os.getenv("CRYSTALPAY_TIMEOUT_SECONDS", "12")
+)
+
+# Heleket — криптовалютные платежи. Используется PAYMENT API KEY (не Payout).
+HELEKET_MERCHANT_ID = os.getenv("HELEKET_MERCHANT_ID", "").strip()
+HELEKET_PAYMENT_API_KEY = os.getenv("HELEKET_PAYMENT_API_KEY", "").strip()
+HELEKET_CALLBACK_URL = os.getenv("HELEKET_CALLBACK_URL", "").strip()
+HELEKET_SUCCESS_URL = os.getenv("HELEKET_SUCCESS_URL", "").strip()
+HELEKET_RETURN_URL = os.getenv(
+    "HELEKET_RETURN_URL",
+    f"{FRONTEND_URL}/main?section=balance&topup=return&heleket=success",
+).strip()
+# Валюта инвойса у провайдера. Если Heleket не поддерживает выставление
+# счетов в RUB — заменить на поддерживаемую (например, USDT/USD): на
+# внутренний баланс всё равно зачисляется зафиксированная локальная сумма.
+HELEKET_CURRENCY = os.getenv("HELEKET_CURRENCY", "RUB").strip().upper()
+HELEKET_API_URL = os.getenv(
+    "HELEKET_API_URL",
+    "https://api.heleket.com",
+).rstrip("/")
+HELEKET_TIMEOUT_SECONDS = float(os.getenv("HELEKET_TIMEOUT_SECONDS", "30"))
+# Счёт у провайдера не живёт дольше окна оплаты.
+HELEKET_INVOICE_LIFETIME_MINUTES = min(
+    int(os.getenv("HELEKET_INVOICE_LIFETIME_MINUTES", str(PAYMENT_TIMEOUT_MINUTES))),
+    PAYMENT_TIMEOUT_MINUTES,
 )
 
 
@@ -129,6 +183,27 @@ def validate_payment_url(
     if hostname == "example.com":
         raise RuntimeError(f"{name} содержит тестовый или локальный адрес")
 
+
+if HELEKET_CALLBACK_URL:
+    validate_payment_url("HELEKET_CALLBACK_URL", HELEKET_CALLBACK_URL)
+    if urlparse(HELEKET_CALLBACK_URL).path != "/api/payments/heleket/webhook":
+        raise RuntimeError("HELEKET_CALLBACK_URL содержит неверный путь")
+if HELEKET_SUCCESS_URL:
+    validate_payment_url(
+        "HELEKET_SUCCESS_URL",
+        HELEKET_SUCCESS_URL,
+        allow_local_http=True,
+    )
+if HELEKET_RETURN_URL:
+    validate_payment_url(
+        "HELEKET_RETURN_URL",
+        HELEKET_RETURN_URL,
+        allow_local_http=True,
+    )
+if HELEKET_INVOICE_LIFETIME_MINUTES <= 0:
+    raise RuntimeError("HELEKET_INVOICE_LIFETIME_MINUTES должен быть больше нуля")
+if HELEKET_TIMEOUT_SECONDS <= 0:
+    raise RuntimeError("HELEKET_TIMEOUT_SECONDS должен быть больше нуля")
 
 if CRYSTALPAY_CALLBACK_URL:
     validate_payment_url("CRYSTALPAY_CALLBACK_URL", CRYSTALPAY_CALLBACK_URL)

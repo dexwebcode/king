@@ -1,3 +1,5 @@
+import { clearAccountCache } from '../../../../../ui/dataCache';
+
 const API_URL = import.meta.env.VITE_API_URL || '';
 const AUTH_CHANGED_EVENT = 'king-auth-changed';
 
@@ -91,12 +93,34 @@ export async function loginWithVk(accessToken) {
     return saveAuthResult(result)
 }
 
+// Привязка Telegram к уже авторизованному аккаунту (CONNECT).
+export function createTelegramSession() {
+    return sendRequest('/auth/telegram/session', 'POST', null, true)
+}
+
+export function getTelegramSessionStatus(token) {
+    return sendRequest(
+        `/auth/telegram/session/status?token=${encodeURIComponent(token)}`,
+        'GET',
+        null,
+        true
+    )
+}
+
+// Привязка VK ID к уже авторизованному аккаунту (CONNECT).
+export function connectVk(accessToken) {
+    return sendRequest('/auth/vk/connect', 'POST', {
+        access_token: accessToken,
+    }, true)
+}
+
 export function checkToken() {
     return sendRequest('/auth/me', 'GET')
 }
 
 export function logoutUser() {
     localStorage.removeItem("token")
+    clearAccountCache()
     window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
 }
 

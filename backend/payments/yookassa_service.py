@@ -92,3 +92,9 @@ def create_yookassa_payment(
 def get_yookassa_payment(payment_id: str):
     configure_yookassa()
     return Payment.find_one(payment_id)
+
+
+def cancel_yookassa_payment(payment_id: str, idempotence_key: str):
+    """Закрывает платёж в ЮKassa, чтобы по нему больше нельзя было заплатить."""
+    configure_yookassa()
+    return Payment.cancel(payment_id, idempotence_key)

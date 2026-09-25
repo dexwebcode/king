@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { Panel } from "../../ui/AppShell";
 import { formatMoney } from "../../ui/catalogMeta";
 import { availablePaymentMethods } from "./paymentMethods";
 
@@ -48,7 +47,11 @@ function PaymentMethodCard({ method, selected, onSelect }) {
             onClick={() => onSelect(method.id)}
         >
             <span className="payment-method-logo" aria-hidden="true">
-                <i /><i /><i />
+                {method.mark ? (
+                    <strong className="payment-method-mark">{method.mark}</strong>
+                ) : (
+                    <><i /><i /><i /></>
+                )}
             </span>
             <span className="payment-method-copy">
                 <span className="payment-method-heading">
@@ -64,6 +67,7 @@ function PaymentMethodCard({ method, selected, onSelect }) {
 }
 
 export default function BalanceSection({
+    balance = 0,
     returnedFromPayment = false,
     onBalanceChange,
     onPaymentSettled,
@@ -227,84 +231,146 @@ export default function BalanceSection({
         delayed: "Подтверждение занимает больше времени. Баланс обновится автоматически после уведомления платёжной системы.",
     };
 
+    const currentMethod = methods.find((item) => item.id === selectedMethod);
+    const amountValue = parseAmount(amount);
+
     return (
-        <Panel className="top-up-panel">
-                <div className="top-up-heading">
-                    <div>
-                        <p className="kp-eyebrow">Пополнение</p>
-                        <h2>Пополнить баланс</h2>
-                    </div>
-                    <span>Безопасная оплата</span>
+        <div className="balance-page">
+            {/* Текущий баланс */}
+            <section className="balance-hero" aria-label="Текущий баланс">
+                <div className="balance-hero-copy">
+                    <p className="kp-eyebrow">Текущий баланс</p>
+                    <p className="balance-hero-value">
+                        {formatMoney(balance)}<span>₽</span>
+                    </p>
+                    <p className="balance-hero-note">
+                        Средства зачисляются на счёт сразу после подтверждения платежа.
+                    </p>
                 </div>
+                <span className="balance-hero-badge"><i />Безопасная оплата</span>
+            </section>
 
-                {paymentStatus && (
-                    <div className={`top-up-status top-up-status--${paymentStatus}`} role="status">
-                        <i />{statusMessages[paymentStatus]}
-                    </div>
-                )}
+            {paymentStatus && (
+                <div className={`balance-status balance-status--${paymentStatus}`} role="status">
+                    <i />{statusMessages[paymentStatus]}
+                </div>
+            )}
 
-                <form className="top-up-form" onSubmit={handleSubmit} noValidate>
-                    <div className="amount-field-group">
-                        <label htmlFor="top-up-amount">Сумма пополнения</label>
-                        <div className={`amount-field ${fieldError ? "has-error" : ""}`}>
-                            <input
-                                id="top-up-amount"
-                                value={amount}
-                                onChange={handleAmountChange}
-                                inputMode="decimal"
-                                autoComplete="off"
-                                placeholder="1 000"
-                                aria-invalid={Boolean(fieldError)}
-                                aria-describedby={fieldError ? "top-up-amount-error" : "top-up-amount-hint"}
-                            />
-                            <span>₽</span>
+            <form className="balance-form" onSubmit={handleSubmit} noValidate>
+                <div className="balance-grid">
+                    {/* Шаг 1 — сумма */}
+                    <section className="balance-card">
+                        <header className="balance-card-head">
+                            <p className="kp-eyebrow">Шаг 1</p>
+                            <h2>Сумма пополнения</h2>
+                        </header>
+
+                        <div className="amount-field-group">
+                            <label htmlFor="top-up-amount">Введите сумму</label>
+                            <div className={`amount-field ${fieldError ? "has-error" : ""}`}>
+                                <input
+                                    id="top-up-amount"
+                                    value={amount}
+                                    onChange={handleAmountChange}
+                                    inputMode="decimal"
+                                    autoComplete="off"
+                                    placeholder="1 000"
+                                    aria-invalid={Boolean(fieldError)}
+                                    aria-describedby={fieldError ? "top-up-amount-error" : "top-up-amount-hint"}
+                                />
+                                <span>₽</span>
+                            </div>
+                            {fieldError ? (
+                                <small className="top-up-error" id="top-up-amount-error">{fieldError}</small>
+                            ) : (
+                                <small id="top-up-amount-hint">От 10 до 100 000 ₽</small>
+                            )}
+                            <div className="quick-amounts" aria-label="Быстрый выбор суммы">
+                                {QUICK_AMOUNTS.map((quickAmount) => (
+                                    <button
+                                        className={amountValue === quickAmount ? "is-active" : ""}
+                                        type="button"
+                                        key={quickAmount}
+                                        onClick={() => {
+                                            setAmount(String(quickAmount));
+                                            setFieldError("");
+                                        }}
+                                    >
+                                        {formatMoney(quickAmount)} ₽
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                        {fieldError ? (
-                            <small className="top-up-error" id="top-up-amount-error">{fieldError}</small>
-                        ) : (
-                            <small id="top-up-amount-hint">От 10 до 100 000 ₽</small>
-                        )}
-                        <div className="quick-amounts" aria-label="Быстрый выбор суммы">
-                            {QUICK_AMOUNTS.map((quickAmount) => (
-                                <button
-                                    className={parseAmount(amount) === quickAmount ? "is-active" : ""}
-                                    type="button"
-                                    key={quickAmount}
-                                    onClick={() => {
-                                        setAmount(String(quickAmount));
-                                        setFieldError("");
-                                    }}
-                                >
-                                    {formatMoney(quickAmount)} ₽
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    </section>
 
-                    <fieldset className="payment-methods">
-                        <legend>Способ оплаты</legend>
+                    {/* Шаг 2 — способ оплаты */}
+                    <section className="balance-card balance-card--methods">
+                        <header className="balance-card-head">
+                            <p className="kp-eyebrow">Шаг 2</p>
+                            <h2>Способ оплаты</h2>
+                        </header>
+
                         <div className="payment-method-list" role="radiogroup" aria-label="Способ оплаты">
-                            {methods.map((method) => (
+                            {methods.map((item) => (
                                 <PaymentMethodCard
-                                    key={method.id}
-                                    method={method}
-                                    selected={selectedMethod === method.id}
+                                    key={item.id}
+                                    method={item}
+                                    selected={selectedMethod === item.id}
                                     onSelect={setSelectedMethod}
                                 />
                             ))}
                         </div>
-                    </fieldset>
+                    </section>
+                </div>
 
-                    {requestError && <p className="top-up-request-error" role="alert">{requestError}</p>}
+                {requestError && <p className="top-up-request-error" role="alert">{requestError}</p>}
 
-                    <button className="kp-button top-up-submit" type="submit" disabled={isSubmitting || methods.length === 0}>
+                {/* Итог */}
+                <div className="balance-checkout">
+                    <div className="balance-total">
+                        <span>К оплате</span>
+                        <strong>{amountValue ? `${formatMoney(amountValue)} ₽` : "—"}</strong>
+                    </div>
+                    <button className="kp-button balance-submit" type="submit" disabled={isSubmitting || methods.length === 0}>
                         {isSubmitting ? "Создаём платёж…" : "Перейти к оплате"}
                         {!isSubmitting && <span aria-hidden="true">→</span>}
                     </button>
-                    <p className="top-up-legal">
-                        Нажимая кнопку, вы перейдёте на защищённую страницу {methods.find((item) => item.id === selectedMethod)?.provider || "платёжной системы"}.
-                    </p>
-                </form>
-        </Panel>
+                </div>
+                <p className="balance-legal">
+                    Нажимая кнопку, вы перейдёте на защищённую страницу {currentMethod?.provider || "платёжной системы"}.
+                </p>
+            </form>
+
+            {/* Преимущества */}
+            <section className="balance-benefits" aria-label="Как проходит пополнение">
+                <article className="balance-benefit">
+                    <span className="balance-benefit-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" /></svg>
+                    </span>
+                    <div>
+                        <h3>Зачисление сразу</h3>
+                        <p>Баланс обновляется автоматически после подтверждения платежа.</p>
+                    </div>
+                </article>
+                <article className="balance-benefit">
+                    <span className="balance-benefit-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="16" height="10.5" rx="2.5" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
+                    </span>
+                    <div>
+                        <h3>Безопасная оплата</h3>
+                        <p>Платёж проходит на стороне банка-провайдера, данные карты мы не храним.</p>
+                    </div>
+                </article>
+                <article className="balance-benefit">
+                    <span className="balance-benefit-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5h16v11H9l-5 4V5Z" /></svg>
+                    </span>
+                    <div>
+                        <h3>Поддержка</h3>
+                        <p>Если платёж задерживается — напишите нам, разберёмся вместе.</p>
+                    </div>
+                </article>
+            </section>
+        </div>
     );
 }

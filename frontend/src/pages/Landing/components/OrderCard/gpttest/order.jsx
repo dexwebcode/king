@@ -11,6 +11,7 @@ import pollsIcon from "../../../../../assets/icons/opros.png";
 import podcastsIcon from "../../../../../assets/icons/podcasts.png";
 import repostIcon from "../../../../../assets/icons/repost.png";
 import saveIcon from "../../../../../assets/icons/save.png";
+import sbpIcon from "../../../../../assets/icons/sbp.png";
 import showIcon from "../../../../../assets/icons/show.png";
 import statsIcon from "../../../../../assets/icons/stats.png";
 import subscribeIcon from "../../../../../assets/icons/subscribe.png";
@@ -31,6 +32,9 @@ import {
   clearPendingCheckoutDraft,
   savePendingCheckoutDraft,
 } from "../../../../../ui/orderDraft";
+import { getCachedPrices, getPrices } from "../../../../../ui/dataCache";
+import Modal from "../../../../../ui/Modal";
+import AmountSlider from "./AmountSlider";
 import "./order.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
@@ -51,6 +55,7 @@ const paymentMethods = [
     name: "СБП",
     caption: "Оплата через ЮKassa по QR-коду или в приложении банка",
     mark: "QR",
+    icon: sbpIcon,
   },
   {
     id: "crystalpay",
@@ -58,7 +63,16 @@ const paymentMethods = [
     caption: "Оплата картой, криптовалютой или другим доступным способом",
     mark: "CP",
   },
+  {
+    id: "heleket",
+    name: "Heleket",
+    caption: "Оплата криптовалютой: BTC, USDT и другие",
+    mark: "₿",
+  },
 ];
+
+const quickQuantityOptions = [100, 500, 1000, 5000];
+
 
 const serviceTypeIcons = {
   likes: likesIcon,
@@ -130,7 +144,7 @@ function WizardHeading({ step, title, description }) {
       <div className="wizard-heading-meta">
         <span>Шаг {step}</span>
       </div>
-      <h2>{title}</h2>
+      {title ? <h2>{title}</h2> : null}
       {description && <p>{description}</p>}
     </div>
   );
@@ -141,8 +155,8 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
   const location = useLocation();
   const restoredDraftRef = useRef(false);
 
-  const [prices, setPrices] = useState([]);
-  const [loadState, setLoadState] = useState("loading");
+  const [prices, setPrices] = useState(() => getCachedPrices() || []);
+  const [loadState, setLoadState] = useState(() => getCachedPrices() ? "ready" : "loading");
   const [step, setStep] = useState(initialDraft ? 4 : 0);
   const [platform, setPlatform] = useState(
     String(initialDraft?.platform || ""),
@@ -155,6 +169,11 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
   );
   const [quantity, setQuantity] = useState(
     Number(initialDraft?.quantity || 0),
+  );
+  /* Строка в поле ввода количества: позволяет свободно стирать и набирать
+     число, не сбрасывая значение на ноль на каждом нажатии. */
+  const [quantityInput, setQuantityInput] = useState(() =>
+    initialDraft?.quantity ? String(Number(initialDraft.quantity)) : "",
   );
   const [quantityTouched, setQuantityTouched] = useState(
     Boolean(initialDraft?.quantity),
@@ -177,16 +196,10 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
   useEffect(() => {
     let active = true;
 
-    fetch(`${API_URL}/price`)
-      .then(async (response) => {
-        const data = await response.json();
-
-        if (!response.ok || !data?.success || !Array.isArray(data.items)) {
-          throw new Error("Не удалось загрузить актуальный каталог");
-        }
-
+    getPrices()
+      .then((items) => {
         if (active) {
-          setPrices(data.items);
+          setPrices(items);
           setLoadState("ready");
         }
       })
@@ -243,23 +256,6 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
     return () =>
       window.removeEventListener("king:order-prefill", handleOrderPrefill);
   }, []);
-
-  useEffect(() => {
-    if (!isAuthModalOpen) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const close = (event) =>
-      event.key === "Escape" && setIsAuthModalOpen(false);
-
-    window.addEventListener("keydown", close);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", close);
-    };
-  }, [isAuthModalOpen]);
 
   const availablePlatforms = useMemo(() => {
     const ids = [
@@ -340,6 +336,11 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
     );
   }, [selectedService, quantityMin, quantityMax]);
 
+  /* Значение поменяли извне (ползунок, быстрые суммы, черновик) — обновляем поле. */
+  useEffect(() => {
+    setQuantityInput(quantity > 0 ? String(quantity) : "");
+  }, [quantity]);
+
   useEffect(() => {
     if (
       !initialDraft ||
@@ -390,17 +391,6 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
     quantity <= quantityMax;
 
   const linkValid = isValidRecipientLink(recipientLink);
-
-  const sliderProgress =
-    selectedService && quantityMax > 0
-      ? ((Math.min(
-        quantityMax,
-        Math.max(0, quantity),
-      ) -
-        0) /
-        quantityMax) *
-      100
-      : 0;
 
   const serviceSpeed =
     selectedService?.speed ||
@@ -468,20 +458,40 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
     setValidationMessage("");
   }
 
+  /* Ввод в поле количества: показываем то, что набрал пользователь.
+     Если цифры стёрли — выбранное количество сбрасывается. */
+  function changeQuantityInput(nextValue) {
+    /* Только цифры: буквы и посторонние символы отбрасываем. */
+    const rawValue = String(nextValue).replace(/\D/g, "");
+
+    setQuantityInput(rawValue);
+    setValidationMessage("");
+
+    const trimmedValue = rawValue.trim();
+    if (trimmedValue === "") {
+      setQuantity(0);
+      setQuantityTouched(true);
+      return;
+    }
+
+    const parsedValue = Number(trimmedValue);
+    if (!Number.isFinite(parsedValue)) return;
+
+    setQuantity(parsedValue);
+    setQuantityTouched(true);
+  }
+
   function normalizeQuantity() {
     if (!selectedService) return;
 
-    const enteredValue = Number(quantity);
-    if (enteredValue === 0) return;
+    const parsedValue = Number(quantityInput);
+    const safeValue =
+      Number.isFinite(parsedValue) && parsedValue > 0
+        ? Math.min(quantityMax, Math.max(quantityMin, Math.round(parsedValue)))
+        : Math.max(quantity, quantityMin);
 
-    const safeValue = Math.min(
-      quantityMax,
-      Math.max(quantityMin, enteredValue || quantityMin),
-    );
-
-    const normalizedValue = Math.round(safeValue);
-
-    setQuantity(normalizedValue);
+    setQuantityInput(String(safeValue));
+    setQuantity(safeValue);
     setQuantityTouched(true);
     setValidationMessage("");
   }
@@ -524,18 +534,6 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
       idempotence_key: idempotenceKey,
       saved_at: new Date().toISOString(),
     };
-  }
-
-  function handleAuthSuccess() {
-    setIsAuthModalOpen(false);
-
-    navigate("/main", {
-      replace: true,
-      state: {
-        section: "create",
-        resumeCheckout: true,
-      },
-    });
   }
 
   async function payOrder() {
@@ -789,66 +787,114 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
   }
 
   function renderParametersStep() {
+    const platformLogo = platformIcon(platform);
+
     return (
-      <div className="wizard-step-content">
-        <WizardHeading
-          step={4}
-          title="Количество"
-          description="Введите значение вручную или используйте ползунок"
-        />
+      <div className="wizard-step-content wizard-parameters-step">
+        <WizardHeading step={4} title="Дополнительные параметры" />
 
+        {/* Сначала ссылка, затем количество: поле с кнопкой «Подтвердить»,
+            ползунок до максимума и быстрые суммы. */}
         <div className="wizard-quantity-panel">
-          <div className="wizard-quantity-top">
-            <label htmlFor="wizard-quantity-input">
-              Количество
-            </label>
+          <section className="wizard-section">
+            <div className="wizard-quantity-row">
+              <input
+                className="wizard-link-input"
+                type="url"
+                value={recipientLink}
+                onChange={(event) => {
+                  setRecipientLink(event.target.value);
+                  setValidationMessage("");
+                }}
+                placeholder="Вставьте ссылку"
+                aria-label="Ссылка на аккаунт или пост"
+                autoComplete="url"
+              />
 
-            <input
-              id="wizard-quantity-input"
-              type="number"
+              {/* Название и логотип площадки справа от поля. */}
+              <span className="wizard-link-platform">
+                {platformLogo ? (
+                  <img src={platformLogo} alt="" aria-hidden="true" />
+                ) : null}
+                {platform ? displayPlatform(platform) : "Площадка"}
+              </span>
+            </div>
+          </section>
+
+          <section className="wizard-section">
+            <div className="wizard-quantity-row">
+              <input
+                id="wizard-quantity-input"
+                type="number"
+                min={0}
+                max={quantityMax}
+                step={quantityStep}
+                value={quantityInput}
+                placeholder="Введите количество"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                onKeyDown={(event) => {
+                  /* Буквы и знаки не пропускаем — только цифры. */
+                  if (
+                    event.key.length === 1 &&
+                    !/[0-9]/.test(event.key) &&
+                    !event.ctrlKey &&
+                    !event.metaKey
+                  ) {
+                    event.preventDefault();
+                  }
+                }}
+                onPaste={(event) => {
+                  event.preventDefault();
+                  changeQuantityInput(
+                    event.clipboardData.getData("text").replace(/\D/g, "")
+                  );
+                }}
+                onChange={(event) =>
+                  changeQuantityInput(event.target.value)
+                }
+                onFocus={(event) => event.target.select()}
+                onBlur={normalizeQuantity}
+              />
+
+              <button
+                className="wizard-next-step"
+                type="button"
+                onClick={goToNextStep}
+                disabled={!quantityValid || !linkValid}
+              >
+                Подтвердить
+              </button>
+            </div>
+
+            {/* Ползунок количества: деления считаются от максимума услуги. */}
+            <AmountSlider
               min={0}
               max={quantityMax}
               step={quantityStep}
-              value={quantity}
-              onChange={(event) =>
-                changeQuantity(event.target.value)
-              }
-              onBlur={normalizeQuantity}
+              value={Math.min(quantityMax, Math.max(0, quantity))}
+              onChange={(nextValue) => changeQuantity(nextValue)}
             />
-          </div>
 
-          <input
-            className="wizard-range"
-            type="range"
-            min={0}
-            max={quantityMax}
-            step={quantityStep}
-            value={Math.min(quantityMax, Math.max(0, quantity))}
-            style={{
-              "--wizard-range-progress": `${sliderProgress}%`,
-            }}
-            onChange={(event) =>
-              changeQuantity(event.target.value)
-            }
-          />
+            <div className="wizard-quantity-quick-actions" aria-label="Быстрый выбор количества">
+              {quickQuantityOptions.map((option) => {
+                const isAvailable = option >= quantityMin && option <= quantityMax;
 
-          <div className="wizard-range-values">
-            <span>
-              0
-            </span>
-            <span>
-              {quantityMax.toLocaleString("ru-RU")}
-            </span>
-          </div>
-
-          <button
-            className="wizard-next-step"
-            type="button"
-            onClick={goToNextStep}
-            disabled={!quantityValid}
-          >
-            К следующему шагу
-          </button>
+                return (
+                  <button
+                    key={option}
+                    className={quantity === option ? "active" : ""}
+                    type="button"
+                    disabled={!isAvailable}
+                    aria-pressed={quantity === option}
+                    onClick={() => changeQuantity(option)}
+                  >
+                    {option.toLocaleString("ru-RU")}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
         </div>
 
         {validationMessage && (
@@ -882,7 +928,13 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
               aria-pressed={paymentMethod === method.id}
               onClick={() => setPaymentMethod(method.id)}
             >
-              <span>{method.mark}</span>
+              <span>
+                {method.icon ? (
+                  <img src={method.icon} alt="" aria-hidden="true" />
+                ) : (
+                  method.mark
+                )}
+              </span>
 
               <div>
                 <strong>{method.name}</strong>
@@ -918,6 +970,8 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
 
         <div className="wizard-summary-content">
           <div className="wizard-summary-service">
+            <small>Площадка</small>
+
             <span className={!platform ? "is-empty" : ""}>
               {platform ? (
                 icon ? (
@@ -927,13 +981,6 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
                 )
               ) : null}
             </span>
-
-            <div>
-              <small>Площадка</small>
-              <strong className={!platform ? "wizard-summary-value-empty" : ""}>
-                {platform ? displayPlatform(platform) : "—"}
-              </strong>
-            </div>
           </div>
 
           <dl>
@@ -987,24 +1034,6 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
             </div>
           </dl>
 
-          <div
-            className={`wizard-summary-link ${quantityTouched && quantityValid ? "active" : ""
-              }`}
-          >
-            <input
-              className="wizard-link-input"
-              type="url"
-              value={recipientLink}
-              disabled={!quantityTouched || !quantityValid}
-              onChange={(event) => {
-                setRecipientLink(event.target.value);
-                setValidationMessage("");
-              }}
-              placeholder="Вставьте ссылку"
-              autoComplete="url"
-            />
-          </div>
-
           <div className="wizard-summary-error-slot">
             {validationMessage && step === 4 ? (
               <p
@@ -1050,7 +1079,7 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
 
   return (
     <div className="order-page">
-      <section className="order-wizard">
+      <section className={`order-wizard order-wizard--step-${step}`}>
         <div className="wizard-layout">
           <div className="wizard-main">
             <header className="wizard-topline">
@@ -1079,9 +1108,7 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
                     }
                   >
                     <span>
-                      {index < step
-                        ? "✓"
-                        : index + 1}
+                      {index + 1}
                     </span>
                     <small>{item.label}</small>
                   </button>
@@ -1139,50 +1166,9 @@ function OrderPage({ initialDraft = null, onCheckoutRestored }) {
       </section>
 
       {isAuthModalOpen && (
-        <div
-          className="wizard-auth-overlay"
-          role="presentation"
-          onMouseDown={(event) =>
-            event.target ===
-            event.currentTarget &&
-            setIsAuthModalOpen(false)
-          }
-        >
-          <section
-            className="wizard-auth-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="wizard-auth-title"
-          >
-            <button
-              className="wizard-auth-close"
-              type="button"
-              onClick={() =>
-                setIsAuthModalOpen(false)
-              }
-              aria-label="Закрыть"
-            >
-              ×
-            </button>
-
-            <p className="kp-eyebrow">
-              Черновик сохранён
-            </p>
-
-            <h2 id="wizard-auth-title">
-              Войдите, чтобы продолжить
-            </h2>
-
-            <p>
-              После авторизации заказ откроется в
-              личном кабинете.
-            </p>
-
-            <HeroRegisterForm
-              onAuthSuccess={handleAuthSuccess}
-            />
-          </section>
-        </div>
+        <Modal title="Авторизация" onClose={() => setIsAuthModalOpen(false)}>
+          <HeroRegisterForm />
+        </Modal>
       )}
     </div>
   );

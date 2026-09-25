@@ -4,9 +4,6 @@ import { registerUser } from './authApi'
 // ------ Импорт функции проверки пароля ------ //
 import { validatePassword } from './validatePassword'
 
-// ------ Импорт функции проверки почты ------ //
-import { validateEmail } from './validateEmail'
-
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import showIcon from '../../../../../assets/icons/show.png'
@@ -18,20 +15,16 @@ import { hasPendingCheckoutDraft } from '../../../../../ui/orderDraft'
 export default function RegisterForm({
 
     // ------ Данные пользователя ------ //
-    email,
     password,
     repeatPassword,
 
     // ------ Подсказки проверки ------ //
     passwordHint,
-    emailHint,
 
     // ------ Функции изменения состояний ------ //
-    setEmail,
     setPassword,
     setRepeatPassword,
     setPasswordHint,
-    setEmailHint,
 
     // ------ Глобальное состояние авторизации ------ //
     setIsAuth,
@@ -65,26 +58,10 @@ export default function RegisterForm({
         )
     }
 
-    // ------ Функция изменения почты + проверка ------ //
-    function handleEmailChange(event) {
-
-        // ------ Получаем текущее значение input ------ //
-        const value = event.target.value
-
-        // ------ Обновляем состояние email ------ //
-        setEmail(value)
-
-        // ------ Проверяем почту и меняем состояние emailHint ------ //
-        setEmailHint(
-            validateEmail(value)
-        )
-    }
-
     // ------ Функция регистрации ------ //
     async function handleRegister() {
 
-        // ------ Нормализуем почту ------ //
-        const normalizedEmail = email.trim().toLowerCase()
+        // ------ Нормализуем логин ------ //
         const normalizedLogin = login.trim().toLowerCase()
 
         if (normalizedLogin.length < 3 || normalizedLogin.length > 40 || /\s/.test(normalizedLogin)) {
@@ -92,14 +69,6 @@ export default function RegisterForm({
             return
         }
         setLoginHint('')
-
-        // ------ Проверяем корректность почты ------ //
-        const emailError = validateEmail(normalizedEmail)
-
-        if (emailError) {
-            setEmailHint(emailError)
-            return
-        }
 
         // ------ Проверяем корректность пароля ------ //
         const passwordError = validatePassword(password)
@@ -118,21 +87,17 @@ export default function RegisterForm({
         try {
             setIsSubmitting(true)
 
-            // ------ Отправляем данные на backend ------ //
+            // ------ Отправляем данные на backend (без почты) ------ //
             const response = await registerUser(
                 normalizedLogin,
-                normalizedEmail,
+                null,
                 password
             )
 
             // ------ Если регистрация завершилась ошибкой ------ //
             if (!response.ok) {
                 const detail = response.data?.detail || 'Ошибка регистрации'
-                if (detail.toLowerCase().includes('логин')) {
-                    setLoginHint(detail)
-                } else {
-                    setEmailHint(detail)
-                }
+                setLoginHint(detail)
 
                 return
             }
@@ -157,7 +122,7 @@ export default function RegisterForm({
 
             console.log('Ошибка сервера:', error)
 
-            setEmailHint(
+            setLoginHint(
                 'Не удалось подключиться к серверу'
             )
         } finally {
@@ -188,37 +153,6 @@ export default function RegisterForm({
             </div>
 
             {loginHint && <p className="Password-hint">{loginHint}</p>}
-
-            {/* ------ INPUT ПОЧТЫ ------ */}
-
-            <div className="login-field">
-                <label htmlFor="register-email">
-                    E-mail
-                </label>
-
-                <div className="login-input-wrapper">
-                    <span className="input-icon" aria-hidden="true">
-                        <img src={accountIcon} alt="" />
-                    </span>
-
-                    <input
-                        id="register-email"
-                        className="Username-input"
-                        type="email"
-                        placeholder="Введите почту"
-                        value={email}
-                        onChange={handleEmailChange}
-                    />
-                </div>
-            </div>
-
-            {/* ------ ПОДСКАЗКА ПРОВЕРКИ ПОЧТЫ ------ */}
-
-            {emailHint && (
-                <p className="Password-hint">
-                    {emailHint}
-                </p>
-            )}
 
             {/* ------ INPUT ПАРОЛЯ ------ */}
 

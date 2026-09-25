@@ -79,12 +79,12 @@ export default function Admin() {
         finally { setRetryingId(null); }
     }
 
-    if (loading) return <AppShell active="admin"><Panel className="admin-message">Проверяем права администратора…</Panel></AppShell>;
-    if (forbidden) return <AppShell><Panel className="admin-denied"><p className="kp-eyebrow">403 · доступ запрещён</p><h1>Админ-панель недоступна</h1><p>У текущего аккаунта нет административных прав.</p><Link className="kp-button" to="/main">Вернуться в кабинет</Link></Panel></AppShell>;
+    if (loading) return <AppShell active="admin" title="Контроль заказов"><Panel className="admin-message">Проверяем права администратора…</Panel></AppShell>;
+    if (forbidden) return <AppShell title="Админ-панель"><Panel className="admin-denied"><p className="kp-eyebrow">403 · доступ запрещён</p><h1>Админ-панель недоступна</h1><p>У текущего аккаунта нет административных прав.</p><Link className="kp-button" to="/main">Вернуться в кабинет</Link></Panel></AppShell>;
 
     return (
-        <AppShell active="admin" contentClassName="admin-page">
-            <PageHeader eyebrow="Операционный центр" title="Контроль заказов" description="Рабочий баланс поставщика и оплаченные заказы, которые требуют внимания." actions={<button className="kp-button kp-button--secondary" type="button" onClick={handleRefresh} disabled={refreshing}>{refreshing ? "Обновляем…" : "Обновить"}</button>} />
+        <AppShell active="admin" contentClassName="admin-page" title="Контроль заказов">
+            <PageHeader eyebrow="Операционный центр" description="Рабочий баланс поставщика и оплаченные заказы, которые требуют внимания." actions={<><Link className="kp-button kp-button--secondary" to="/admin/support">Поддержка</Link><button className="kp-button kp-button--secondary" type="button" onClick={handleRefresh} disabled={refreshing}>{refreshing ? "Обновляем…" : "Обновить"}</button></>} />
             {error && <p className="admin-alert" role="alert">{error}</p>}
             {notice && <p className="admin-notice" role="status">{notice}</p>}
 

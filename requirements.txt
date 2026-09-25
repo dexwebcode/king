@@ -8,3 +8,4 @@ email-validator
 aiogram
 aiohttp
 yookassa==3.12.1
+heleket-sdk==0.3.0

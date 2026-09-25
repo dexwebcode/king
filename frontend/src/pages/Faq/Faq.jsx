@@ -8,9 +8,8 @@ import "../Reviews/Reviews.css";
 export default function Faq() {
     const hasSession = Boolean(localStorage.getItem("token"));
     const content = (
-        <section className="reviews-placeholder" aria-labelledby="faq-title">
+        <section className="reviews-placeholder" aria-label="FAQ">
             <p className="reviews-placeholder-eyebrow">KingPromotion</p>
-            <h1 id="faq-title">FAQ</h1>
             <p>Страница в разработке</p>
             <Link className="button button-outline" to="/">
                 На главную
@@ -21,7 +20,7 @@ export default function Faq() {
     return (
         <div className="reviews-page-shell">
             {hasSession ? (
-                <AppShell contentClassName="reviews-page">{content}</AppShell>
+                <AppShell active="faq" contentClassName="reviews-page" title="FAQ">{content}</AppShell>
             ) : (
                 <>
                     <Header showAuthButton initiallyDark />

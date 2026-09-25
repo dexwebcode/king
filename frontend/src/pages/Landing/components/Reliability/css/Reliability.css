@@ -14,149 +14,305 @@
     font-size: clamp(15px, 1.38vw, 19px);
 }
 
+/* =========================================================
+   СЕТКА ВЫДВИЖНЫХ ПАНЕЛЕЙ
+========================================================= */
+
 .reliability-grid {
+    --reliability-gap: clamp(12px, 1.2vw, 18px);
     position: relative;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    min-height: 190px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    /* Все блоки одной высоты: тянем их по строке и выравниваем ряды между собой. */
     align-items: stretch;
+    grid-auto-rows: 1fr;
+    gap: var(--reliability-gap);
     font-size: 15px;
 }
 
 .reliability-card {
-    --reliability-start-x: 0%;
-    --reliability-title-delay: .18s;
-    --reliability-panel-delay: 1.15s;
-    --reliability-text-delay: 1.72s;
+    height: 100%;
+    --reliability-delay: .05s;
+    /* задержка поочерёдного раскрытия, её считает компонент */
+    --reliability-open-delay: 0ms;
     position: relative;
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    min-height: 180px;
-    padding: 24px 20px;
+    isolation: isolate;
+    display: grid;
+    /* закрытое состояние: вторая строка сетки схлопнута в ноль */
+    grid-template-rows: auto 0fr;
     overflow: hidden;
+    /* Без обводки: блок читается только фоном. */
     border: 0;
     border-radius: 18px;
-    background: transparent;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(255, 255, 255, .06), transparent 46%),
+        linear-gradient(160deg, rgba(24, 25, 29, .96), rgba(11, 12, 15, .94));
+    box-shadow:
+        inset 0 1px rgba(255, 255, 255, .04),
+        0 22px 55px rgba(0, 0, 0, .26);
     opacity: 0;
-}
-
-.reliability-card:nth-child(1) {
-    --reliability-start-x: 150%;
-    --reliability-title-delay: .5s;
-    --reliability-panel-delay: 1.32s;
-    --reliability-text-delay: 1.89s;
+    transition:
+        grid-template-rows .5s cubic-bezier(.22, 1, .36, 1),
+        border-color .4s ease,
+        box-shadow .4s ease;
 }
 
 .reliability-card:nth-child(2) {
-    --reliability-start-x: 50%;
+    --reliability-delay: .14s;
 }
 
 .reliability-card:nth-child(3) {
-    --reliability-start-x: -50%;
+    --reliability-delay: .23s;
 }
 
 .reliability-card:nth-child(4) {
-    --reliability-start-x: -150%;
-    --reliability-title-delay: .5s;
-    --reliability-panel-delay: 1.32s;
-    --reliability-text-delay: 1.89s;
+    --reliability-delay: .32s;
 }
 
-.reliability-card::before {
+/* =========================================================
+   ГРУППОВОЕ РАСКРЫТИЕ
+   Наведение на любую панель раскрывает все четыре,
+   но каждая — со своей задержкой (поочерёдно).
+========================================================= */
+
+.reliability-card.is-open {
+    grid-template-rows: auto 1fr;
+    box-shadow:
+        inset 0 1px rgba(255, 255, 255, .05),
+        0 26px 62px rgba(0, 0, 0, .34);
+    transition-delay: var(--reliability-open-delay);
+}
+
+/* панель, с которой началось раскрытие */
+
+.reliability-card.is-active {
+    box-shadow:
+        inset 0 1px rgba(255, 255, 255, .07),
+        0 30px 70px rgba(0, 0, 0, .42),
+        0 0 28px rgba(255, 255, 255, .07);
+    transition-delay: 0ms;
+}
+
+/* =========================================================
+   ТРИГГЕР — В СТИЛЕ КНОПОК ПРОЕКТА (.button-gold / .button-outline)
+========================================================= */
+
+.reliability-trigger {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+    width: 100%;
+    padding: 20px 18px;
+    border: 0;
+    border-radius: 15px 15px 0 0;
+    background: transparent;
+    color: #f2f3f5;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: color .45s ease;
+}
+
+.reliability-trigger::before {
     content: "";
     position: absolute;
-    z-index: 0;
     inset: 0;
-    border: 1px solid rgba(255, 209, 90, .18);
-    border-radius: inherit;
-    background:
-        linear-gradient(180deg, rgba(255, 209, 90, .08), transparent 58%),
-        rgba(255, 255, 255, .025);
-    box-shadow: inset 0 1px rgba(255, 255, 255, .05), 0 24px 55px rgba(0, 0, 0, .18);
+    z-index: -1;
+    background: linear-gradient(135deg, #ffd15d, #f2ad25);
     opacity: 0;
-    transform: scaleY(0);
-    transform-origin: top center;
+    pointer-events: none;
+    transition: opacity .45s ease;
 }
 
-.reliability-card>span {
-    position: relative;
-    z-index: 1;
-    flex: 0 0 auto;
-    color: var(--gold);
-    font-size: 22px;
-    line-height: 1;
+.reliability-trigger:focus-visible {
+    outline: none;
 }
 
-.reliability-card>div {
-    position: relative;
-    z-index: 1;
+.reliability-card.is-active .reliability-trigger::before {
+    opacity: 1;
 }
 
-.reliability-card h3 {
-    margin: 0 0 12px;
-    font-size: clamp(17px, 1.4vw, 21px);
-    line-height: 1.2;
+.reliability-card.is-active .reliability-trigger {
+    color: #131313;
 }
 
-.reliability-card p {
-    margin: 0;
+.reliability-trigger-copy {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+}
+
+.reliability-trigger-title {
+    font-size: clamp(16px, 1.15vw, 19px);
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.reliability-trigger-text {
     color: var(--muted);
-    line-height: 1.6;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.5;
+    transition: color .45s ease;
+}
+
+.reliability-card.is-active .reliability-trigger-text {
+    color: rgba(19, 19, 19, .78);
+}
+
+.reliability-trigger-mark {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    line-height: 1.4;
+    opacity: .7;
+    transition:
+        transform .5s cubic-bezier(.22, 1, .36, 1),
+        opacity .45s ease;
+}
+
+.reliability-card.is-active .reliability-trigger-mark {
+    opacity: 1;
+    transform: none;
+}
+
+/* При раскрытии маркер и номер панели становятся акцентными. */
+.reliability-card.is-open .reliability-trigger-mark {
+    color: var(--gold);
+    opacity: 1;
+}
+
+/* На золотой заливке активной панели они остаются тёмными. */
+.reliability-card.is-active .reliability-trigger-mark {
+    color: #131313;
+}
+
+/* Подпись в раскрытой карточке («HTTPS + хеши», «Возврат до 100%») — акцентная. */
+.reliability-card.is-open .reliability-drawer-badge {
+    border-color: rgba(255, 209, 90, .5);
+    color: var(--gold);
+}
+
+/* =========================================================
+   ВЫДВИЖНАЯ ПАНЕЛЬ
+========================================================= */
+
+.reliability-drawer {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Текст сверху, плашка-подпись прижата к нижнему левому углу карточки. */
+.reliability-drawer-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    height: 100%;
+    padding: 0 18px 20px;
+    border-top: 1px solid rgba(255, 255, 255, .1);
     opacity: 0;
     transform: translateY(-14px);
+    transition:
+        opacity .35s ease,
+        transform .5s cubic-bezier(.22, 1, .36, 1);
 }
+
+.reliability-card.is-open .reliability-drawer-inner {
+    opacity: 1;
+    transform: translateY(0);
+    /* контент догоняет свою панель с тем же поочерёдным сдвигом */
+    transition-delay:
+        calc(var(--reliability-open-delay) + 110ms),
+        calc(var(--reliability-open-delay) + 70ms);
+}
+
+.reliability-card.is-active .reliability-drawer-inner {
+    border-top-color: rgba(255, 255, 255, .18);
+}
+
+.reliability-drawer-inner p {
+    margin: 0;
+    padding-top: 16px;
+    color: rgba(255, 255, 255, .74);
+    font-size: 13.5px;
+    line-height: 1.65;
+}
+
+.reliability-drawer-badge {
+    align-self: flex-start;
+    margin-top: auto;
+    padding: 6px 12px;
+    border: 1px solid rgba(255, 255, 255, .22);
+    border-radius: 999px;
+    color: #eef0f3;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+/* =========================================================
+   ПОЯВЛЕНИЕ СЕКЦИИ
+========================================================= */
 
 #reliability.landing-section-reveal--visible .reliability-card {
-    animation: reliabilityTitleSpread .9s cubic-bezier(.16, 1, .3, 1) var(--reliability-title-delay) both;
+    animation: reliabilityPanelSlide .8s cubic-bezier(.16, 1, .3, 1) var(--reliability-delay) both;
 }
 
-#reliability.landing-section-reveal--visible .reliability-card::before {
-    animation: reliabilityPanelDrop .7s cubic-bezier(.16, 1, .3, 1) var(--reliability-panel-delay) both;
-}
-
-#reliability.landing-section-reveal--visible .reliability-card p {
-    animation: reliabilityTextReveal .6s cubic-bezier(.2, .7, .2, 1) var(--reliability-text-delay) both;
-}
-
-@keyframes reliabilityTitleSpread {
+@keyframes reliabilityPanelSlide {
     from {
         opacity: 0;
-        filter: blur(6px);
-        transform: translateX(var(--reliability-start-x)) scale(.94);
+        filter: blur(7px);
+        transform: translateY(28px) scale(.97);
     }
 
     to {
         opacity: 1;
         filter: blur(0);
-        transform: translateX(0) scale(1);
+        transform: translateY(0) scale(1);
     }
 }
 
-@keyframes reliabilityPanelDrop {
-    from {
-        opacity: 0;
-        transform: scaleY(0);
+/* =========================================================
+   АДАПТИВ
+========================================================= */
+
+@media (max-width: 1100px) {
+    .reliability-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .reliability-grid {
+        grid-template-columns: minmax(0, 1fr);
     }
 
-    to {
+    .reliability-trigger {
+        padding: 16px 15px;
+    }
+
+    .reliability-drawer-inner {
+        padding: 0 15px 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reliability-card {
         opacity: 1;
-        transform: scaleY(1);
+        animation: none;
+        transition: none;
+    }
+
+    .reliability-trigger,
+    .reliability-trigger::before,
+    .reliability-trigger-mark,
+    .reliability-trigger-text,
+    .reliability-drawer-inner {
+        transition: none;
     }
 }
-
-@keyframes reliabilityTextReveal {
-    from {
-        opacity: 0;
-        filter: blur(5px);
-        transform: translateY(-14px);
-    }
-
-    to {
-        opacity: 1;
-        filter: blur(0);
-        transform: translateY(0);
-    }
-}
-

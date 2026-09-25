@@ -66,7 +66,7 @@ def register(data: RegisterRequest):
     try:
         result = register_user(
             login=data.login,
-            email=str(data.email),
+            email=data.email,
             password=data.password,
         )
 

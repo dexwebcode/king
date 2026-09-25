@@ -3,7 +3,43 @@ import { useEffect, useRef, useState } from "react";
 import searchIcon from "../../assets/icons/search.png";
 
 
-export default function CatalogSearch({ value, onChange }) {
+export default function CatalogSearch({ value, onChange, staticSearch = false }) {
+    if (staticSearch) {
+        return <StaticCatalogSearch value={value} onChange={onChange} />;
+    }
+
+    return <ExpandableCatalogSearch value={value} onChange={onChange} />;
+}
+
+function StaticCatalogSearch({ value, onChange }) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    return (
+        <div className={`catalog-search-control is-static ${isOpen ? "is-open" : ""}`} role="search">
+            <label className="catalog-search-field">
+                <span>Поиск по каталогу</span>
+                <input
+                    type="search"
+                    value={value}
+                    onChange={(event) => onChange(event.target.value)}
+                    placeholder="Поиск по каталогу"
+                    tabIndex={isOpen ? 0 : -1}
+                />
+            </label>
+            <button
+                className="catalog-search-static-toggle"
+                type="button"
+                aria-label={isOpen ? "Свернуть поиск" : "Открыть поиск"}
+                aria-expanded={isOpen}
+                onClick={() => setIsOpen((current) => !current)}
+            >
+                <img className="catalog-search-static-icon" src={searchIcon} alt="" />
+            </button>
+        </div>
+    );
+}
+
+function ExpandableCatalogSearch({ value, onChange }) {
     const [isOpen, setIsOpen] = useState(false);
     const inputRef = useRef(null);
     const triggerRef = useRef(null);

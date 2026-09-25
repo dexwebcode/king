@@ -13,7 +13,7 @@
 
     background:
         radial-gradient(circle at 14% 50%,
-            rgba(216, 157, 27, .22),
+            rgba(255, 255, 255, .08),
             transparent 22%),
         linear-gradient(90deg,
             #111216,

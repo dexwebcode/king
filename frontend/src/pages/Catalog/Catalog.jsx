@@ -16,6 +16,7 @@ import appleMusicIcon from "../../assets/social_icons/Apple_Musikl.png";
 import HeroRegisterForm from "../Landing/components/Hero/HeroRegisterForm";
 import { AUTH_CHANGED_EVENT, logoutUser } from "../Landing/components/Hero/auth/authApi";
 import { AccountMenu, InternalHeader, MenuToggle } from "../../ui/AppShell";
+import { getAccount, getCachedAccount, getCachedPrices, getPrices, subscribeAccount } from "../../ui/dataCache";
 import CatalogSearch from "./CatalogSearch";
 import "../Landing/Landing.css";
 import "./Catalog.css";
@@ -137,8 +138,8 @@ function matchesServiceType(item, selectedType) {
 export default function Catalog() {
     const navigate = useNavigate();
     const hasSession = Boolean(localStorage.getItem("token"));
-    const [items, setItems] = useState([]);
-    const [status, setStatus] = useState("loading");
+    const [items, setItems] = useState(() => getCachedPrices() || []);
+    const [status, setStatus] = useState(() => getCachedPrices() ? "ready" : "loading");
     const [search, setSearch] = useState("");
     const [platform, setPlatform] = useState(() => {
         const requestedPlatform = new URLSearchParams(window.location.search)
@@ -147,9 +148,10 @@ export default function Catalog() {
         return requestedPlatform && requestedPlatform !== "all" ? requestedPlatform : null;
     });
     const [serviceType, setServiceType] = useState("all");
-    const [account, setAccount] = useState(null);
+    const [account, setAccount] = useState(getCachedAccount);
     const [isAdmin, setIsAdmin] = useState(false);
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+    const [isPlatformMenuOpen, setIsPlatformMenuOpen] = useState(false);
     const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
     const deferredSearch = useDeferredValue(search.trim().toLowerCase());
 
@@ -158,30 +160,22 @@ export default function Catalog() {
     }, []);
 
     useEffect(() => {
-        const controller = new AbortController();
+        let active = true;
 
         async function loadCatalog() {
             try {
-                const response = await fetch(`${API_URL}/price`, {
-                    signal: controller.signal,
-                });
-                const data = await response.json();
-
-                if (!response.ok || !data?.success || !Array.isArray(data.items)) {
-                    throw new Error("Не удалось загрузить каталог");
+                const priceItems = await getPrices();
+                if (active) {
+                    setItems(priceItems);
+                    setStatus("ready");
                 }
-
-                setItems(data.items);
-                setStatus("ready");
             } catch (error) {
-                if (error.name !== "AbortError") {
-                    setStatus("error");
-                }
+                if (active) setStatus("error");
             }
         }
 
         loadCatalog();
-        return () => controller.abort();
+        return () => { active = false; };
     }, []);
 
     useEffect(() => {
@@ -189,28 +183,20 @@ export default function Catalog() {
             return undefined;
         }
 
+        let active = true;
         const controller = new AbortController();
         const headers = { Authorization: `Bearer ${localStorage.getItem("token")}` };
+        const unsubscribe = subscribeAccount((nextAccount) => {
+            if (active) setAccount(nextAccount);
+        });
 
-        async function loadAccountMenu() {
-            try {
-                const [accountResponse, adminResponse] = await Promise.all([
-                    fetch(`${API_URL}/api/me`, { headers, signal: controller.signal }),
-                    fetch(`${API_URL}/api/admin/me`, { headers, signal: controller.signal }),
-                ]);
-
-                if (accountResponse.ok) setAccount(await accountResponse.json());
-                setIsAdmin(adminResponse.ok);
-            } catch (error) {
-                if (error.name !== "AbortError") {
-                    setAccount(null);
-                    setIsAdmin(false);
-                }
-            }
-        }
-
-        loadAccountMenu();
-        return () => controller.abort();
+        getAccount()
+            .then((data) => { if (active) setAccount(data); })
+            .catch(() => { if (active) setAccount(null); });
+        fetch(`${API_URL}/api/admin/me`, { headers, signal: controller.signal })
+            .then((response) => { if (active) setIsAdmin(response.ok); })
+            .catch(() => { if (active) setIsAdmin(false); });
+        return () => { active = false; controller.abort(); unsubscribe(); };
     }, [hasSession]);
 
     useEffect(() => {
@@ -260,6 +246,7 @@ export default function Catalog() {
     function selectPlatform(nextPlatform) {
         setPlatform((currentPlatform) => currentPlatform === nextPlatform ? null : nextPlatform);
         setServiceType("all");
+        setIsPlatformMenuOpen(false);
     }
 
     function selectServiceType(nextServiceType) {
@@ -302,31 +289,7 @@ export default function Catalog() {
                 />
             )}
             <section className={`catalog-controls container ${hasSession ? "is-authenticated" : ""}`} aria-label="Поиск и выбор социальной сети">
-                <div className="catalog-section-title" aria-hidden="true">Каталог услуг</div>
-                <div className="catalog-filter-bar">
-                    <div className="catalog-filter-group">
-                    <div className="catalog-socials" aria-label="Выбор социальной сети">
-                        {platforms.map((itemPlatform) => {
-                            const icon = platformIcons[itemPlatform];
-                            const label = displayPlatform(itemPlatform);
-
-                            return (
-                                <button
-                                    key={itemPlatform}
-                                    type="button"
-                                    className={platform === itemPlatform ? "active" : ""}
-                                    onClick={() => selectPlatform(itemPlatform)}
-                                    aria-label={`${label}${platform === itemPlatform ? ", сбросить фильтр" : ""}`}
-                                    aria-pressed={platform === itemPlatform}
-                                    title={label}
-                                >
-                                    {icon ? <img src={icon} alt="" /> : <span>{label.slice(0, 1)}</span>}
-                                </button>
-                            );
-                        })}
-                    </div>
-                    <CatalogSearch value={search} onChange={setSearch} />
-                    </div>
+                <div className="catalog-title-row">
                     {hasSession && (
                         <MenuToggle
                             menuOpen={isAccountMenuOpen}
@@ -334,20 +297,78 @@ export default function Catalog() {
                             className="catalog-menu-toggle"
                         />
                     )}
+                    <div className="catalog-section-title" aria-hidden="true">Каталог услуг</div>
+                    <AccountMenu
+                        open={isAccountMenuOpen}
+                        onClose={closeAccountMenu}
+                        active="catalog"
+                        account={account}
+                        isAdmin={isAdmin}
+                        onLogout={() => {
+                            logoutUser();
+                            navigate("/", { replace: true });
+                        }}
+                    />
+                </div>
+                <div className="catalog-filter-bar">
+                    <div className="catalog-filter-group">
+                        <div className="catalog-socials" aria-label="Выбор социальной сети">
+                            {platforms.map((itemPlatform) => {
+                                const icon = platformIcons[itemPlatform];
+                                const label = displayPlatform(itemPlatform);
+
+                                return (
+                                    <button
+                                        key={itemPlatform}
+                                        type="button"
+                                        className={platform === itemPlatform ? "active" : ""}
+                                        onClick={() => selectPlatform(itemPlatform)}
+                                        aria-label={`${label}${platform === itemPlatform ? ", сбросить фильтр" : ""}`}
+                                        aria-pressed={platform === itemPlatform}
+                                        title={label}
+                                    >
+                                        {icon ? <img src={icon} alt="" /> : <span>{label.slice(0, 1)}</span>}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <div className={`catalog-social-picker ${isPlatformMenuOpen ? "is-open" : ""}`}>
+                            <button
+                                className="catalog-social-picker-trigger"
+                                type="button"
+                                aria-expanded={isPlatformMenuOpen}
+                                aria-haspopup="listbox"
+                                onClick={() => setIsPlatformMenuOpen((value) => !value)}
+                            >
+                                <span>{platform ? displayPlatform(platform) : "Выберите соцсеть"}</span>
+                                <span className="catalog-social-picker-arrow" aria-hidden="true">⌄</span>
+                            </button>
+                            <div className="catalog-social-picker-list" role="listbox" aria-label="Выбор социальной сети">
+                                {platforms.map((itemPlatform) => {
+                                    const icon = platformIcons[itemPlatform];
+                                    const label = displayPlatform(itemPlatform);
+                                    const selected = platform === itemPlatform;
+
+                                    return (
+                                        <button
+                                            key={itemPlatform}
+                                            className={selected ? "active" : ""}
+                                            type="button"
+                                            role="option"
+                                            aria-selected={selected}
+                                            onClick={() => selectPlatform(itemPlatform)}
+                                        >
+                                            {icon ? <img src={icon} alt="" /> : <span className="catalog-social-picker-fallback">{label.slice(0, 1)}</span>}
+                                            <span>{label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                    <CatalogSearch value={search} onChange={setSearch} staticSearch={hasSession} />
                 </div>
             </section>
-
-            <AccountMenu
-                open={isAccountMenuOpen}
-                onClose={closeAccountMenu}
-                active="catalog"
-                account={account}
-                isAdmin={isAdmin}
-                onLogout={() => {
-                    logoutUser();
-                    navigate("/", { replace: true });
-                }}
-            />
 
             {isAuthPromptOpen && (
                 <div className="catalog-auth-overlay" role="dialog" aria-modal="true" aria-label="Авторизация">

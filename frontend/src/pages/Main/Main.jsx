@@ -16,53 +16,82 @@ import {
     clearPendingCheckoutDraft,
     readPendingCheckoutDraft,
 } from "../../ui/orderDraft";
+import { getCachedAccount, getCachedPrices, getPrices, refreshAccount, subscribeAccount, updateCachedBalance } from "../../ui/dataCache";
 import BalanceSection from "./BalanceSection";
 import "./Main.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
+/* Разделы кабинета: «Заказы» (быстрый заказ + история) и «Баланс».
+   Старые значения section=create / section=orders приводим к одному разделу. */
+function resolveSection(rawSection) {
+    return rawSection === "balance" ? "balance" : "orders";
+}
+
+function resolveOrdersView(rawSection, rawView) {
+    if (rawView === "history" || rawView === "quick") {
+        return rawView;
+    }
+    // «Создать заказ» — быстрый заказ, всё остальное тоже открывает быстрый заказ.
+    if (rawSection === "create") {
+        return "quick";
+    }
+    return "quick";
+}
+
 export default function Main() {
     const location = useLocation();
     const navigate = useNavigate();
     const sectionFromQuery = new URLSearchParams(location.search).get("section");
+    const rawSectionFromRoute = sectionFromQuery || location.state?.section;
     const [pendingDraft, setPendingDraft] = useState(readPendingCheckoutDraft);
-    const [section, setSection] = useState(sectionFromQuery || location.state?.section || (pendingDraft ? "create" : "orders"));
-    const [account, setAccount] = useState(null);
+    const [section, setSection] = useState(
+        resolveSection(rawSectionFromRoute || (pendingDraft ? "create" : "orders")),
+    );
+    const [ordersView, setOrdersView] = useState(
+        () => resolveOrdersView(rawSectionFromRoute, location.state?.ordersView),
+    );
+    const [account, setAccount] = useState(getCachedAccount);
     const [orders, setOrders] = useState([]);
-    const [services, setServices] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [services, setServices] = useState(() => getCachedPrices() || []);
+    const [loading, setLoading] = useState(() => !getCachedAccount());
+    const [ordersLoading, setOrdersLoading] = useState(true);
     const [error, setError] = useState("");
 
     useEffect(() => {
-        const querySection = new URLSearchParams(location.search).get("section");
-        if (querySection) setSection(querySection);
-        else if (location.state?.section) setSection(location.state.section);
+        const raw = new URLSearchParams(location.search).get("section") || location.state?.section;
+        if (!raw) return;
+        setSection(resolveSection(raw));
+        setOrdersView(resolveOrdersView(raw, location.state?.ordersView));
     }, [location.search, location.state]);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
         let active = true;
         const headers = { Authorization: `Bearer ${token}` };
+        const unsubscribe = subscribeAccount((nextAccount) => {
+            if (active) setAccount(nextAccount);
+        });
 
-        Promise.all([
-            fetch(`${API_URL}/api/me`, { headers }),
-            fetch(`${API_URL}/api/my-orders`, { headers }),
-            fetch(`${API_URL}/price`),
-        ])
-            .then(async ([accountResponse, ordersResponse, priceResponse]) => {
-                const [accountData, ordersData, priceData] = await Promise.all([
-                    accountResponse.json(), ordersResponse.json(), priceResponse.json(),
-                ]);
-                if (!accountResponse.ok || !ordersResponse.ok) throw new Error("Не удалось загрузить кабинет");
-                if (!active) return;
-                setAccount(accountData);
-                setOrders(Array.isArray(ordersData.items) ? ordersData.items : []);
-                setServices(priceResponse.ok && Array.isArray(priceData?.items) ? priceData.items : []);
+        refreshAccount()
+            .then((data) => { if (active) setAccount(data); })
+            .catch((loadError) => { if (active) setError(loadError.message || "Не удалось загрузить баланс"); })
+            .finally(() => { if (active) setLoading(false); });
+
+        getPrices()
+            .then((items) => { if (active) setServices(items); })
+            .catch(() => {});
+
+        fetch(`${API_URL}/api/my-orders`, { headers })
+            .then(async (response) => {
+                if (!response.ok) throw new Error("Не удалось загрузить заказы");
+                return response.json();
             })
-            .catch((loadError) => active && setError(loadError.message || "Не удалось загрузить кабинет"))
-            .finally(() => active && setLoading(false));
+            .then((data) => { if (active) setOrders(Array.isArray(data.items) ? data.items : []); })
+            .catch((loadError) => { if (active) setError(loadError.message || "Не удалось загрузить заказы"); })
+            .finally(() => { if (active) setOrdersLoading(false); });
 
-        return () => { active = false; };
+        return () => { active = false; unsubscribe(); };
     }, []);
 
     const servicesById = useMemo(() => new Map(
@@ -74,8 +103,13 @@ export default function Main() {
         setPendingDraft(null);
     }
 
+    /* Переключение раздела из меню: «Заказы» всегда открывает быстрый заказ. */
+    const handleSectionChange = useCallback((nextSection) => {
+        setSection(resolveSection(nextSection));
+        setOrdersView(resolveOrdersView(nextSection));
+    }, []);
+
     const descriptions = {
-        create: "Пять коротких шагов: площадка, тип услуги, тариф, параметры и проверка.",
         orders: "Статусы оплаты и выполнения заказов обновляются автоматически.",
         balance: "Управляйте средствами и пополняйте баланс удобным способом.",
     };
@@ -83,6 +117,7 @@ export default function Main() {
     const returnedFromPayment = new URLSearchParams(location.search).get("topup") === "return";
 
     const handleBalanceChange = useCallback((nextBalance) => {
+        updateCachedBalance(nextBalance);
         setAccount((currentAccount) => currentAccount ? { ...currentAccount, balance: nextBalance } : currentAccount);
     }, []);
 
@@ -90,34 +125,64 @@ export default function Main() {
         if (returnedFromPayment) navigate("/main?section=balance", { replace: true });
     }, [navigate, returnedFromPayment]);
 
+    const isQuickOrder = section === "orders" && ordersView === "quick";
+
     return (
-        <AppShell active={section} account={account} onSectionChange={setSection} contentClassName={section === "create" ? "main-wide" : ""}>
+        <AppShell
+            active={section}
+            account={account}
+            onSectionChange={handleSectionChange}
+            contentClassName={isQuickOrder ? "main-wide" : ""}
+            titleClassName={section === "orders" ? "kp-section-title--switch" : ""}
+            title={section === "orders" ? (
+                <span className="orders-view-switch">
+                    <button
+                        type="button"
+                        className={ordersView === "quick" ? "is-active" : ""}
+                        aria-pressed={ordersView === "quick"}
+                        onClick={() => setOrdersView("quick")}
+                    >
+                        Быстрый заказ
+                    </button>
+                    <button
+                        type="button"
+                        className={ordersView === "history" ? "is-active" : ""}
+                        aria-pressed={ordersView === "history"}
+                        onClick={() => setOrdersView("history")}
+                    >
+                        История
+                    </button>
+                </span>
+            ) : "Баланс"}
+        >
             {loading ? <Panel className="main-message">Загружаем кабинет…</Panel> : (
                 <>
-                    {section !== "create" && (
+                    {section === "balance" && (
                         <PageHeader
                             eyebrow="Личный кабинет"
-                            title={section === "orders" ? "Мои заказы" : (
-                                <span className="balance-page-title">
-                                    <span>Баланс</span>
-                                    <strong>{formatMoney(account?.balance)} ₽</strong>
-                                </span>
-                            )}
-                            description={descriptions[section]}
+                            description={descriptions.balance}
                         />
                     )}
+
+                    {section === "orders" && ordersView === "history" && (
+                        <PageHeader
+                            eyebrow="Личный кабинет"
+                            description={descriptions.orders}
+                        />
+                    )}
+
                     {error && <p className="main-alert" role="alert">{error}</p>}
 
-                    {section === "create" && (
+                    {isQuickOrder && (
                         <OrderCard
                             initialDraft={pendingDraft}
                             onCheckoutRestored={handleCheckoutRestored}
                         />
                     )}
 
-                    {section === "orders" && (
+                    {section === "orders" && ordersView === "history" && (
                         <Panel className="orders-panel">
-                            {orders.length === 0 ? <EmptyState>У вас пока нет заказов.</EmptyState> : (
+                            {ordersLoading ? <p>Загружаем заказы…</p> : orders.length === 0 ? <EmptyState>У вас пока нет заказов.</EmptyState> : (
                                 <div className="orders-list">
                                     {orders.map((order) => {
                                         const service = servicesById.get(String(order.service_id));
@@ -135,7 +200,9 @@ export default function Main() {
                                                     {order.remains !== null && order.remains !== undefined && <div><dt>Осталось</dt><dd>{Number(order.remains).toLocaleString("ru-RU")}</dd></div>}
                                                     <div><dt>Сумма</dt><dd>{formatMoney(order.amount)} ₽</dd></div>
                                                 </dl>
-                                                <StatusBadge status={order.status}>{order.status}</StatusBadge>
+                                                <StatusBadge status={order.display_status || order.status}>
+                                                    {order.display_status || order.status}
+                                                </StatusBadge>
                                             </article>
                                         );
                                     })}
@@ -146,6 +213,7 @@ export default function Main() {
 
                     {section === "balance" && (
                         <BalanceSection
+                            balance={account?.balance}
                             returnedFromPayment={returnedFromPayment}
                             onBalanceChange={handleBalanceChange}
                             onPaymentSettled={handlePaymentSettled}

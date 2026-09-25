@@ -1,11 +1,22 @@
-.main-wide {
-    --kp-page-width: 1360px;
-}
-
 .main-message {
     padding: 36px;
     color: var(--kp-text-muted);
     text-align: center;
+}
+
+/* Экран создания заказа: карточка формы занимает центр свободного места
+   под шапкой кабинета. На телефонах остаётся обычный поток со скроллом. */
+@media (min-width: 701px) {
+    .kp-page.main-wide {
+        box-sizing: border-box;
+        /* Шире обычной страницы, чтобы карточка заказа была как на главной. */
+        width: min(92%, 100% - 32px);
+        /* Шапка раздела ~79px — учитываем её, иначе у страницы появляется прокрутка. */
+        min-height: calc(100dvh - 100px);
+        padding: 24px 0;
+        display: grid;
+        place-items: center;
+    }
 }
 
 .main-alert {
@@ -95,64 +106,172 @@
     white-space: nowrap;
 }
 
-.balance-page-title {
+/* ================= Баланс ================= */
+.balance-page {
+    display: grid;
+    gap: 22px;
+}
+
+/* Герой: текущий баланс */
+.balance-hero {
+    padding: clamp(24px, 3vw, 32px);
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: .35em;
-}
-
-.balance-page-title strong {
-    color: var(--kp-gold);
-    font-size: .62em;
-    font-weight: 800;
-    letter-spacing: -.025em;
-    white-space: nowrap;
-}
-
-.top-up-panel {
-    width: min(760px, 100%);
-    margin: 0 auto;
-    padding: clamp(24px, 3vw, 36px);
-}
-
-.top-up-heading {
-    margin-bottom: 26px;
-    display: flex;
-    align-items: flex-start;
     justify-content: space-between;
-    gap: 20px;
+    gap: 24px;
+    flex-wrap: wrap;
+    border: 1px solid var(--kp-border);
+    border-radius: var(--kp-radius-lg);
+    background:
+        radial-gradient(circle at 10% -30%, rgba(255, 209, 90, .16), transparent 48%),
+        linear-gradient(145deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .012));
 }
 
-.top-up-heading h2 {
+.balance-hero-copy {
+    min-width: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.balance-hero-value {
     margin: 0;
-    font-size: clamp(25px, 3vw, 34px);
-    line-height: 1.1;
-    letter-spacing: -.025em;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    color: var(--kp-gold);
+    font-size: clamp(36px, 5.6vw, 58px);
+    font-weight: 800;
+    letter-spacing: -.045em;
+    line-height: 1;
 }
 
-.top-up-heading>span {
-    padding: 7px 10px;
+.balance-hero-value span {
+    color: var(--kp-text-secondary);
+    font-size: .36em;
+    font-weight: 750;
+}
+
+.balance-hero-note {
+    margin: 0;
+    max-width: 46ch;
+    color: var(--kp-text-muted);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.balance-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
     border: 1px solid rgba(105, 217, 138, .22);
     border-radius: 999px;
-    color: #a8e9bb;
     background: rgba(105, 217, 138, .06);
+    color: #a8e9bb;
     font-size: 11px;
     font-weight: 750;
     white-space: nowrap;
 }
 
-.top-up-form {
-    display: grid;
-    gap: 26px;
+.balance-hero-badge i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #69d98a;
+    box-shadow: 0 0 10px rgba(105, 217, 138, .6);
 }
 
-.amount-field-group>label,
-.payment-methods legend {
-    display: block;
-    margin-bottom: 10px;
-    color: var(--kp-text-secondary);
+/* Статус пополнения */
+.balance-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 16px;
+    border: 1px solid rgba(255, 209, 90, .25);
+    border-radius: var(--kp-radius-sm);
+    background: rgba(255, 209, 90, .06);
+    color: #ffe5a6;
     font-size: 13px;
+    line-height: 1.5;
+}
+
+.balance-status i {
+    width: 7px;
+    height: 7px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--kp-gold);
+    box-shadow: 0 0 10px rgba(255, 209, 90, .55);
+}
+
+.balance-status--processed {
+    border-color: rgba(105, 217, 138, .22);
+    background: rgba(105, 217, 138, .06);
+    color: #b8edc5;
+}
+
+.balance-status--processed i {
+    background: #69d98a;
+    box-shadow: 0 0 10px rgba(105, 217, 138, .55);
+}
+
+.balance-status--canceled,
+.balance-status--failed {
+    border-color: rgba(255, 145, 92, .25);
+    background: rgba(255, 145, 92, .07);
+    color: #ffc4a4;
+}
+
+.balance-status--canceled i,
+.balance-status--failed i {
+    background: #ff915c;
+    box-shadow: none;
+}
+
+/* Форма пополнения */
+.balance-form {
+    display: grid;
+    gap: 18px;
+}
+
+.balance-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    align-items: start;
+}
+
+.balance-card {
+    margin: 0;
+    padding: 22px;
+    display: grid;
+    gap: 18px;
+    align-content: start;
+    border: 1px solid var(--kp-border);
+    border-radius: var(--kp-radius-md);
+    background: var(--kp-panel);
+}
+
+.balance-card-head {
+    display: grid;
+    gap: 5px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.balance-card-head h2 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 750;
+    letter-spacing: -.02em;
+}
+
+.amount-field-group>label {
+    display: block;
+    margin-bottom: 9px;
+    color: var(--kp-text-secondary);
+    font-size: 12px;
     font-weight: 750;
 }
 
@@ -213,19 +332,19 @@
 .quick-amounts {
     margin-top: 12px;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
 }
 
 .quick-amounts button {
-    min-height: 38px;
-    padding: 0 8px;
+    min-height: 46px;
+    padding: 0 10px;
     border: 1px solid var(--kp-border);
-    border-radius: 9px;
+    border-radius: var(--kp-radius-sm);
     background: rgba(255, 255, 255, .025);
     color: var(--kp-text-secondary);
     font: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
     transition: border-color .18s ease, background .18s ease, color .18s ease, transform .18s ease;
@@ -237,13 +356,6 @@
     background: rgba(255, 209, 90, .08);
     color: var(--kp-gold);
     transform: translateY(-1px);
-}
-
-.payment-methods {
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    border: 0;
 }
 
 .payment-method-list {
@@ -309,6 +421,14 @@
     height: 15px;
 }
 
+/* Значок способа оплаты (например, ₿ у Heleket). */
+.payment-method-mark {
+    color: #ffffff;
+    font-size: 21px;
+    font-weight: 800;
+    line-height: 1;
+}
+
 .payment-method-copy {
     min-width: 0;
     display: grid;
@@ -368,72 +488,185 @@
     color: #15120b;
 }
 
-.top-up-submit {
-    width: 100%;
+/* Итог и кнопка оплаты */
+.balance-checkout {
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+    border: 1px solid var(--kp-border);
+    border-radius: var(--kp-radius-md);
+    background: linear-gradient(145deg, rgba(255, 209, 90, .07), rgba(255, 255, 255, .015));
 }
 
-.top-up-submit>span {
+.balance-total {
+    display: grid;
+    gap: 4px;
+}
+
+.balance-total>span {
+    color: var(--kp-text-muted);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+
+.balance-total strong {
+    color: var(--kp-text);
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -.025em;
+}
+
+.balance-submit {
+    min-width: 220px;
+}
+
+.balance-submit>span {
     font-size: 20px;
 }
 
-.top-up-legal {
-    margin: -16px 0 0;
+.balance-legal {
+    margin: 0;
     color: var(--kp-text-muted);
-    font-size: 10px;
+    font-size: 11px;
     line-height: 1.5;
     text-align: center;
 }
 
-.top-up-request-error,
-.top-up-status {
-    margin: 0 0 20px;
-    padding: 12px 14px;
+.top-up-request-error {
+    margin: 0;
+    padding: 12px 16px;
     border: 1px solid rgba(255, 145, 92, .26);
     border-radius: var(--kp-radius-sm);
     background: rgba(255, 145, 92, .07);
     color: #ffd09f;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Преимущества */
+.balance-benefits {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.balance-benefit {
+    padding: 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border: 1px solid var(--kp-border);
+    border-radius: var(--kp-radius-md);
+    background: rgba(255, 255, 255, .018);
+}
+
+.balance-benefit-icon {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255, 209, 90, .22);
+    border-radius: 12px;
+    background: rgba(255, 209, 90, .07);
+    color: var(--kp-gold);
+}
+
+.balance-benefit-icon svg {
+    width: 19px;
+    height: 19px;
+}
+
+.balance-benefit h3 {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.balance-benefit p {
+    margin: 0;
+    color: var(--kp-text-muted);
     font-size: 12px;
     line-height: 1.5;
 }
 
-.top-up-status {
+@media (max-width: 900px) {
+    .balance-grid,
+    .balance-benefits {
+        grid-template-columns: 1fr;
+    }
+
+    .balance-checkout {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .balance-submit {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+/* Переключатель «Быстрый заказ / История» в шапке раздела «Заказы».
+   Без плашки: активная надпись непрозрачная, неактивная — полупрозрачная. */
+.kp-section-title--switch {
+    flex: 1;
+    min-width: 0;
+}
+
+.orders-view-switch {
+    width: 100%;
     display: flex;
     align-items: center;
-    gap: 9px;
-    border-color: rgba(255, 209, 90, .25);
-    background: rgba(255, 209, 90, .06);
-    color: #ffe5a6;
+    justify-content: flex-start;
+    gap: 14px;
 }
 
-.top-up-status i {
-    width: 7px;
-    height: 7px;
-    flex: 0 0 auto;
-    border-radius: 50%;
-    background: var(--kp-gold);
-    box-shadow: 0 0 10px rgba(255, 209, 90, .55);
+.orders-view-switch button {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--kp-text);
+    font: inherit;
+    font-size: var(--kp-section-title-size);
+    font-weight: 800;
+    letter-spacing: -.045em;
+    line-height: 1.15;
+    cursor: pointer;
+    opacity: .35;
+    transition: opacity .2s ease;
 }
 
-.top-up-status--processed {
-    border-color: rgba(105, 217, 138, .22);
-    background: rgba(105, 217, 138, .06);
-    color: #b8edc5;
+.orders-view-switch button:hover {
+    opacity: .7;
 }
 
-.top-up-status--processed i {
-    background: #69d98a;
-    box-shadow: 0 0 10px rgba(105, 217, 138, .55);
+.orders-view-switch button.is-active {
+    opacity: 1;
 }
 
-.top-up-status--canceled,
-.top-up-status--failed {
-    border-color: rgba(255, 145, 92, .25);
-    background: rgba(255, 145, 92, .07);
-    color: #ffc4a4;
+@media (max-width: 760px) {
+    .orders-view-switch {
+        gap: 10px;
+    }
+
+    .orders-view-switch button {
+        font-size: 19px;
+    }
 }
 
-.top-up-status--canceled i,
-.top-up-status--failed i {
-    background: #ff915c;
-    box-shadow: none;
+@media (max-width: 430px) {
+    .orders-view-switch {
+        gap: 8px;
+    }
+
+    .orders-view-switch button {
+        font-size: 16px;
+    }
 }

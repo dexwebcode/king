@@ -156,30 +156,27 @@ export default function Landing() {
         };
     }, []);
 
-    function getLayoutTop(element) {
-        let top = 0;
-        let currentElement = element;
-
-        while (currentElement) {
-            top += currentElement.offsetTop;
-            currentElement = currentElement.offsetParent;
-        }
-
-        return top;
-    }
-
     function scrollToOrderCard() {
         const orderSection = document.getElementById("quick-order");
+        const orderCard = orderSection?.querySelector(".order-wizard") || orderSection;
 
-        if (!orderSection) {
+        if (!orderCard) {
             return;
         }
 
         const header = document.querySelector(".site-header");
         const headerHeight = header?.getBoundingClientRect().height || 0;
+        const cardRect = orderCard.getBoundingClientRect();
+        const visibleHeight = window.innerHeight - headerHeight;
+        // На небольшом экране высокая форма начинается сразу под шапкой,
+        // а на обычном — находится ровно по центру доступной части окна.
+        const cardTopInViewport = headerHeight + Math.max(
+            0,
+            (visibleHeight - cardRect.height) / 2
+        );
 
         window.scrollTo({
-            top: Math.max(0, getLayoutTop(orderSection) - headerHeight),
+            top: Math.max(0, window.scrollY + cardRect.top - cardTopInViewport),
             behavior: "smooth",
         });
     }
@@ -231,7 +228,7 @@ export default function Landing() {
                 <PopularServices />
                 <TestBanner />
                 <Reliability />
-                <FinalCTA />
+                <FinalCTA onQuickOrderClick={scrollToOrderCard} />
             </main>
 
             <Footer />

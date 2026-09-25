@@ -91,7 +91,7 @@
     flex: 0 0 52px;
     place-items: center;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
+    border-radius: 15px;
     background: rgba(255, 255, 255, 0.035);
     color: #d6d7d9;
     cursor: pointer;
@@ -120,10 +120,14 @@
     font-weight: 700;
 }
 
+.catalog-social-picker {
+    display: none;
+}
+
 .catalog-back,
 .catalog-order {
     border: 1px solid rgba(190, 190, 190, 0.113);
-    border-radius: 999px;
+    border-radius: 15px;
     transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
 }
 
@@ -142,7 +146,8 @@
 
 .catalog-controls {
     position: relative;
-    z-index: 1;
+    /* Выше содержимого каталога, чтобы выпадающее меню не перекрывалось. */
+    z-index: 1100;
     display: grid;
     grid-template-columns: minmax(200px, 1fr) minmax(0, 3.2fr);
     align-items: center;
@@ -151,22 +156,33 @@
     padding-top: 28px;
 }
 
+/* До входа сверху висит фиксированная шапка сайта: полоса с соцсетями и
+   поиском должна уезжать под неё, а не заезжать поверх. */
+.catalog-controls:not(.is-authenticated) {
+    z-index: 1;
+}
+
 .catalog-controls.is-authenticated {
     margin-top: 0;
 }
 
 .catalog-filter-bar {
     position: relative;
+    /* Полоса занимает всю ширину секции, а её колонки симметричны (1fr с двух
+       сторон), поэтому соцсети встают ровно по центру страницы. */
+    grid-column: 1 / -1;
+    grid-row: 1;
     width: 100%;
     min-width: 0;
     min-height: 52px;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
     gap: 12px;
 }
 
 .catalog-filter-group {
+    grid-column: 2;
     min-width: 0;
     position: relative;
     width: fit-content;
@@ -179,25 +195,56 @@
 }
 
 @media (min-width: 701px) {
+    /* Поиск ушёл в правый край строки, поэтому компенсирующий сдвиг больше не нужен. */
     .catalog-filter-group {
-        transform: translateX(calc(clamp(-180px, -10vw, -100px) + 50px));
+        transform: none;
     }
 }
 
+/* Кнопка меню стоит слева от заголовка и масштабируется вместе с ним. */
+.catalog-title-row {
+    --catalog-title-size: var(--kp-section-title-size);
+    /* Заголовок — в той же строке, но в своей колонке слева. */
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
 .catalog-section-title {
+    /* Название раздела остаётся над затемнением и не размывается. */
+    position: relative;
+    z-index: 1102;
     color: #f5f5f2;
-    font-size: clamp(22px, 2.4vw, 34px);
+    font-size: var(--catalog-title-size);
     font-weight: 800;
     letter-spacing: -.045em;
 }
 
-.catalog-menu-toggle {
-    position: static;
-    z-index: auto;
-    flex: 0 0 46px;
+/* Кнопка каталога берёт размер из общей переменной и по селектору
+   сильнее базового .kp-menu-toggle, поэтому результат не зависит от
+   порядка стилей в сборке. */
+.catalog-title-row .catalog-menu-toggle {
+    /* Кнопка остаётся над затемнением и не размывается. */
+    position: relative;
+    z-index: 1102;
+    flex: 0 0 auto;
+    width: var(--kp-section-toggle-size);
+    height: var(--kp-section-toggle-size);
+}
+
+.catalog-title-row .catalog-menu-toggle img {
+    width: var(--kp-section-toggle-size);
+    height: var(--kp-section-toggle-size);
 }
 
 .catalog-search-control {
+    grid-column: 3;
+    justify-self: end;
     position: static;
     z-index: 4;
     width: 52px;
@@ -206,8 +253,90 @@
     border-radius: 16px;
 }
 
-.catalog-search-control.is-open {
-    position: static;
+/* До входа поиск — иконка, которая раскрывается в поле. Панель считается от
+   самого контрола, поэтому растёт только внутри своей правой колонки и не
+   накладывается на соцсети (у вошедших поле раскрывается так же — .is-static). */
+.catalog-search-control:not(.is-static) {
+    position: relative;
+}
+
+.catalog-search-control:not(.is-static) .catalog-search-trigger {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+.catalog-search-control:not(.is-static).is-open {
+    position: relative;
+    width: 100%;
+    justify-self: stretch;
+}
+
+/* После входа поиск всегда виден: поле занимает весь правый участок между
+   соцсетями и краем строки, а знакомая иконка поиска остаётся справа. */
+.catalog-search-control.is-static {
+    display: grid;
+    width: 52px;
+    height: 52px;
+    grid-template-columns: minmax(0, 1fr) 42px;
+    align-items: center;
+    gap: 0;
+    justify-self: end;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    background: transparent;
+    transition: width 280ms cubic-bezier(.2, .75, .2, 1), gap 280ms cubic-bezier(.2, .75, .2, 1), padding 280ms cubic-bezier(.2, .75, .2, 1), background 180ms ease, border-color 180ms ease;
+}
+
+.catalog-search-control.is-static.is-open {
+    width: 100%;
+    gap: 8px;
+    padding: 0 10px 0 16px;
+    border-color: rgba(254, 254, 254, 0.114);
+    background: rgba(18, 19, 22, 1);
+}
+
+.catalog-search-control.is-static .catalog-search-field input {
+    height: 50px;
+}
+
+.catalog-search-control.is-static .catalog-search-field {
+    overflow: hidden;
+    opacity: 0;
+    transform: translateX(12px);
+    transition: opacity 160ms ease, transform 280ms cubic-bezier(.2, .75, .2, 1);
+}
+
+.catalog-search-control.is-static.is-open .catalog-search-field {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.catalog-search-static-toggle {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 15px;
+    background: transparent;
+    cursor: pointer;
+    transition: background 180ms ease, transform 180ms ease;
+}
+
+.catalog-search-static-toggle:hover {
+    background: transparent;
+    transform: none;
+}
+
+.catalog-search-static-icon {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+    pointer-events: none;
 }
 
 .catalog-search-trigger,
@@ -277,7 +406,8 @@
 }
 
 .catalog-search-control.is-open .catalog-search-panel {
-    width: 100%;
+    /* Разворачивается влево, но не заезжает на заголовок. */
+    width: min(100%, 560px);
     opacity: 1;
     pointer-events: auto;
     transform: scaleX(1);
@@ -339,7 +469,7 @@
     place-content: center;
     gap: 5px;
     border: 1px solid rgba(255, 209, 90, 0.45);
-    border-radius: 14px;
+    border-radius: 15px;
     background: rgba(255, 209, 90, 0.1);
     cursor: pointer;
     transition: transform 180ms ease, background 180ms ease;
@@ -388,9 +518,12 @@
     overflow-y: auto;
     flex-direction: column;
     padding: 24px;
-    border: 1px solid rgba(255, 209, 90, 0.22);
+    /* Как панели в разделе «Надёжность и безопасность»: без обводки, только фон. */
+    border: 0;
     border-radius: 22px;
-    background: linear-gradient(160deg, rgba(35, 36, 39, 0.76), rgba(13, 14, 16, 0.78));
+    background:
+        radial-gradient(circle at 100% 0%, rgba(255, 255, 255, .06), transparent 46%),
+        linear-gradient(160deg, rgba(24, 25, 29, .96), rgba(11, 12, 15, .94));
     box-shadow: -24px 0 70px rgba(0, 0, 0, 0.36);
     backdrop-filter: blur(22px);
     -webkit-backdrop-filter: blur(22px);
@@ -436,7 +569,7 @@
     height: 34px;
     place-items: center;
     border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 10px;
+    border-radius: 15px;
     background: transparent;
     color: #dedfe2;
     cursor: pointer;
@@ -477,7 +610,7 @@
     align-items: center;
     justify-content: space-between;
     border: 1px solid transparent;
-    border-radius: 12px;
+    border-radius: 15px;
     padding: 13px 14px;
     background: transparent;
     color: #f1f1ef;
@@ -599,7 +732,7 @@
     height: 34px;
     place-items: center;
     border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 10px;
+    border-radius: 15px;
     background: transparent;
     color: #dedfe2;
     cursor: pointer;
@@ -625,6 +758,16 @@
     display: grid;
     place-items: center;
     padding: 20px;
+}
+
+/* Пока открыто окно авторизации, шапка и полоса каталога (заголовок, соцсети,
+   поиск) уходят под затемнение: размываются и не ловят клики, как и остальная
+   страница. Так они не «вылезают» поверх блюра. */
+.catalog-page:has(.catalog-auth-overlay) .catalog-controls,
+.catalog-page:has(.catalog-auth-overlay) .site-header {
+    filter: blur(4px);
+    opacity: .55;
+    pointer-events: none;
 }
 
 .catalog-auth-overlay-backdrop {
@@ -654,7 +797,7 @@
     height: 34px;
     place-items: center;
     border: 1px solid rgba(255, 209, 93, .7);
-    border-radius: 10px;
+    border-radius: 15px;
     background: rgba(12, 13, 16, .72);
     color: #ffd15d;
     box-shadow: 0 0 16px rgba(255, 209, 93, .16);
@@ -690,10 +833,15 @@
     display: grid;
     gap: 7px;
     padding: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    background: rgba(19, 20, 23, 0.78);
-    box-shadow: 0 20px 42px rgba(0, 0, 0, 0.16);
+    /* Как панели в разделе «Надёжность и безопасность»: без обводки, только фон. */
+    border: 0;
+    border-radius: 18px;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(255, 255, 255, .06), transparent 46%),
+        linear-gradient(160deg, rgba(24, 25, 29, .96), rgba(11, 12, 15, .94));
+    box-shadow:
+        inset 0 1px rgba(255, 255, 255, .04),
+        0 22px 55px rgba(0, 0, 0, .26);
 }
 
 .catalog-service-filters p {
@@ -707,7 +855,7 @@
 
 .catalog-service-filters button {
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: 15px;
     padding: 9px 10px;
     background: transparent;
     color: #c7c8cc;
@@ -762,17 +910,27 @@
     display: flex;
     min-height: 300px;
     flex-direction: column;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 18px;
     padding: 20px;
-    background: linear-gradient(145deg, rgba(32, 33, 37, 0.88), rgba(16, 17, 18, 0.9));
-    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.2);
-    transition: transform 200ms ease, border-color 200ms ease;
+    /* Как панели в разделе «Надёжность и безопасность»: без обводки, только фон. */
+    border: 0;
+    border-radius: 18px;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(255, 255, 255, .06), transparent 46%),
+        linear-gradient(160deg, rgba(24, 25, 29, .96), rgba(11, 12, 15, .94));
+    box-shadow:
+        inset 0 1px rgba(255, 255, 255, .04),
+        0 22px 55px rgba(0, 0, 0, .26);
+    transition: transform 200ms ease, background 200ms ease, box-shadow 200ms ease;
 }
 
 .catalog-card:hover {
-    border-color: rgba(255, 209, 90, 0.55);
+    background:
+        radial-gradient(circle at 100% 0%, rgba(255, 255, 255, .09), transparent 46%),
+        linear-gradient(160deg, rgba(31, 32, 37, .98), rgba(14, 15, 18, .96));
     transform: translateY(-4px);
+    box-shadow:
+        inset 0 1px rgba(255, 255, 255, .06),
+        0 26px 62px rgba(0, 0, 0, .32);
 }
 
 .catalog-card-topline {
@@ -927,6 +1085,107 @@
     }
 }
 
+@media (max-width: 1560px) {
+    .catalog-socials {
+        display: none;
+    }
+
+    .catalog-social-picker {
+        position: relative;
+        z-index: 10;
+        display: block;
+        width: min(280px, 100%);
+    }
+
+    .catalog-social-picker-trigger {
+        display: flex;
+        width: 100%;
+        min-height: 52px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 0 16px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.035);
+        color: #f5f5f2;
+        cursor: pointer;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        text-align: left;
+    }
+
+    .catalog-social-picker-arrow {
+        color: #ffd15a;
+        font-size: 22px;
+        line-height: 1;
+        transition: transform 180ms ease;
+    }
+
+    .catalog-social-picker.is-open .catalog-social-picker-arrow {
+        transform: rotate(180deg);
+    }
+
+    .catalog-social-picker-list {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        z-index: 20;
+        display: grid;
+        width: 100%;
+        max-height: min(420px, 60dvh);
+        overflow-y: auto;
+        padding: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        background: #18191c;
+        box-shadow: 0 18px 44px rgba(0, 0, 0, .4);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-6px);
+        transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .catalog-social-picker.is-open .catalog-social-picker-list {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+    }
+
+    .catalog-social-picker-list button {
+        display: flex;
+        min-height: 46px;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 10px;
+        border: 0;
+        border-radius: 15px;
+        background: transparent;
+        color: #e9e9e8;
+        cursor: pointer;
+        font: inherit;
+        font-size: 14px;
+        text-align: left;
+    }
+
+    .catalog-social-picker-list button:hover,
+    .catalog-social-picker-list button.active {
+        background: rgba(255, 209, 90, .12);
+        color: #fff1bd;
+    }
+
+    .catalog-social-picker-list img,
+    .catalog-social-picker-fallback {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        flex: 0 0 28px;
+        place-items: center;
+        object-fit: contain;
+    }
+}
+
 @media (max-width: 700px) {
     .catalog-header {
         grid-template-columns: 1fr auto;
@@ -946,7 +1205,43 @@
     .catalog-filter-bar {
         grid-column: 1;
         grid-row: 2;
+        grid-template-columns: minmax(0, 1fr) auto;
         transform: none;
+    }
+
+    .catalog-filter-group {
+        grid-column: 1;
+        width: 100%;
+        justify-self: stretch;
+    }
+
+    .catalog-social-picker {
+        width: 100%;
+    }
+
+    .catalog-search-control {
+        grid-column: 2;
+    }
+
+    /* На узких экранах в строке нет места для бокового раскрытия, поэтому поле
+       разворачивается на всю строку фильтров и не задевает контент под ней. */
+    .catalog-search-control:not(.is-static).is-open {
+        position: static;
+        width: 42px;
+        justify-self: end;
+    }
+
+    .catalog-search-control:not(.is-static).is-open .catalog-search-panel {
+        left: 0;
+        right: 0;
+        width: auto;
+        /* поле перекрывает выбор соцсети, а не просвечивает сквозь него */
+        z-index: 30;
+    }
+
+    /* Пока открыт поиск, выбор соцсети скрыт — иначе он просвечивает сквозь поле. */
+    .catalog-filter-bar:has(.catalog-search-control:not(.is-static).is-open) .catalog-filter-group {
+        visibility: hidden;
     }
 
     .catalog-layout {
@@ -990,7 +1285,7 @@
         width: 42px;
         height: 42px;
         flex-basis: 42px;
-        border-radius: 12px;
+        border-radius: 15px;
     }
 
     .catalog-socials img {
@@ -1002,12 +1297,41 @@
     .catalog-search-trigger {
         width: 42px;
         height: 42px;
-        border-radius: 12px;
+        border-radius: 15px;
     }
 
     .catalog-search-control.is-open {
         position: static;
         width: 42px;
+    }
+
+    .catalog-search-control.is-static {
+        width: 42px;
+        height: 42px;
+        grid-template-columns: minmax(0, 1fr) 34px;
+        padding: 0;
+        border-radius: 12px;
+    }
+
+    .catalog-search-control.is-static.is-open {
+        width: 100%;
+        gap: 7px;
+        padding: 0 8px 0 12px;
+    }
+
+    .catalog-search-control.is-static .catalog-search-field input {
+        height: 40px;
+    }
+
+    .catalog-search-static-icon {
+        width: 34px;
+        height: 34px;
+    }
+
+    .catalog-search-static-toggle {
+        width: 34px;
+        height: 34px;
+        border-radius: 15px;
     }
 
     .catalog-search-panel {
@@ -1035,7 +1359,7 @@
     .catalog-search-close {
         width: 32px;
         height: 32px;
-        border-radius: 9px;
+        border-radius: 15px;
     }
 
     .catalog-grid {

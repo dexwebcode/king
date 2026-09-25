@@ -78,7 +78,6 @@ export default function Header({
                     className={`button button-gold ${showAuthButton ? "is-visible" : ""}`}
                     onClick={handleAction}
                     tabIndex={showAuthButton ? 0 : -1}
-                    aria-hidden={!showAuthButton}
                 >
                     <span className="button-label">
                         {actionLabel}

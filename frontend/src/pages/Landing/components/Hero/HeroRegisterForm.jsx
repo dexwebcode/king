@@ -7,11 +7,18 @@ import "./css/auth-panel/HeroAuthForm.css";
 export default function HeroRegisterForm({ onAuthSuccess }) {
     const [mode, setMode] = useState("login");
     const [login, setLogin] = useState("");
-    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [repeatPassword, setRepeatPassword] = useState("");
     const [passwordHint, setPasswordHint] = useState("");
-    const [emailHint, setEmailHint] = useState("");
+
+    /* При переключении между входом и регистрацией поля полностью очищаются. */
+    function handleModeChange(nextMode) {
+        setLogin("");
+        setPassword("");
+        setRepeatPassword("");
+        setPasswordHint("");
+        setMode(nextMode);
+    }
 
     return (
         <div className="hero-auth-panel">
@@ -30,24 +37,20 @@ export default function HeroRegisterForm({ onAuthSuccess }) {
                         setPassword={setPassword}
                         setIsAuth={() => { }}
                         onAuthSuccess={onAuthSuccess}
-                        onModeChange={() => setMode("register")}
+                        onModeChange={() => handleModeChange("register")}
                         showModeSwitch
                     />
                 ) : (
                     <RegisterForm
-                        email={email}
                         password={password}
                         repeatPassword={repeatPassword}
                         passwordHint={passwordHint}
-                        emailHint={emailHint}
-                        setEmail={setEmail}
                         setPassword={setPassword}
                         setRepeatPassword={setRepeatPassword}
                         setPasswordHint={setPasswordHint}
-                        setEmailHint={setEmailHint}
                         setIsAuth={() => { }}
                         onAuthSuccess={onAuthSuccess}
-                        onModeChange={() => setMode("login")}
+                        onModeChange={() => handleModeChange("login")}
                         showModeSwitch
                     />
                 )}

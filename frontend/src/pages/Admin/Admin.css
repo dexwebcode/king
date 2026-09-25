@@ -1,7 +1,3 @@
-.admin-page {
-    --kp-page-width: 1260px;
-}
-
 .admin-message,
 .admin-denied {
     padding: clamp(28px, 5vw, 52px);

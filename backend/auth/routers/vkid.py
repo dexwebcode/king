@@ -7,7 +7,12 @@ from backend.auth.dependencies import get_current_user
 from backend.auth.schemas import VkLoginRequest
 from backend.auth.security import create_access_token
 from backend.auth.social_accounts import get_user_social_accounts
-from backend.auth.social_auth import SocialAccountBrokenError, authenticate_social_user
+from backend.auth.social_auth import (
+    SocialAccountAlreadyLinkedError,
+    SocialAccountBrokenError,
+    authenticate_social_user,
+    connect_social_user,
+)
 from backend.auth.vk_oauth import fetch_vk_user_info
 from backend.core.database import get_db
 
@@ -51,6 +56,34 @@ def vk_login(data: VkLoginRequest, session: Session = Depends(get_db)):
         "token": create_access_token(user["id"]),
         "user": {"id": user["id"], "login": user["login"], "email": user["mail"]},
     }
+
+
+@router.post("/vk/connect")
+def vk_connect(
+    data: VkLoginRequest,
+    current_user: dict = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """Привязка VK ID к уже авторизованному аккаунту (CONNECT, не LOGIN)."""
+    vk_user = fetch_vk_user_info(data.access_token)
+    vk_user_id = str(vk_user["user_id"])
+    display_name = " ".join(
+        part for part in [vk_user.get("first_name"), vk_user.get("last_name")] if part
+    ) or None
+
+    try:
+        connect_social_user(
+            session,
+            user_id=current_user["id"],
+            provider="vk",
+            provider_user_id=vk_user_id,
+            display_name=display_name,
+            avatar_url=vk_user.get("avatar"),
+        )
+    except SocialAccountAlreadyLinkedError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+    return {"success": True, "connected": True}
 
 
 @router.get("/vk/callback")

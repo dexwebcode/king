@@ -58,7 +58,7 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    color: #ffd15a;
+    color: rgba(255, 255, 255, .72);
 }
 
 .hero-review-number-control span {
@@ -67,7 +67,7 @@
 
 .hero-review-author {
     justify-self: end;
-    color: #ffd15a;
+    color: #f2f3f5;
     font-size: 14px;
 }
 

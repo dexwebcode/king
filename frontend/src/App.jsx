@@ -8,7 +8,12 @@ import Payment from "./pages/Payment/Payment";
 import Admin from "./pages/Admin/Admin";
 import Reviews from "./pages/Reviews/Reviews";
 import Faq from "./pages/Faq/Faq";
+import SupportPage from "./pages/Support/SupportPage";
+import TicketPage from "./pages/Support/TicketPage";
+import AdminSupport from "./pages/Admin/AdminSupport";
+import AccountPage from "./pages/Account/AccountPage";
 import { AUTH_CHANGED_EVENT, isAuth } from "./pages/Landing/components/Hero/auth/authApi";
+import { getAccount, getAccountDetails, getPrices } from "./ui/dataCache";
 
 export default function App() {
     const [authChecked, setAuthChecked] = useState(false);
@@ -16,6 +21,12 @@ export default function App() {
 
     useEffect(() => {
         let isMounted = true;
+
+        getPrices().catch(() => {});
+        if (localStorage.getItem("token")) {
+            getAccount().catch(() => {});
+            getAccountDetails().catch(() => {});
+        }
 
         async function verifyAuth() {
             const authStatus = await isAuth();
@@ -36,6 +47,9 @@ export default function App() {
             setAuthChecked(true);
 
             if (hasToken) {
+                // Вход: сразу прогреваем кэш, чтобы страницы не грузились повторно.
+                getAccount().catch(() => {});
+                getAccountDetails().catch(() => {});
                 verifyAuth();
             }
         }
@@ -75,8 +89,24 @@ export default function App() {
                 element={isAuthenticated ? <Main /> : <Navigate to="/" replace />}
             />
             <Route
+                path="/account"
+                element={isAuthenticated ? <AccountPage /> : <Navigate to="/" replace />}
+            />
+            <Route
                 path="/admin"
                 element={isAuthenticated ? <Admin /> : <Navigate to="/" replace />}
+            />
+            <Route
+                path="/admin/support"
+                element={isAuthenticated ? <AdminSupport /> : <Navigate to="/" replace />}
+            />
+            <Route
+                path="/support"
+                element={isAuthenticated ? <SupportPage /> : <Navigate to="/" replace />}
+            />
+            <Route
+                path="/support/:publicId"
+                element={isAuthenticated ? <TicketPage /> : <Navigate to="/" replace />}
             />
         </Routes>
     );

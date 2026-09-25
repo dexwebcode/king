@@ -19,6 +19,17 @@ export const PAYMENT_METHODS = [
         apiValue: "crystalpay",
         enabled: true,
     },
+    {
+        id: "heleket",
+        name: "Heleket",
+        description: "Оплата криптовалютой",
+        provider: "Heleket",
+        badge: "Криптовалюта",
+        mark: "₿",
+        endpoint: "/api/payments/heleket/create",
+        apiValue: "heleket",
+        enabled: true,
+    },
 ];
 
 export function availablePaymentMethods() {

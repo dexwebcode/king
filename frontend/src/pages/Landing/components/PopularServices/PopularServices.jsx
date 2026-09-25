@@ -2,42 +2,36 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { SectionTitle } from "../../shared";
 import { platformMeta, platformOrder } from "../../../../ui/catalogMeta";
+import { getPrices } from "../../../../ui/dataCache";
 import "./css/PopularServices.css";
 
 const popularServices = platformOrder
     .map((id) => ({ id, ...platformMeta[id] }))
     .filter((service) => service.icon || service.id === "shazam");
-const API_URL = import.meta.env.VITE_API_URL || "";
 
 export default function PopularServices() {
     const [serviceCounts, setServiceCounts] = useState({});
 
     useEffect(() => {
-        const controller = new AbortController();
+        let active = true;
 
         async function loadServiceCounts() {
             try {
-                const response = await fetch(`${API_URL}/price`, { signal: controller.signal });
-                const data = await response.json();
-
-                if (!response.ok || !data?.success || !Array.isArray(data.items)) {
-                    return;
-                }
-
-                const counts = data.items.reduce((result, item) => {
+                const items = await getPrices();
+                const counts = items.reduce((result, item) => {
                     const platform = String(item.platform || item.soc || "").toLowerCase();
                     if (platform) result[platform] = (result[platform] || 0) + 1;
                     return result;
                 }, {});
 
-                setServiceCounts(counts);
+                if (active) setServiceCounts(counts);
             } catch (error) {
-                if (error.name !== "AbortError") setServiceCounts({});
+                if (active) setServiceCounts({});
             }
         }
 
         loadServiceCounts();
-        return () => controller.abort();
+        return () => { active = false; };
     }, []);
 
     return (

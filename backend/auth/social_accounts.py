@@ -125,3 +125,44 @@ def get_user_social_account_by_provider_user_id(
     )
 
     return result.mappings().first()
+
+
+def get_user_social_account_by_user_and_provider(
+    session: Session,
+    user_id: int,
+    provider: str,
+):
+    result = session.execute(
+        text("""
+            SELECT
+                user_id,
+                provider,
+                provider_user_id,
+                username,
+                display_name,
+                avatar_url
+            FROM public.user_social_accounts
+            WHERE user_id = :user_id
+              AND provider = :provider
+            LIMIT 1
+        """),
+        {"user_id": user_id, "provider": provider},
+    )
+
+    return result.mappings().first()
+
+
+def delete_user_social_account(
+    session: Session,
+    user_id: int,
+    provider: str,
+):
+    return session.execute(
+        text("""
+            DELETE FROM public.user_social_accounts
+            WHERE user_id = :user_id
+              AND provider = :provider
+            RETURNING id
+        """),
+        {"user_id": user_id, "provider": provider},
+    ).first()

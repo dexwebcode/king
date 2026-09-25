@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from urllib.error import HTTPError, URLError
@@ -10,16 +11,26 @@ from fastapi import (
     Request,
     status,
 )
+from heleket_sdk import SignatureError, WebhookVerifier
 
 from backend.auth.dependencies import get_current_user
+from backend.core.config import HELEKET_PAYMENT_API_KEY
 from backend.core.database import SessionLocal
 from backend.services.supplier import (
     SupplierNotConfiguredError,
     SupplierRejectedError,
     SupplierResponseError,
 )
+from .heleket_service import (
+    HeleketNotConfiguredError,
+    HeleketProviderError,
+    get_heleket_invoice_by_uuid,
+    invoice_to_payload,
+    validate_heleket_configuration,
+)
 from .repository import (
     get_account_summary,
+    get_attempt_by_provider_order_id,
     get_balance_topup_for_user,
     get_order_for_user,
     get_payment_attempt_for_user,
@@ -32,8 +43,11 @@ from .schemas import (
     CreateBalanceTopUpResponse,
     CreateCrystalPayTopUpRequest,
     CreateCrystalPayTopUpResponse,
+    CreateHeleketTopUpRequest,
+    CreateHeleketTopUpResponse,
     CreateOrderRequest,
     CreateOrderResponse,
+    HeleketPaymentStatusResponse,
     OrderStatusResponse,
     PaymentAttemptStatusResponse,
 )
@@ -47,12 +61,16 @@ from .service import (
     create_balance_topup_payment,
     create_crystalpay_order_payment,
     create_crystalpay_topup,
+    create_heleket_order_payment,
+    create_heleket_topup,
     create_order_payment,
     dispatch_order,
     refill_order_with_supplier,
     reconcile_crystalpay_invoice_if_due,
+    reconcile_heleket_invoice_if_due,
     reconcile_payment_if_due,
     process_crystalpay_invoice,
+    process_heleket_webhook_payload,
     sync_order_safely,
     sync_order_with_supplier,
     verify_payment_notification,
@@ -99,6 +117,8 @@ async def create_order_endpoint(
         }
         if data.payment_method == "crystalpay":
             return await create_crystalpay_order_payment(**arguments)
+        if data.payment_method == "heleket":
+            return create_heleket_order_payment(**arguments)
         return create_order_payment(
             **arguments,
             payment_method=data.payment_method,
@@ -118,6 +138,15 @@ async def create_order_endpoint(
         raise HTTPException(status_code=503, detail=str(error)) from error
     except CrystalPayError as error:
         logger.warning("CrystalPAY order invoice creation failed: %s", type(error).__name__)
+        raise HTTPException(
+            status_code=502,
+            detail="Не удалось создать платёж. Попробуйте ещё раз.",
+        ) from error
+    except HeleketNotConfiguredError as error:
+        logger.error("Heleket configuration error: %s", error)
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except (HeleketProviderError, PaymentVerificationError) as error:
+        logger.warning("Heleket order invoice creation failed: %s", type(error).__name__)
         raise HTTPException(
             status_code=502,
             detail="Не удалось создать платёж. Попробуйте ещё раз.",
@@ -208,6 +237,11 @@ def balance_topup_status_endpoint(
                 reconcile_crystalpay_invoice_if_due,
                 top_up["provider_payment_id"],
             )
+        elif top_up["provider"] == "heleket":
+            background_tasks.add_task(
+                reconcile_heleket_invoice_if_due,
+                top_up["provider_payment_id"],
+            )
     return {
         "id": top_up["id"],
         "status": top_up["status"],
@@ -266,6 +300,8 @@ async def payment_attempt_status_endpoint(
     ):
         if attempt.get('provider') == 'crystalpay':
             await reconcile_crystalpay_invoice_if_due(attempt['provider_payment_id'])
+        elif attempt.get('provider') == 'heleket':
+            reconcile_heleket_invoice_if_due(attempt['provider_payment_id'])
         else:
             reconcile_payment_if_due(attempt['provider_payment_id'])
     session = SessionLocal()
@@ -295,6 +331,16 @@ async def cancel_payment_attempt_endpoint(
         invoice = await crystalpay_client.get_invoice(attempt['provider_payment_id'])
         if str(invoice.get('state') or '').lower() == 'payed':
             result = process_crystalpay_invoice(attempt['provider_payment_id'], invoice)
+            if type(result) is int:
+                dispatch_order(result)
+            raise HTTPException(status_code=409, detail='Платёж уже подтверждён провайдером')
+    if attempt.get('provider') == 'heleket' and attempt.get('provider_payment_id'):
+        invoice = await asyncio.to_thread(
+            get_heleket_invoice_by_uuid, attempt['provider_payment_id']
+        )
+        payload = invoice_to_payload(invoice)
+        if payload.get('status') in {'paid', 'paid_over'}:
+            result = process_heleket_webhook_payload(payload)
             if type(result) is int:
                 dispatch_order(result)
             raise HTTPException(status_code=409, detail='Платёж уже подтверждён провайдером')
@@ -344,6 +390,170 @@ async def create_crystalpay_topup_endpoint(
             status_code=502,
             detail="Не удалось создать платёж. Попробуйте ещё раз.",
         ) from error
+
+
+@router.post(
+    "/api/payments/heleket/create",
+    response_model=CreateHeleketTopUpResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_heleket_topup_endpoint(
+    data: CreateHeleketTopUpRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Пополнение баланса криптовалютой через Heleket.
+
+    Sync-эндпоинт: FastAPI исполняет его в threadpool, поэтому синхронный
+    SDK-клиент Heleket не блокирует event loop.
+    """
+    try:
+        return create_heleket_topup(
+            user_id=current_user["id"],
+            amount=data.amount,
+            idempotence_key=str(data.idempotence_key),
+        )
+    except PaymentConflictError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except HeleketNotConfiguredError as error:
+        logger.error("Heleket configuration error: %s", error)
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except (HeleketProviderError, PaymentVerificationError) as error:
+        logger.warning("Heleket invoice creation failed: %s", type(error).__name__)
+        raise HTTPException(
+            status_code=502,
+            detail="Не удалось создать платёж. Попробуйте ещё раз.",
+        ) from error
+    except Exception as error:
+        logger.exception("Heleket invoice creation failed")
+        raise HTTPException(
+            status_code=502,
+            detail="Не удалось создать платёж. Попробуйте ещё раз.",
+        ) from error
+
+
+@router.post("/api/payments/heleket/webhook")
+async def heleket_webhook(request: Request, background_tasks: BackgroundTasks):
+    """Webhook Heleket. JWT не требуется — подпись проверяется RAW body.
+
+    Баланс зачисляется только после криптографически верного webhook.
+    """
+    body = await request.body()
+    if len(body) > MAX_WEBHOOK_BODY_SIZE:
+        raise HTTPException(status_code=413, detail="Слишком большой webhook")
+
+    try:
+        validate_heleket_configuration()
+    except HeleketNotConfiguredError as error:
+        logger.error("Heleket is not configured")
+        raise HTTPException(status_code=503, detail="Heleket не настроен") from error
+
+    verifier = WebhookVerifier(HELEKET_PAYMENT_API_KEY)
+    try:
+        payload = verifier.verify_raw(body)
+    except (SignatureError, ValueError) as error:
+        logger.warning("Heleket webhook invalid signature: %s", type(error).__name__)
+        raise HTTPException(status_code=400, detail="Invalid Heleket signature") from error
+
+    if not payload.is_payment():
+        raise HTTPException(status_code=400, detail="Неподдерживаемый тип события")
+
+    logger.info(
+        "Heleket webhook received order_id=%s uuid=%s status=%s",
+        payload.order_id,
+        payload.uuid,
+        payload.status,
+    )
+    try:
+        result = process_heleket_webhook_payload(payload.raw)
+        if type(result) is int:
+            background_tasks.add_task(dispatch_order, result)
+        credited = bool(result)
+    except PaymentVerificationError as error:
+        logger.warning("Heleket webhook verification failed: %s", error)
+        raise HTTPException(status_code=400, detail="Платёж не подтверждён") from error
+    except Exception as error:
+        logger.exception("Heleket webhook processing failed")
+        raise HTTPException(status_code=500, detail="Ошибка обработки платежа") from error
+    return {"status": "ok", "credited": credited}
+
+
+@router.get(
+    "/api/payments/heleket/{order_id}/status",
+    response_model=HeleketPaymentStatusResponse,
+)
+def heleket_payment_status_endpoint(
+    order_id: str,
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user),
+):
+    """Статус пополнения Heleket по локальному order_id.
+
+    Чужой платёж неотличим от несуществующего — отвечаем 404.
+    """
+    session = SessionLocal()
+    try:
+        attempt = get_attempt_by_provider_order_id(
+            session, order_id, provider="heleket"
+        )
+    finally:
+        session.close()
+    if attempt is None or attempt["user_id"] != current_user["id"]:
+        raise HTTPException(status_code=404, detail="Платёж не найден")
+    if (
+        attempt["processed_at"] is None
+        and attempt["provider_payment_id"]
+        and attempt["status"] not in {"canceled", "failed", "expired", "wrongamount", "locked"}
+    ):
+        background_tasks.add_task(
+            reconcile_heleket_invoice_if_due,
+            attempt["provider_payment_id"],
+        )
+    session = SessionLocal()
+    try:
+        account = get_account_summary(session, current_user["id"])
+    finally:
+        session.close()
+    return {
+        "order_id": order_id,
+        "status": attempt["status"],
+        "credited": attempt["processed_at"] is not None,
+        "amount": format(attempt["amount"], ".2f"),
+        "currency": attempt["currency"] or "RUB",
+        "balance": format(account["balance"], ".2f") if account is not None else None,
+    }
+
+
+# Внутренние статусы заказа так, как их видит покупатель во вкладке «Мои заказы».
+_ORDER_DISPLAY_STATUS = {
+    "Ожидает оплаты": "Ожидает оплаты",
+    "Ожидает отправки": "Оплачен",
+    "Отправляется": "Оплачен",
+    "Ожидает пополнения поставщика": "Оплачен",
+    "Поставщик недоступен": "Оплачен",
+    "Выполняется": "Оплачен",
+    "Готово": "Выполнен",
+    "Завершен": "Выполнен",
+    "Частично": "Выполнен частично",
+    "Оплата отменена": "Отменён",
+    "Отменен": "Отменён",
+    "Отменен поставщиком": "Отменён",
+    "Отмена запрошена": "Отмена в обработке",
+    "Требует проверки": "Требует проверки",
+    "Отклонен поставщиком": "Отклонён поставщиком",
+}
+
+
+def display_order_status(status: str | None) -> str:
+    """Переводит внутренний статус заказа в покупательский.
+
+    @param status - значение orders.status.
+    @returns «Ожидает оплаты», «Оплачен» или «Отменён»; неизвестное значение
+    возвращается как есть.
+    """
+    value = str(status or "")
+    return _ORDER_DISPLAY_STATUS.get(value, value)
 
 
 def _order_message(order) -> str | None:
@@ -405,6 +615,7 @@ def order_status_endpoint(
     return {
         "id": order["id"],
         "status": order["status"],
+        "display_status": display_order_status(order["status"]),
         "amount": format(order["amount"], ".2f"),
         "currency": order["currency"] or "RUB",
         "payment_status": order["payment_status"],
@@ -555,6 +766,7 @@ def my_orders_endpoint(
                 "quantity": item["qnt"],
                 "amount": format(item["amount"], ".2f"),
                 "status": item["status"],
+                "display_status": display_order_status(item["status"]),
                 "dispatch_status": item["dispatch_status"],
                 "remains": item["remains"],
                 "created_at": item["date"],

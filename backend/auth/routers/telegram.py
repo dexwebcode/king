@@ -50,6 +50,43 @@ def telegram_session(
     }
 
 
+@router.get("/telegram/session/status")
+def telegram_session_status(
+    token: str,
+    current_user: dict = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """Статус привязки Telegram к уже авторизованному аккаунту (CONNECT)."""
+    auth_session = get_telegram_auth_session(session=session, token=token)
+    if (
+        auth_session is None
+        or auth_session["user_id"] is None
+        or int(auth_session["user_id"]) != int(current_user["id"])
+    ):
+        return {"success": True, "status": "not_found"}
+
+    if _normalize_datetime(auth_session["expires_at"]) < datetime.now(timezone.utc):
+        return {"success": True, "status": "expired"}
+
+    if auth_session["status"] != "authorized":
+        return {"success": True, "status": "pending"}
+
+    telegram_id = auth_session["telegram_id"]
+    if telegram_id is None:
+        return {"success": True, "status": "pending"}
+
+    linked = get_user_social_account_by_provider_user_id(
+        session, "telegram", str(telegram_id)
+    )
+    if linked is not None and int(linked["user_id"]) == int(current_user["id"]):
+        return {
+            "success": True,
+            "status": "connected",
+            "username": linked.get("username"),
+        }
+    return {"success": True, "status": "conflict"}
+
+
 @router.post("/telegram/guest/session")
 def telegram_guest_session(session: Session = Depends(get_db)):
     return {
