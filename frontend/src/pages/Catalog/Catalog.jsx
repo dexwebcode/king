@@ -1,5 +1,6 @@
 import { useDeferredValue, useEffect, useLayoutEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "../../ui/i18n";
 
 import instagramIcon from "../../assets/social_icons/instagram.svg";
 import telegramIcon from "../../assets/social_icons/telegram.svg";
@@ -13,6 +14,20 @@ import maxIcon from "../../assets/social_icons/max.svg";
 import rutubeIcon from "../../assets/social_icons/Icon_RUTUBE_dark_color.svg";
 import spotifyIcon from "../../assets/social_icons/Spotify.png";
 import appleMusicIcon from "../../assets/social_icons/Apple_Musikl.png";
+import shazamIcon from "../../assets/social_icons/shazam.png";
+import subscribeIcon from "../../assets/icons/subscribe.svg";
+import likesIcon from "../../assets/icons/likes.svg";
+import viewsIcon from "../../assets/icons/show.svg";
+import commentsIcon from "../../assets/icons/comments.svg";
+import repostIcon from "../../assets/icons/repost.svg";
+import historyIcon from "../../assets/icons/history.svg";
+import statsIcon from "../../assets/icons/stats.svg";
+import saveIcon from "../../assets/icons/save.svg";
+import pollsIcon from "../../assets/icons/opros.svg";
+import friendsIcon from "../../assets/icons/friends.svg";
+import translationIcon from "../../assets/icons/translation.svg";
+import listeningIcon from "../../assets/icons/listening.svg";
+import podcastsIcon from "../../assets/icons/podcasts.svg";
 import HeroRegisterForm from "../Landing/components/Hero/HeroRegisterForm";
 import { AUTH_CHANGED_EVENT, logoutUser } from "../Landing/components/Hero/auth/authApi";
 import { AccountMenu, InternalHeader, MenuToggle } from "../../ui/AppShell";
@@ -52,6 +67,7 @@ const platformIcons = {
     rutube: rutubeIcon,
     spotify: spotifyIcon,
     apple_music: appleMusicIcon,
+    shazam: shazamIcon,
 };
 
 const catalogPlatformOrder = [
@@ -88,6 +104,23 @@ const serviceTypeNames = {
     referrals: "Рефералы",
     listenings: "Прослушивания",
     podcasts: "Подкасты",
+};
+
+/* Иконки видов услуг — для плиток-прямоугольников в фильтре слева. */
+const serviceTypeIcons = {
+    followers: subscribeIcon,
+    likes: likesIcon,
+    views: viewsIcon,
+    comments: commentsIcon,
+    reposts: repostIcon,
+    stories: historyIcon,
+    statistics: statsIcon,
+    saves: saveIcon,
+    polls: pollsIcon,
+    friends: friendsIcon,
+    livestream: translationIcon,
+    listenings: listeningIcon,
+    podcasts: podcastsIcon,
 };
 
 function displayPlatform(value) {
@@ -127,6 +160,29 @@ function cleanServiceName(value) {
         .trim();
 }
 
+/* Одна подпись дублирует другую, если совпадает целиком или входит в неё
+   («Просмотры» под «Просмотры TikTok»). */
+function isDuplicateLabel(first, second) {
+    const left = String(first || "").trim().toLowerCase();
+    const right = String(second || "").trim().toLowerCase();
+
+    if (!left || !right) return false;
+
+    return left.includes(right) || right.includes(left);
+}
+
+/* Вариант/скорость услуги — хвост названия после «-»:
+   «Лайки - Быстрые ⚡️⚡️» → «Быстрые», «Лайки - Турбо ⚡️ ♻ ★» → «Турбо». */
+function serviceSpeedLabel(value) {
+    const name = String(value || "")
+        .replace(/[\u26A1\u2B50\u2605\uFE0F\uFE0E\u267B\u2699]+/g, " ")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+    const parts = name.split(/\s[-–—]\s*/);
+
+    return parts.length > 1 ? parts[parts.length - 1].trim() : "";
+}
+
 function serviceCategory(item) {
     return String(item.service_type || item.type || "").toLowerCase();
 }
@@ -136,6 +192,7 @@ function matchesServiceType(item, selectedType) {
 }
 
 export default function Catalog() {
+    const { t } = useLanguage();
     const navigate = useNavigate();
     const hasSession = Boolean(localStorage.getItem("token"));
     const [items, setItems] = useState(() => getCachedPrices() || []);
@@ -253,20 +310,6 @@ export default function Catalog() {
         setServiceType(nextServiceType);
     }
 
-    function saveOrderPreset(item) {
-        localStorage.setItem("king_order_prefill", JSON.stringify({
-            version: 2,
-            platform: item.platform || item.soc,
-            service_type: item.service_type || item.type,
-            service_id: item.provider_service_id ?? item.id ?? item.service,
-        }));
-    }
-
-    function beginOrder(item) {
-        saveOrderPreset(item);
-        navigate("/main", { state: { section: "create" } });
-    }
-
     function closeAccountMenu() {
         setIsAccountMenuOpen(false);
     }
@@ -276,10 +319,30 @@ export default function Catalog() {
         setIsAuthPromptOpen(true);
     }
 
+    function saveOrderPreset(item) {
+        localStorage.setItem("king_order_prefill", JSON.stringify({
+            version: 2,
+            platform: item.platform || item.soc,
+            service_type: item.service_type || item.type,
+            service_id: item.provider_service_id ?? item.id ?? item.service,
+        }));
+    }
+
+    /* Клик по карточке: запоминаем услугу и открываем оформление.
+       Без входа — сначала предлагаем авторизоваться. */
+    function beginOrder(item) {
+        saveOrderPreset(item);
+
+        if (!hasSession) {
+            openAuthPrompt();
+            return;
+        }
+
+        navigate("/main", { state: { section: "create" } });
+    }
+
     return (
         <main className="catalog-page">
-            <div className="catalog-glow catalog-glow--one" />
-            <div className="catalog-glow catalog-glow--two" />
             {hasSession ? (
                 null
             ) : (
@@ -288,7 +351,7 @@ export default function Catalog() {
                     onLogin={openAuthPrompt}
                 />
             )}
-            <section className={`catalog-controls container ${hasSession ? "is-authenticated" : ""}`} aria-label="Поиск и выбор социальной сети">
+            <section className={`catalog-controls container ${hasSession ? "is-authenticated" : ""}`} aria-label={t("Поиск и выбор социальной сети")}>
                 <div className="catalog-title-row">
                     {hasSession && (
                         <MenuToggle
@@ -297,7 +360,7 @@ export default function Catalog() {
                             className="catalog-menu-toggle"
                         />
                     )}
-                    <div className="catalog-section-title" aria-hidden="true">Каталог услуг</div>
+                    <div className="catalog-section-title" aria-hidden="true">{t("Каталог услуг")}</div>
                     <AccountMenu
                         open={isAccountMenuOpen}
                         onClose={closeAccountMenu}
@@ -312,7 +375,7 @@ export default function Catalog() {
                 </div>
                 <div className="catalog-filter-bar">
                     <div className="catalog-filter-group">
-                        <div className="catalog-socials" aria-label="Выбор социальной сети">
+                        <div className="catalog-socials" aria-label={t("Выбор социальной сети")}>
                             {platforms.map((itemPlatform) => {
                                 const icon = platformIcons[itemPlatform];
                                 const label = displayPlatform(itemPlatform);
@@ -323,11 +386,11 @@ export default function Catalog() {
                                         type="button"
                                         className={platform === itemPlatform ? "active" : ""}
                                         onClick={() => selectPlatform(itemPlatform)}
-                                        aria-label={`${label}${platform === itemPlatform ? ", сбросить фильтр" : ""}`}
+                                        aria-label={`${t(label)}${platform === itemPlatform ? t(", сбросить фильтр") : ""}`}
                                         aria-pressed={platform === itemPlatform}
-                                        title={label}
+                                        title={t(label)}
                                     >
-                                        {icon ? <img src={icon} alt="" /> : <span>{label.slice(0, 1)}</span>}
+                                        {icon ? <img src={icon} alt="" /> : <span>{t(label.slice(0, 1))}</span>}
                                     </button>
                                 );
                             })}
@@ -340,10 +403,10 @@ export default function Catalog() {
                                 aria-haspopup="listbox"
                                 onClick={() => setIsPlatformMenuOpen((value) => !value)}
                             >
-                                <span>{platform ? displayPlatform(platform) : "Выберите соцсеть"}</span>
+                                <span>{platform ? t(displayPlatform(platform)) : t("Выберите соцсеть")}</span>
                                 <span className="catalog-social-picker-arrow" aria-hidden="true">⌄</span>
                             </button>
-                            <div className="catalog-social-picker-list" role="listbox" aria-label="Выбор социальной сети">
+                            <div className="catalog-social-picker-list" role="listbox" aria-label={t("Выбор социальной сети")}>
                                 {platforms.map((itemPlatform) => {
                                     const icon = platformIcons[itemPlatform];
                                     const label = displayPlatform(itemPlatform);
@@ -358,8 +421,8 @@ export default function Catalog() {
                                             aria-selected={selected}
                                             onClick={() => selectPlatform(itemPlatform)}
                                         >
-                                            {icon ? <img src={icon} alt="" /> : <span className="catalog-social-picker-fallback">{label.slice(0, 1)}</span>}
-                                            <span>{label}</span>
+                                            {icon ? <img src={icon} alt="" /> : <span className="catalog-social-picker-fallback">{t(label.slice(0, 1))}</span>}
+                                            <span>{t(label)}</span>
                                         </button>
                                     );
                                 })}
@@ -371,66 +434,86 @@ export default function Catalog() {
             </section>
 
             {isAuthPromptOpen && (
-                <div className="catalog-auth-overlay" role="dialog" aria-modal="true" aria-label="Авторизация">
-                    <button className="catalog-auth-overlay-backdrop" type="button" aria-label="Закрыть авторизацию" onClick={() => setIsAuthPromptOpen(false)} />
+                <div className="catalog-auth-overlay" role="dialog" aria-modal="true" aria-label={t("Авторизация")}>
+                    <button className="catalog-auth-overlay-backdrop" type="button" aria-label={t("Закрыть авторизацию")} onClick={() => setIsAuthPromptOpen(false)} />
                     <section className="catalog-auth-card">
-                        <button className="catalog-auth-close" type="button" aria-label="Закрыть авторизацию" onClick={() => setIsAuthPromptOpen(false)}>×</button>
+                        <button className="catalog-auth-close" type="button" aria-label={t("Закрыть авторизацию")} onClick={() => setIsAuthPromptOpen(false)}>×</button>
                         <HeroRegisterForm />
                     </section>
                 </div>
             )}
 
-            <section className="catalog-layout container" aria-label="Услуги">
-                <aside className="catalog-service-filters" aria-label="Виды услуг">
-                    {serviceTypes.map((itemType) => (
-                        <button
-                            key={itemType}
-                            type="button"
-                            className={serviceType === itemType ? "active" : ""}
-                            onClick={() => selectServiceType(itemType)}
-                        >
-                            {itemType === "all" ? "Все услуги" : displayServiceType(itemType)}
-                        </button>
-                    ))}
+            <section className="catalog-layout container" aria-label={t("Услуги")}>
+                <aside className="catalog-service-filters" aria-label={t("Виды услуг")}>
+                    {serviceTypes.map((itemType) => {
+                        const icon = serviceTypeIcons[itemType];
+                        const label = itemType === "all" ? "Все услуги" : displayServiceType(itemType);
+
+                        return (
+                            <button
+                                key={itemType}
+                                type="button"
+                                className={serviceType === itemType ? "active" : ""}
+                                onClick={() => selectServiceType(itemType)}
+                            >
+                                <span className="catalog-service-icon">
+                                    {icon ? <img src={icon} alt="" /> : <i>{t(label.slice(0, 1))}</i>}
+                                </span>
+                                <span className="catalog-service-label">{t(label)}</span>
+                            </button>
+                        );
+                    })}
                 </aside>
                 <div className="catalog-content">
-                    {status === "loading" && <p className="catalog-state">Загружаем актуальные цены...</p>}
-                    {status === "error" && <p className="catalog-state catalog-state--error">Не удалось загрузить каталог. Попробуйте обновить страницу.</p>}
-                    {status === "ready" && filteredItems.length === 0 && <p className="catalog-state">По вашему запросу ничего не найдено.</p>}
+                    {status === "loading" && <p className="catalog-state">{t("Загружаем актуальные цены...")}</p>}
+                    {status === "error" && <p className="catalog-state catalog-state--error">{t("Не удалось загрузить каталог. Попробуйте обновить страницу.")}</p>}
+                    {status === "ready" && filteredItems.length === 0 && <p className="catalog-state">{t("По вашему запросу ничего не найдено.")}</p>}
 
                     <div className="catalog-grid">
                         {filteredItems.map((item) => {
                             const platformKey = String(item.platform || item.soc || "").toLowerCase();
                             const platformIcon = platformIcons[platformKey];
                             const platformLabel = displayPlatform(platformKey);
+                            const serviceName = cleanServiceName(item.name);
+                            const typeLabel = displayServiceType(serviceCategory(item));
+                            /* Под названием показываем скорость/вариант услуги, а если
+                               её нет — вид услуги, и только когда он не дублирует название. */
+                            const speedLabel = serviceSpeedLabel(item.name);
+                            const bottomLabel = speedLabel
+                                || (isDuplicateLabel(serviceName, typeLabel) ? "" : typeLabel);
 
                             return (
-                                <article className="catalog-card" key={item.id ?? item.service}>
+                                <article
+                                    className="catalog-card"
+                                    key={item.id ?? item.service}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={t(serviceName)}
+                                    onClick={() => beginOrder(item)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === "Enter" || event.key === " ") {
+                                            event.preventDefault();
+                                            beginOrder(item);
+                                        }
+                                    }}
+                                >
                                     <div className="catalog-card-topline">
-                                        <span className="catalog-card-platform" title={platformLabel}>
-                                            {platformIcon ? <img src={platformIcon} alt={platformLabel} /> : platformLabel.slice(0, 1)}
+                                        <span className="catalog-card-platform" title={t(platformLabel)}>
+                                            {platformIcon ? <img src={platformIcon} alt={t(platformLabel)} /> : t(platformLabel.slice(0, 1))}
                                         </span>
-                                        <span className="catalog-card-platform-name">{platformLabel}</span>
+                                        <span className="catalog-card-platform-name">{t(platformLabel)}</span>
                                         <span className="catalog-card-id">#{item.id ?? item.service}</span>
                                     </div>
-                                    <h2>{cleanServiceName(item.name)}</h2>
-                                    <p className="catalog-type">{displayServiceType(serviceCategory(item))}</p>
+                                    <h2>{t(serviceName)}</h2>
+                                    {bottomLabel && <p className="catalog-type">{t(bottomLabel)}</p>}
                                     <dl>
-                                        <div><dt>От</dt><dd>{Number(item.min || 0).toLocaleString("ru-RU")}</dd></div>
-                                        <div><dt>До</dt><dd>{Number(item.max || 0).toLocaleString("ru-RU")}</dd></div>
+                                        <div><dt>{t("От")}</dt><dd>{Number(item.min || 0).toLocaleString("ru-RU")}</dd></div>
+                                        <div><dt>{t("До")}</dt><dd>{Number(item.max || 0).toLocaleString("ru-RU")}</dd></div>
                                     </dl>
                                     <div className="catalog-price">
-                                        <span>Цена за 1 000</span>
+                                        <span>{t("Цена за 1 000")}</span>
                                         <strong>{displayMoney(serviceRate(item))} ₽</strong>
                                     </div>
-                                    {hasSession ? (
-                                        <button className="catalog-order" type="button" onClick={() => beginOrder(item)}>Оформить заказ</button>
-                                    ) : (
-                                        <button className="catalog-order" type="button" onClick={() => {
-                                            saveOrderPreset(item);
-                                            openAuthPrompt();
-                                        }}>Оформить заказ</button>
-                                    )}
                                 </article>
                             );
                         })}

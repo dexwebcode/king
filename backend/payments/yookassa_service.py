@@ -19,6 +19,10 @@ class YooKassaPaymentMethodUnavailableError(RuntimeError):
     pass
 
 
+class YooKassaCancelNotAllowedError(RuntimeError):
+    """ЮKassa не даёт отменить этот платёж (одностадийный, capture=true)."""
+
+
 def configure_yookassa() -> None:
     if not YOOKASSA_SHOP_ID or not YOOKASSA_SECRET_KEY:
         raise YooKassaNotConfiguredError(
@@ -95,6 +99,19 @@ def get_yookassa_payment(payment_id: str):
 
 
 def cancel_yookassa_payment(payment_id: str, idempotence_key: str):
-    """Закрывает платёж в ЮKassa, чтобы по нему больше нельзя было заплатить."""
+    """Закрывает платёж в ЮKassa, чтобы по нему больше нельзя было заплатить.
+
+    Одностадийные платежи (capture=true) ЮKassa отменять не даёт — отвечает
+    BadRequestError «you can't cancel it». Для этого случая бросаем отдельное
+    исключение, чтобы не повторять заведомо бесполезные попытки.
+    """
     configure_yookassa()
-    return Payment.cancel(payment_id, idempotence_key)
+    try:
+        return Payment.cancel(payment_id, idempotence_key)
+    except BadRequestError as error:
+        message = str(error).lower()
+        if "capture" in message and "cancel" in message:
+            raise YooKassaCancelNotAllowedError(
+                "ЮKassa не отменяет одностадийный платёж (capture=true)"
+            ) from error
+        raise

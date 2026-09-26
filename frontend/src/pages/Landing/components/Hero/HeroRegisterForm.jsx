@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useLanguage } from "../../../../ui/i18n";
 import LoginForm from "./auth/LoginForm";
 import RegisterForm from "./auth/RegisterForm";
 import "./css/auth-panel/HeroAuthPanel.css";
 import "./css/auth-panel/HeroAuthForm.css";
 
 export default function HeroRegisterForm({ onAuthSuccess }) {
+    const { t } = useLanguage();
     const [mode, setMode] = useState("login");
     const [login, setLogin] = useState("");
     const [password, setPassword] = useState("");
@@ -24,7 +26,7 @@ export default function HeroRegisterForm({ onAuthSuccess }) {
         <div className="hero-auth-panel">
             <div className="login-card-header hero-auth-panel-header">
                 <h2>
-                    {mode === "login" ? "Авторизация" : "Регистрация"}
+                    {mode === "login" ? t("Авторизация") : t("Регистрация")}
                 </h2>
             </div>
 

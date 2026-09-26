@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppShell, EmptyState, PageHeader } from "../../ui/AppShell";
+import { useLanguage } from "../../ui/i18n";
 import Modal from "../../ui/Modal";
 import Footer from "../Landing/components/Footer/Footer";
 import HeroRegisterForm from "../Landing/components/Hero/HeroRegisterForm";
@@ -10,6 +11,7 @@ import { getMyReview, getReviews, getReviewStats } from "./reviewsApi";
 import "./Reviews.css";
 
 export default function Reviews({ isAuthenticated }) {
+    const { t } = useLanguage();
     const [sort, setSort] = useState("newest");
     const [revision, setRevision] = useState(0);
     const [items, setItems] = useState([]);
@@ -64,8 +66,8 @@ export default function Reviews({ isAuthenticated }) {
 
     const afterAuth = useCallback(() => {
         setModal(null); setRevision((value) => value + 1);
-        setNotice("Вы вошли в аккаунт. Теперь можно оставить отзыв.");
-    }, []);
+        setNotice(t("Вы вошли в аккаунт. Теперь можно оставить отзыв."));
+    }, [t]);
 
     async function loadMore() {
         if (requests.current.more || nextOffset === null) return;
@@ -89,9 +91,9 @@ export default function Reviews({ isAuthenticated }) {
     }
 
     return <div className="reviews-page-shell">
-        <AppShell active="reviews" onLogin={() => setModal("auth")} contentClassName="reviews-page" title="Отзывы наших клиентов">
-            <PageHeader eyebrow="KingPromotion · Отзывы" description="Реальный опыт пользователей KingPromotion. Делитесь впечатлениями и помогайте нам становиться лучше." />
-            {isAuthenticated && ownStatus === "error" && <p role="alert" className="reviews-inline-error">Не удалось проверить ваш отзыв. Обновите страницу.</p>}
+        <AppShell active="reviews" onLogin={() => setModal("auth")} contentClassName="reviews-page" title={t("Отзывы наших клиентов")}>
+            <PageHeader eyebrow={t("KingPromotion · Отзывы")} description={t("Реальный опыт пользователей KingPromotion. Делитесь впечатлениями и помогайте нам становиться лучше.")} />
+            {isAuthenticated && ownStatus === "error" && <p role="alert" className="reviews-inline-error">{t("Не удалось проверить ваш отзыв. Обновите страницу.")}</p>}
             <div className="reviews-top">
                 {/* Левая колонка: общий рейтинг и под ним список отзывов. */}
                 <div className="reviews-main">
@@ -99,21 +101,21 @@ export default function Reviews({ isAuthenticated }) {
 
                     <section aria-labelledby="reviews-list-title">
                         <div className="reviews-toolbar">
-                            <h2 id="reviews-list-title">Опыт наших клиентов</h2>
-                            <label className="reviews-sort"><span>Сортировка</span><select className="kp-field" value={sort} onChange={(event) => setSort(event.target.value)}>
-                                <option value="newest">Сначала новые</option><option value="oldest">Сначала старые</option><option value="highest">С высокой оценкой</option><option value="lowest">С низкой оценкой</option>
+                            <h2 id="reviews-list-title">{t("Опыт наших клиентов")}</h2>
+                            <label className="reviews-sort"><span>{t("Сортировка")}</span><select className="kp-field" value={sort} onChange={(event) => setSort(event.target.value)}>
+                                <option value="newest">{t("Сначала новые")}</option><option value="oldest">{t("Сначала старые")}</option><option value="highest">{t("С высокой оценкой")}</option><option value="lowest">{t("С низкой оценкой")}</option>
                             </select></label>
                         </div>
                         {status === "loading" && <ReviewsSkeleton />}
-                        {status === "error" && <EmptyState><h3>Не удалось загрузить отзывы</h3><p>Попробуйте ещё раз чуть позже.</p><button className="kp-button kp-button--secondary" type="button" onClick={() => setRevision((value) => value + 1)}>Попробовать снова</button></EmptyState>}
+                        {status === "error" && <EmptyState><h3>{t("Не удалось загрузить отзывы")}</h3><p>{t("Попробуйте ещё раз чуть позже.")}</p><button className="kp-button kp-button--secondary" type="button" onClick={() => setRevision((value) => value + 1)}>{t("Попробовать снова")}</button></EmptyState>}
                         {status === "ready" && (items.length ? <>
                             <div className="reviews-grid">{items.map((review) => <ReviewCard key={review.id} review={review} />)}</div>
                             <div className="reviews-more" aria-live="polite">
-                                {moreError && <p role="alert">Не удалось загрузить следующую страницу. Попробуйте ещё раз.</p>}
-                                {nextOffset !== null && <button className="kp-button kp-button--secondary" type="button" disabled={loadingMore} onClick={loadMore}>{loadingMore ? "Загружаем…" : moreError ? "Попробовать снова" : "Показать ещё"}</button>}
-                                <span className="reviews-loaded">Показано {items.length} из {stats.total}</span>
+                                {moreError && <p role="alert">{t("Не удалось загрузить следующую страницу. Попробуйте ещё раз.")}</p>}
+                                {nextOffset !== null && <button className="kp-button kp-button--secondary" type="button" disabled={loadingMore} onClick={loadMore}>{loadingMore ? t("Загружаем…") : moreError ? t("Попробовать снова") : t("Показать ещё")}</button>}
+                                <span className="reviews-loaded">{t("Показано {shown} из {total}", { shown: items.length, total: stats.total })}</span>
                             </div>
-                        </> : <EmptyState><h3>Пока нет отзывов</h3><p>Станьте первым, кто поделится своим опытом.</p></EmptyState>)}
+                        </> : <EmptyState><h3>{t("Пока нет отзывов")}</h3><p>{t("Станьте первым, кто поделится своим опытом.")}</p></EmptyState>)}
                     </section>
                 </div>
 
@@ -124,16 +126,16 @@ export default function Reviews({ isAuthenticated }) {
                     onConflict={() => setRevision((value) => value + 1)}
                     onSaved={(review, edited) => {
                         setMyReview(review);
-                        setNotice(edited ? "Спасибо! Ваш отзыв обновлён." : "Спасибо! Ваш отзыв опубликован.");
+                        setNotice(edited ? t("Спасибо! Ваш отзыв обновлён.") : t("Спасибо! Ваш отзыв опубликован."));
                         setRevision((value) => value + 1);
                     }}
                 />
             </div>
         </AppShell>
         {notice && <div className="reviews-notice kp-status kp-status--success" role="status"><i />{notice}</div>}
-        {modal === "prompt" && <Modal title="Войдите в аккаунт" onClose={() => setModal(null)} className="reviews-modal">
-            <div className="review-form"><h2>Войдите в аккаунт</h2><p>Чтобы оставить отзыв, необходимо войти в аккаунт.</p><div className="reviews-dialog-actions"><button className="kp-button" type="button" onClick={() => setModal("auth")}>Войти</button><button className="kp-button kp-button--secondary" type="button" onClick={() => setModal(null)}>Отмена</button></div></div>
+        {modal === "prompt" && <Modal title={t("Войдите в аккаунт")} onClose={() => setModal(null)} className="reviews-modal">
+            <div className="review-form"><h2>{t("Войдите в аккаунт")}</h2><p>{t("Чтобы оставить отзыв, необходимо войти в аккаунт.")}</p><div className="reviews-dialog-actions"><button className="kp-button" type="button" onClick={() => setModal("auth")}>{t("Войти")}</button><button className="kp-button kp-button--secondary" type="button" onClick={() => setModal(null)}>{t("Отмена")}</button></div></div>
         </Modal>}
-        {modal === "auth" && <Modal title="Авторизация" onClose={() => setModal(null)}><HeroRegisterForm onAuthSuccess={afterAuth} /></Modal>}
+        {modal === "auth" && <Modal title={t("Авторизация")} onClose={() => setModal(null)}><HeroRegisterForm onAuthSuccess={afterAuth} /></Modal>}
     </div>;
 }

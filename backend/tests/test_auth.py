@@ -29,7 +29,13 @@ class PasswordSecurityTests(unittest.TestCase):
         self.assertFalse(verify_password("wrong", first))
         self.assertFalse(password_needs_rehash(first))
 
-    def test_legacy_md5_remains_compatible_and_requires_upgrade(self):
+    def test_legacy_md5_rejected_when_window_closed(self):
+        legacy = hash_md5_password("LegacyPass1")
+        self.assertFalse(verify_password("LegacyPass1", legacy))
+        self.assertTrue(password_needs_rehash(legacy))
+
+    @patch("backend.auth.security.ALLOW_LEGACY_MD5_LOGIN", True)
+    def test_legacy_md5_accepted_when_window_open(self):
         legacy = hash_md5_password("LegacyPass1")
         self.assertTrue(verify_password("LegacyPass1", legacy))
         self.assertTrue(password_needs_rehash(legacy))
@@ -45,6 +51,7 @@ class PasswordSecurityTests(unittest.TestCase):
 
 
 class LocalAuthenticationTests(unittest.TestCase):
+    @patch("backend.auth.security.ALLOW_LEGACY_MD5_LOGIN", True)
     @patch("backend.auth.service.create_access_token", return_value="jwt")
     @patch("backend.auth.service.update_user_password")
     @patch("backend.auth.service.get_user_by_login_or_email")

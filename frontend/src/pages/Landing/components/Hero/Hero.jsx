@@ -1,5 +1,6 @@
 import HeroRegisterForm from "./HeroRegisterForm";
 import { Link } from "react-router-dom";
+import { useLanguage } from "../../../../ui/i18n";
 import Stats from "../Stats/Stats";
 import "./css/layout/HeroLayout.css";
 import "./css/content/HeroCopy.css";
@@ -15,6 +16,8 @@ export default function Hero({
     isOrderGuideActive = false,
     onQuickOrderClick,
 }) {
+    const { t } = useLanguage();
+
     function handleQuickOrderClick(event) {
         if (!onQuickOrderClick) {
             return;
@@ -29,14 +32,14 @@ export default function Hero({
             <div className="hero-content">
                 <div className="hero-copy">
                     <h1 className="hero-main-title">
-                        <span>Продвигайте</span>
-                        <span>аккаунты быстрее</span>
-                        <span>без сложных настроек</span>
+                        <span>{t("Продвигайте")}</span>
+                        <span>{t("аккаунты быстрее")}</span>
+                        <span>{t("без сложных настроек")}</span>
                     </h1>
 
                     <p className="hero-subtitle">
-                        Тысячи клиентов уже получают подписчиков,
-                        просмотры и <span className="hero-subtitle-nowrap">активность с нами.</span>
+                        {t("Тысячи клиентов уже получают подписчиков, просмотры и")}{" "}
+                        <span className="hero-subtitle-nowrap">{t("активность с нами.")}</span>
                     </p>
                     <div className="hero-actions">
                         <div className="hero-actions-top">
@@ -45,10 +48,10 @@ export default function Hero({
                                 href="#quick-order"
                                 onClick={handleQuickOrderClick}
                             >
-                                <span className="button-label">Быстрый заказ</span>
+                                <span className="button-label">{t("Быстрый заказ")}</span>
                             </a>
                             <Link className="button hero-action-catalog" to="/catalog">
-                                <span className="button-label">Каталог услуг</span>
+                                <span className="button-label">{t("Каталог услуг")}</span>
                             </Link>
                         </div>
                     </div>

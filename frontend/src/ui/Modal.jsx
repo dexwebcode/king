@@ -1,8 +1,11 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
+import { useLanguage } from "./i18n";
+
 // Shared shell extracted from Header's auth modal, with focus and keyboard handling.
 export default function Modal({ title, children, onClose, busy = false, className = "" }) {
+    const { t } = useLanguage();
     const panel = useRef(null);
     const close = useRef(onClose);
     const locked = useRef(busy);
@@ -46,8 +49,8 @@ export default function Modal({ title, children, onClose, busy = false, classNam
     return createPortal(
         <div className={`auth-modal ${className}`}>
             <div className="auth-modal-backdrop" onClick={() => !busy && onClose()} />
-            <section ref={panel} tabIndex={-1} className="auth-modal-panel" role="dialog" aria-modal="true" aria-label={title} aria-busy={busy}>
-                <button className="auth-modal-close" type="button" aria-label="Закрыть окно" disabled={busy} onClick={onClose}>×</button>
+            <section ref={panel} tabIndex={-1} className="auth-modal-panel" role="dialog" aria-modal="true" aria-label={t(title)} aria-busy={busy}>
+                <button className="auth-modal-close" type="button" aria-label={t("Закрыть окно")} disabled={busy} onClick={onClose}>×</button>
                 {children}
             </section>
         </div>, document.body,

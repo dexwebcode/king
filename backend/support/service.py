@@ -111,10 +111,15 @@ class SupportService:
         }
 
     @staticmethod
-    def list_my_tickets(*, user_id):
+    def list_my_tickets(*, user_id, limit=50, before_public_id=None):
         session = SessionLocal()
         try:
-            rows = repository.list_tickets_for_user(session, user_id)
+            rows = repository.list_tickets_for_user(
+                session,
+                user_id,
+                limit=limit,
+                before_public_id=before_public_id,
+            )
         finally:
             session.close()
         return [_ticket_payload(row) for row in rows]
@@ -143,6 +148,16 @@ class SupportService:
         finally:
             session.close()
         return _ticket_payload(ticket) if ticket else None
+
+    @staticmethod
+    def get_ticket_admin_context(*, ticket_id):
+        """Расширенный контекст тикета для Telegram (с логином пользователя)."""
+        session = SessionLocal()
+        try:
+            row = repository.get_ticket_admin_context(session, ticket_id)
+        finally:
+            session.close()
+        return dict(row) if row else None
 
     @staticmethod
     def get_ticket_by_telegram_message_id(*, telegram_message_id):
@@ -258,7 +273,11 @@ class SupportService:
         finally:
             session.close()
         logger.info("Support admin reply created public_id=%s", public_id)
-        return {"message": _message_payload(saved), "ticket": _ticket_payload(updated)}
+        return {
+            "message": _message_payload(saved),
+            "ticket": _ticket_payload(updated),
+            "ticket_user_id": ticket["user_id"],
+        }
 
     @staticmethod
     def admin_change_status(*, public_id, admin_user_id, status):

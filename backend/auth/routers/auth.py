@@ -7,7 +7,7 @@
 # а основную логику входа и регистрации передаёт в auth.service.
 
 # PYTHON ИМПОРТЫ
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 # ЛОКАЛЬНЫЕ ИМПОРТЫ
 from backend.auth.dependencies import get_current_user
@@ -15,15 +15,28 @@ from backend.auth.schemas import LoginRequest, RegisterRequest
 from backend.auth.service import (
     UserAlreadyExistsError,
     login_user,
+    logout_user,
     register_user,
 )
+from backend.core import config
+from backend.core.ratelimit import client_ip, enforce_rate_limits
 
 
 router = APIRouter()
 
 # Endpoint входа пользователя
 @router.post("/login")
-def login(data: LoginRequest):
+def login(data: LoginRequest, request: Request):
+    ip = client_ip(request)
+    enforce_rate_limits(
+        [
+            (f"login:ip:{ip}", config.RATE_LIMIT_LOGIN_PER_IP),
+            (
+                f"login:account:{str(data.identifier).strip().lower()}",
+                config.RATE_LIMIT_LOGIN_PER_ACCOUNT,
+            ),
+        ]
+    )
     result = login_user(
         login_or_email=data.identifier,
         password=data.password,
@@ -62,7 +75,10 @@ def me(current_user: dict = Depends(get_current_user)):
     "/register",
     status_code=status.HTTP_201_CREATED,
 )
-def register(data: RegisterRequest):
+def register(data: RegisterRequest, request: Request):
+    enforce_rate_limits(
+        [(f"register:ip:{client_ip(request)}", config.RATE_LIMIT_REGISTER_PER_IP)]
+    )
     try:
         result = register_user(
             login=data.login,
@@ -93,7 +109,8 @@ def register(data: RegisterRequest):
 
 # Endpoint выхода
 @router.post("/logout")
-def logout():
+def logout(current_user: dict = Depends(get_current_user)):
+    logout_user(current_user["id"])
     return {
         "success": True,
     }

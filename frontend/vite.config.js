@@ -7,6 +7,12 @@ export default defineConfig({
     dedupe: ['react', 'react-dom'],
   },
 
+  build: {
+    target: 'es2020',
+    cssCodeSplit: true,
+    sourcemap: false,
+  },
+
   server: {
     allowedHosts: [
       "monument-cuddly-outsell.ngrok-free.dev",

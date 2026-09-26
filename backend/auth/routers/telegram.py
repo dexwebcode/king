@@ -175,7 +175,7 @@ def telegram_guest_status(
         "authorized": True,
         "action": "login",
         "created": created,
-        "token": create_access_token(user["id"]),
+        "token": create_access_token(user["id"], user.get("token_version", 0)),
         "user": {
             "id": user["id"],
             "login": user["login"],

@@ -1,9 +1,10 @@
 """Административное REST API поддержки: /api/admin/support/*."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 from backend.admin.dependencies import get_current_admin
 
+from . import notifications
 from .constants import VALID_STATUS_VALUES
 from .schemas import AdminSendMessageRequest, StatusUpdateRequest
 from .service import SupportService, TicketClosedError, TicketNotFoundError
@@ -47,10 +48,11 @@ def admin_get_ticket_endpoint(public_id: str):
 def admin_send_message_endpoint(
     public_id: str,
     data: AdminSendMessageRequest,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_admin),
 ):
     try:
-        return SupportService.admin_send_message(
+        result = SupportService.admin_send_message(
             public_id=public_id,
             admin_user_id=current_user["id"],
             message=data.message,
@@ -59,6 +61,16 @@ def admin_send_message_endpoint(
         raise HTTPException(status_code=404, detail="Обращение не найдено")
     except TicketClosedError:
         raise HTTPException(status_code=409, detail="Обращение закрыто")
+
+    # Ответ уже сохранён. Уведомление пользователю — best-effort, ошибки не влияют.
+    ticket_user_id = result.pop("ticket_user_id", None)
+    background_tasks.add_task(
+        notifications.send_user_reply_notification,
+        user_id=ticket_user_id,
+        public_id=public_id,
+        message=result["message"]["message"],
+    )
+    return result
 
 
 @router.patch("/tickets/{public_id}/status")

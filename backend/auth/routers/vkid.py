@@ -53,7 +53,7 @@ def vk_login(data: VkLoginRequest, session: Session = Depends(get_db)):
     return {
         "success": True,
         "created": created,
-        "token": create_access_token(user["id"]),
+        "token": create_access_token(user["id"], user.get("token_version", 0)),
         "user": {"id": user["id"], "login": user["login"], "email": user["mail"]},
     }
 

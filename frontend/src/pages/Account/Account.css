@@ -32,6 +32,9 @@
 .account-connections {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    /* Карточки не растягиваются по высоте самой высокой: раскрытая форма
+       «Логин» не удлиняет рамки соседних карточек. */
+    align-items: start;
     gap: 12px;
 }
 
@@ -46,15 +49,20 @@
     display: grid;
     gap: 13px;
     align-content: start;
-    border: 1px solid var(--kp-border);
+    /* По умолчанию карточка без рамки: прямоугольник появляется только
+       у выбранной (раскрытой) карточки. */
+    border: 1px solid transparent;
     border-radius: var(--kp-radius-md);
     background: rgba(255, 255, 255, .018);
     transition: border-color .18s ease, background .18s ease;
 }
 
 .account-card:hover {
-    border-color: var(--kp-border-strong);
     background: var(--kp-panel-hover);
+}
+
+.account-card.is-open {
+    border-color: var(--kp-border-strong);
 }
 
 .account-card-head {
@@ -165,6 +173,12 @@
     color: var(--kp-text-secondary);
     font-size: 12px;
     font-weight: 750;
+}
+
+/* Плейсхолдер мельче введённого значения: текст-подсказка не выглядит
+   крупным относительно самой плашки поля. */
+.account-page .kp-field::placeholder {
+    font-size: 13px;
 }
 
 .account-credentials-actions {

@@ -1,22 +1,7 @@
 .catalog-page {
     position: relative;
-    min-height: 100dvh;
     overflow-x: clip;
     overflow-y: visible;
-    background: #101112;
-    color: #f5f5f2;
-}
-
-.catalog-page::before {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    content: "";
-    pointer-events: none;
-    opacity: 0.17;
-    background-image: radial-gradient(rgba(255, 209, 90, 0.34) 1px, transparent 1px);
-    background-size: 24px 24px;
-    mask-image: linear-gradient(to bottom, black, transparent 78%);
 }
 
 .catalog-header,
@@ -195,6 +180,7 @@
 }
 
 @media (min-width: 701px) {
+
     /* Поиск ушёл в правый край строки, поэтому компенсирующий сдвиг больше не нужен. */
     .catalog-filter-group {
         transform: none;
@@ -831,17 +817,13 @@
     position: sticky;
     top: 22px;
     display: grid;
-    gap: 7px;
-    padding: 16px;
-    /* Как панели в разделе «Надёжность и безопасность»: без обводки, только фон. */
-    border: 0;
-    border-radius: 18px;
-    background:
-        radial-gradient(circle at 100% 0%, rgba(255, 255, 255, .06), transparent 46%),
-        linear-gradient(160deg, rgba(24, 25, 29, .96), rgba(11, 12, 15, .94));
-    box-shadow:
-        inset 0 1px rgba(255, 255, 255, .04),
-        0 22px 55px rgba(0, 0, 0, .26);
+    /* Пункты стоят плотнее друг к другу. */
+    gap: 2px;
+    padding: 14px 12px;
+    /* Тот же задний прямоугольник, что у карточек входа в личном кабинете. */
+    border: 1px solid transparent;
+    border-radius: var(--kp-radius-md);
+    background: rgba(255, 255, 255, .018);
 }
 
 .catalog-service-filters p {
@@ -854,15 +836,47 @@
 }
 
 .catalog-service-filters button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     border: 1px solid transparent;
     border-radius: 15px;
-    padding: 9px 10px;
+    padding: 5px 8px;
     background: transparent;
     color: #c7c8cc;
     cursor: pointer;
     text-align: left;
     font-size: 14px;
     transition: background 160ms ease, color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+/* Иконка вида услуги — без заднего прямоугольника, только сама иконка. */
+.catalog-service-icon {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    color: #ffe7a3;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.catalog-service-icon img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+}
+
+.catalog-service-icon i {
+    font-style: normal;
+}
+
+.catalog-service-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .catalog-service-filters button:hover {
@@ -911,26 +925,23 @@
     min-height: 300px;
     flex-direction: column;
     padding: 20px;
-    /* Как панели в разделе «Надёжность и безопасность»: без обводки, только фон. */
-    border: 0;
-    border-radius: 18px;
-    background:
-        radial-gradient(circle at 100% 0%, rgba(255, 255, 255, .06), transparent 46%),
-        linear-gradient(160deg, rgba(24, 25, 29, .96), rgba(11, 12, 15, .94));
-    box-shadow:
-        inset 0 1px rgba(255, 255, 255, .04),
-        0 22px 55px rgba(0, 0, 0, .26);
-    transition: transform 200ms ease, background 200ms ease, box-shadow 200ms ease;
+    /* Тот же задний прямоугольник, что у карточек входа Telegram/VK/логин
+       в личном кабинете: без обводки, лёгкий фон, скругление 16px. */
+    border: 1px solid transparent;
+    border-radius: var(--kp-radius-md);
+    background: rgba(255, 255, 255, 0.045);
+    cursor: pointer;
+    transition: background 180ms ease, border-color 180ms ease;
 }
 
 .catalog-card:hover {
-    background:
-        radial-gradient(circle at 100% 0%, rgba(255, 255, 255, .09), transparent 46%),
-        linear-gradient(160deg, rgba(31, 32, 37, .98), rgba(14, 15, 18, .96));
-    transform: translateY(-4px);
-    box-shadow:
-        inset 0 1px rgba(255, 255, 255, .06),
-        0 26px 62px rgba(0, 0, 0, .32);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.catalog-card:focus-visible {
+    outline: none;
+    border-color: rgba(255, 209, 90, .55);
+    box-shadow: 0 0 0 3px rgba(255, 209, 90, .1);
 }
 
 .catalog-card-topline {
@@ -1052,27 +1063,6 @@
 
 .catalog-state--error {
     color: #f5b6a8;
-}
-
-.catalog-glow {
-    position: absolute;
-    width: 42vw;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    filter: blur(20px);
-    pointer-events: none;
-}
-
-.catalog-glow--one {
-    top: -22vw;
-    right: -12vw;
-    background: radial-gradient(circle, rgba(242, 173, 37, 0.18), transparent 67%);
-}
-
-.catalog-glow--two {
-    left: -20vw;
-    bottom: 5vw;
-    background: radial-gradient(circle, rgba(70, 109, 138, 0.17), transparent 67%);
 }
 
 @media (max-width: 1100px) {

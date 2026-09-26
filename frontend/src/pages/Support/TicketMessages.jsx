@@ -1,3 +1,4 @@
+import { useLanguage } from "../../ui/i18n";
 import { formatTime } from "./statusMeta";
 
 function labelFor(senderType, perspective) {
@@ -8,8 +9,9 @@ function labelFor(senderType, perspective) {
 }
 
 export default function TicketMessages({ messages, perspective = "user" }) {
+  const { t } = useLanguage();
   if (!messages || messages.length === 0) {
-    return <p className="support-muted">Сообщений пока нет.</p>;
+    return <p className="support-muted">{t("Сообщений пока нет.")}</p>;
   }
   return (
     <div className="ticket-messages">
@@ -21,6 +23,7 @@ export default function TicketMessages({ messages, perspective = "user" }) {
 }
 
 export function TicketMessage({ message, perspective = "user" }) {
+  const { t } = useLanguage();
   const mine = message.sender_type === (perspective === "admin" ? "admin" : "user");
   const system = message.sender_type === "system";
   return (
@@ -34,7 +37,7 @@ export function TicketMessage({ message, perspective = "user" }) {
         .join(" ")}
     >
       <header className="ticket-message-head">
-        <strong>{labelFor(message.sender_type, perspective)}</strong>
+        <strong>{t(labelFor(message.sender_type, perspective))}</strong>
         <time>{formatTime(message.created_at)}</time>
       </header>
       <p className="ticket-message-text">{message.message}</p>

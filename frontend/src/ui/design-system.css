@@ -23,10 +23,17 @@
     --kp-section-toggle-size: 46px;
 }
 
-.kp-app-shell {
+/* Личный кабинет и каталог используют один и тот же фон — правило общее,
+   поэтому фон каталога совпадает с кабинетом один в один. */
+.kp-app-shell,
+.catalog-page {
     min-height: 100dvh;
     color: var(--kp-text);
     background: radial-gradient(circle at 18% -10%, rgba(255, 209, 90, .11), transparent 34%), var(--kp-bg);
+    /* Фон привязан к окну, а не к высоте страницы: при смене соцсети
+       (когда меняется количество карточек) свечение не пересчитывается
+       и фон остаётся прежним. */
+    background-attachment: fixed;
     font-family: 'Montserrat', sans-serif;
 }
 
@@ -117,14 +124,14 @@
     z-index: 1100;
     inset: 0;
     border: 0;
-    /* Затемнение постоянное и гасится прозрачностью: размытие фона
-       не пересчитывается каждый кадр, поэтому анимация идёт ровно. */
-    background: rgba(4, 4, 5, .58);
+    /* Экран под меню затемняется и размывается, поэтому меню читается как
+       отдельный слой сверху. */
+    background: rgba(4, 4, 5, .68);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     transition: opacity .26s ease, visibility 0s linear .26s;
 }
 
@@ -151,11 +158,10 @@
     padding: 24px;
     border: 1px solid rgba(255, 209, 90, .22);
     border-radius: 22px;
-    /* Без собственного backdrop-filter: панель движется, и размытие фона под
-       ней пришлось бы пересчитывать на каждом кадре — отсюда рывки. Стекло
-       имитируем плотным полупрозрачным фоном; то, что за панелью, и так
-       размыто общим затемнением. */
-    background: linear-gradient(160deg, rgba(35, 36, 39, .93), rgba(13, 14, 16, .95));
+    /* Полностью непрозрачный фон: за панелью ничего не просвечивает.
+       Собственный backdrop-filter не используем — панель движется, и размытие
+       фона под ней пришлось бы пересчитывать на каждом кадре (рывки). */
+    background: linear-gradient(160deg, #232427, #0d0e10);
     box-shadow: 0 26px 70px rgba(0, 0, 0, .42);
     /* Закрытое состояние невидимо: закрытие идёт растворением. */
     opacity: 0;
@@ -234,6 +240,45 @@
 
 .kp-side-menu-head strong {
     font-size: 19px;
+}
+
+/* Переключатель языка + «Выйти» — справа в шапке меню. */
+.kp-side-menu-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 auto;
+}
+
+.kp-lang-switch {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* RU | EN — как переключатель «Мои заказы / История»: активный яркий,
+   неактивный тусклый. */
+.kp-lang-switch button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--kp-text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    line-height: 1.2;
+    cursor: pointer;
+    opacity: .35;
+    transition: opacity .18s ease;
+}
+
+.kp-lang-switch button:hover {
+    opacity: .7;
+}
+
+.kp-lang-switch button.is-active {
+    opacity: 1;
 }
 
 /* Плашка баланса — кнопка перехода в раздел «Баланс». */
@@ -369,6 +414,7 @@
     position: relative;
     z-index: 1102;
     margin: 0;
+    min-width: 0;
     font-size: var(--kp-section-title-size);
     font-weight: 800;
     letter-spacing: -.045em;

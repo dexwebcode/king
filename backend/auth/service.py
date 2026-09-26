@@ -9,8 +9,10 @@ from backend.core.database import SessionLocal
 from .repository import (
     create_user,
     get_user_by_email,
+    get_user_by_id,
     get_user_by_login,
     get_user_by_login_or_email,
+    increment_user_token_version,
     update_user_password,
 )
 from .security import (
@@ -49,7 +51,7 @@ def login_user(
             update_user_password(session, user["id"], hash_password(password))
             session.commit()
 
-        token = create_access_token(user["id"])
+        token = create_access_token(user["id"], user.get("token_version", 0))
 
         return {
             "user_id": user["id"],
@@ -115,5 +117,16 @@ def register_user(
             "token": token,
         }
 
+    finally:
+        session.close()
+
+
+# Выход: инвалидирует все ранее выпущенные токены пользователя.
+def logout_user(user_id: int) -> None:
+    session = SessionLocal()
+
+    try:
+        with session.begin():
+            increment_user_token_version(session, user_id)
     finally:
         session.close()

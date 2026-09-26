@@ -5,9 +5,85 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#141517" />
     <title>KingPromotion</title>
+    <style>
+      /* Критический загрузчик: виден сразу, до загрузки JS-бандла.
+         Классы .boot-loader переиспользуются в App.jsx (фаза проверки авторизации). */
+      .boot-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        background: #141517;
+      }
+
+      .boot-loader__bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .boot-loader__bar::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -40%;
+        width: 40%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, #ffd15a, transparent);
+        animation: boot-bar 1.2s ease-in-out infinite;
+      }
+
+      .boot-loader__spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.12);
+        border-top-color: #ffd15a;
+        border-radius: 50%;
+        animation: boot-spin 0.8s linear infinite;
+      }
+
+      .boot-loader__text {
+        margin: 0;
+        color: #85878d;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0.03em;
+      }
+
+      @keyframes boot-bar {
+        to {
+          left: 100%;
+        }
+      }
+
+      @keyframes boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+    <script>
+      window.__BOOT_START = performance.now();
+      performance.mark("boot-start");
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot-loader" role="status" aria-busy="true">
+        <div class="boot-loader__bar"></div>
+        <div class="boot-loader__spinner"></div>
+        <p class="boot-loader__text">Загрузка…</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

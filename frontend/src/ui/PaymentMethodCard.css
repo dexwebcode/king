@@ -1,0 +1,132 @@
+/* Карточка способа оплаты — общая для пополнения баланса и панели заказа. */
+.payment-method-list {
+    display: grid;
+    gap: 10px;
+}
+
+.payment-method-card {
+    width: 100%;
+    min-width: 0;
+    padding: 13px 14px;
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) 20px;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--kp-border);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .018);
+    color: var(--kp-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .18s ease, background .18s ease;
+}
+
+.payment-method-card:hover {
+    border-color: var(--kp-border-strong);
+    background: var(--kp-panel-hover);
+}
+
+.payment-method-card.is-selected {
+    border-color: rgba(255, 209, 90, .5);
+    background: rgba(255, 209, 90, .055);
+    box-shadow: inset 0 0 0 1px rgba(255, 209, 90, .08);
+}
+
+.payment-method-logo {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .05);
+}
+
+.payment-method-logo img {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+}
+
+.payment-method-logo i {
+    width: 4px;
+    height: 17px;
+    display: block;
+    border-radius: 6px;
+    background: #fff;
+    transform: skew(-11deg);
+}
+
+.payment-method-logo i:nth-child(2) {
+    height: 23px;
+}
+
+.payment-method-logo i:nth-child(3) {
+    height: 13px;
+}
+
+.payment-method-mark {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.payment-method-copy {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+}
+
+.payment-method-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.payment-method-heading strong {
+    font-size: 14px;
+}
+
+.payment-method-heading small {
+    padding: 3px 7px;
+    border-radius: 999px;
+    color: var(--kp-gold);
+    background: rgba(255, 209, 90, .1);
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.payment-method-copy>span:nth-child(2),
+.payment-method-copy em {
+    overflow: hidden;
+    color: var(--kp-text-muted);
+    font-size: 11px;
+    font-style: normal;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+}
+
+.payment-method-copy em {
+    color: var(--kp-text-secondary);
+}
+
+.payment-method-check {
+    width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--kp-border-strong);
+    border-radius: 50%;
+    color: transparent;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.payment-method-card.is-selected .payment-method-check {
+    border-color: var(--kp-gold);
+    background: var(--kp-gold);
+    color: #15120b;
+}

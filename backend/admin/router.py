@@ -1,9 +1,19 @@
 import logging
+from typing import Literal
 from urllib.error import HTTPError, URLError
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
-from backend.payments.service import OrderNotFoundError, RetryDispatchError
+from backend.auth.repository import count_legacy_password_hashes
+from backend.core.config import ALLOW_LEGACY_MD5_LOGIN
+from backend.core.database import SessionLocal
+from backend.payments.service import (
+    DispatchResolutionError,
+    OrderNotFoundError,
+    RetryDispatchError,
+    resolve_dispatch_order,
+)
 from backend.services.supplier import (
     SupplierNotConfiguredError,
     SupplierRejectedError,
@@ -28,6 +38,17 @@ router = APIRouter(
 @router.get("/me")
 def admin_identity_endpoint():
     return {"success": True, "is_admin": True}
+
+
+@router.get("/auth/legacy-password-hashes")
+def legacy_password_hashes_endpoint():
+    """Число аккаунтов со старым MD5-хешем пароля (для миграции)."""
+    session = SessionLocal()
+    try:
+        count = count_legacy_password_hashes(session)
+    finally:
+        session.close()
+    return {"success": True, "count": count, "md5_login_allowed": ALLOW_LEGACY_MD5_LOGIN}
 
 
 def _supplier_unavailable(error: Exception) -> HTTPException:
@@ -93,4 +114,44 @@ def retry_dispatch_endpoint(order_id: int):
         "success": dispatch_status == "completed",
         "order_id": order_id,
         "dispatch_status": dispatch_status,
+    }
+
+
+class ResolveDispatchRequest(BaseModel):
+    resolution: Literal["not_created", "record_order"]
+    supplier_order_id: int | None = None
+
+
+@router.post("/orders/{order_id}/resolve-dispatch")
+def resolve_dispatch_endpoint(order_id: int, data: ResolveDispatchRequest):
+    """Операторское разрешение заказа с неопределённым исходом отправки.
+
+    Для 'sending' (застрявшего после сбоя процесса) и 'unknown' (неоднозначный
+    ответ после action=add). Слепой автоматический retry запрещён — оператор
+    сначала сверяется с панелью поставщика и выбирает resolution.
+    """
+    try:
+        result = resolve_dispatch_order(
+            order_id,
+            resolution=data.resolution,
+            supplier_order_id=data.supplier_order_id,
+        )
+    except OrderNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except DispatchResolutionError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except (
+        SupplierNotConfiguredError,
+        SupplierRejectedError,
+        SupplierResponseError,
+        HTTPError,
+        URLError,
+        TimeoutError,
+        OSError,
+    ) as error:
+        raise _supplier_unavailable(error) from error
+    return {
+        "success": True,
+        "order_id": order_id,
+        "dispatch_status": result,
     }

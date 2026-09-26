@@ -10,6 +10,8 @@ import FinalCTA from "./components/FinalCTA/FinalCTA";
 import Footer from "./components/Footer/Footer";
 
 import { useEffect, useLayoutEffect, useState } from "react";
+import { useLanguage } from "../../ui/i18n";
+import clickIcon from "../../assets/icons/click.svg";
 
 import "./Landing.css";
 
@@ -34,6 +36,7 @@ function scrollToTopFast() {
 }
 
 export default function Landing() {
+    const { t } = useLanguage();
     const [isScrollTopVisible, setIsScrollTopVisible] = useState(false);
     const [hasStartedScrolling, setHasStartedScrolling] = useState(false);
     const [isHeroAuthVisible, setIsHeroAuthVisible] = useState(true);
@@ -236,10 +239,10 @@ export default function Landing() {
             <button
                 type="button"
                 className={`scroll-top-button ${isScrollTopVisible ? "scroll-top-button--visible" : ""}`}
-                aria-label="Вернуться наверх"
+                aria-label={t("Вернуться наверх")}
                 onClick={scrollToTopFast}
             >
-                ⌃
+                <img className="scroll-top-button__icon" src={clickIcon} alt="" aria-hidden="true" />
             </button>
         </div>
     );

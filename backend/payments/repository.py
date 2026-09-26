@@ -19,7 +19,14 @@ def get_account_summary(session: Session, user_id: int):
     ).mappings().first()
 
 
-def get_user_orders(session: Session, user_id: int):
+def get_user_orders(
+    session: Session,
+    user_id: int,
+    *,
+    limit: int = 50,
+    before_id: int | None = None,
+):
+    """Страница заказов пользователя (keyset по id DESC)."""
     return session.execute(
         text("""
             SELECT
@@ -38,10 +45,65 @@ def get_user_orders(session: Session, user_id: int):
             LEFT JOIN migration_temp.payment_attempts AS p
               ON p.order_id = o.id
             WHERE o.user_id = :user_id
+              AND (:before_id IS NULL OR o.id < :before_id)
             ORDER BY o.id DESC
+            LIMIT :limit
         """),
-        {"user_id": user_id},
+        {"user_id": user_id, "before_id": before_id, "limit": limit},
     ).mappings().all()
+
+
+def get_orders_due_for_status_sync(
+    session: Session,
+    *,
+    limit: int = 30,
+    due_seconds: int = 60,
+    max_age_days: int = 30,
+):
+    """Активные заказы, которым пора обновить статус у поставщика.
+
+    Ограничено батчем и интервалом due_seconds — заменяет fan-out при открытии
+    списка заказов ограниченным фоновым worker'ом. Берём только «свежие» заказы
+    (по payment_attempts.created_at): старые заказы в «Выполняется»/«Частично»
+    поставщик уже не отдаёт по action=status и отвечает error.
+    """
+    return session.execute(
+        text("""
+            SELECT o.id, o.user_id
+            FROM migration_temp.orders AS o
+            WHERE o.id_rocket <> 0
+              AND o.status NOT IN (
+                  'Завершен',
+                  'Отменен поставщиком',
+                  'Готово',
+                  'Отменен'
+              )
+              AND EXISTS (
+                  SELECT 1
+                  FROM migration_temp.payment_attempts AS p
+                  WHERE p.order_id = o.id
+                    AND p.created_at >= NOW() - (:max_age_days * INTERVAL '1 day')
+              )
+              AND (
+                  o.last_synced_at IS NULL
+                  OR o.last_synced_at < NOW() - (:due_seconds * INTERVAL '1 second')
+              )
+            ORDER BY o.last_synced_at ASC NULLS FIRST, o.id ASC
+            LIMIT :limit
+        """),
+        {"limit": limit, "due_seconds": due_seconds, "max_age_days": max_age_days},
+    ).mappings().all()
+
+
+def mark_order_status_synced(session: Session, order_id: int) -> None:
+    session.execute(
+        text("""
+            UPDATE migration_temp.orders
+            SET last_synced_at = NOW()
+            WHERE id = :order_id
+        """),
+        {"order_id": order_id},
+    )
 
 
 def create_order_with_payment_attempt(
@@ -53,6 +115,7 @@ def create_order_with_payment_attempt(
     recipient_link: str,
     quantity: int,
     amount: Decimal,
+    supplier_cost: Decimal,
     created_at: str,
     idempotence_key: str,
     provider: str = PAYMENT_PROVIDER,
@@ -61,10 +124,10 @@ def create_order_with_payment_attempt(
         text("""
             INSERT INTO migration_temp.orders (
                 id_rocket, soc, user_id, service_id, link, qnt, amount,
-                before, posts, date, status, remains, api_order
+                supplier_cost, before, posts, date, status, remains, api_order
             ) VALUES (
                 0, :platform, :user_id, :service_id, :recipient_link,
-                :quantity, :amount, NULL, 0, :created_at,
+                :quantity, :amount, :supplier_cost, NULL, 0, :created_at,
                 'Ожидает оплаты', :quantity, 0
             )
             RETURNING *
@@ -76,6 +139,7 @@ def create_order_with_payment_attempt(
             "recipient_link": recipient_link,
             "quantity": quantity,
             "amount": amount,
+            "supplier_cost": supplier_cost,
             "created_at": created_at,
         },
     ).mappings().one()
@@ -228,6 +292,7 @@ def set_attempt_heleket_details(
     payment_id: str,
     payment_status: str,
     confirmation_url: str | None,
+    expires_at=None,
 ):
     return session.execute(
         text("""
@@ -236,6 +301,7 @@ def set_attempt_heleket_details(
                 provider_payment_id = :payment_id,
                 status = :payment_status,
                 confirmation_url = COALESCE(:confirmation_url, confirmation_url),
+                expires_at = COALESCE(:expires_at, expires_at),
                 last_error = NULL,
                 updated_at = NOW()
             WHERE id = :attempt_id
@@ -249,6 +315,7 @@ def set_attempt_heleket_details(
             "payment_id": payment_id,
             "payment_status": payment_status,
             "confirmation_url": confirmation_url,
+            "expires_at": expires_at,
         },
     ).mappings().first()
 
@@ -296,18 +363,52 @@ def request_payment_cancellation(session: Session, attempt_id: int, user_id: int
     return attempt
 
 
-def mark_payment_paid_after_cancel(session: Session, attempt_id: int) -> None:
+def mark_provider_cancel_pending(session: Session, attempt_id: int) -> None:
+    """Помечает, что отмена у провайдера ещё не выполнена (нужен повтор)."""
     session.execute(
-        text('''
+        text("""
             UPDATE migration_temp.payment_attempts
-            SET status = 'paid_after_cancel',
-                last_error = 'Provider accepted payment after local cancellation',
+            SET provider_cancel_pending_at = NOW(),
                 updated_at = NOW()
             WHERE id = :attempt_id
-              AND processed_at IS NULL
-        '''),
-        {'attempt_id': attempt_id},
+        """),
+        {"attempt_id": attempt_id},
     )
+
+
+def clear_provider_cancel_pending(session: Session, attempt_id: int) -> None:
+    session.execute(
+        text("""
+            UPDATE migration_temp.payment_attempts
+            SET provider_cancel_pending_at = NULL,
+                updated_at = NOW()
+            WHERE id = :attempt_id
+        """),
+        {"attempt_id": attempt_id},
+    )
+
+
+def get_pending_provider_cancellations(
+    session: Session,
+    *,
+    limit: int = 20,
+    min_age_seconds: int = 60,
+):
+    """Отмены ЮKassa, которые не удалось выполнить у провайдера."""
+    return session.execute(
+        text("""
+            SELECT id, provider_payment_id
+            FROM migration_temp.payment_attempts
+            WHERE provider = 'yookassa'
+              AND status = 'cancel_requested'
+              AND processed_at IS NULL
+              AND provider_cancel_pending_at IS NOT NULL
+              AND provider_cancel_pending_at < NOW() - (:min_age_seconds * INTERVAL '1 second')
+            ORDER BY provider_cancel_pending_at ASC
+            LIMIT :limit
+        """),
+        {"limit": limit, "min_age_seconds": min_age_seconds},
+    ).mappings().all()
 
 
 def claim_payment_reconciliation(
@@ -338,6 +439,7 @@ def set_attempt_payment_details(
     payment_id: str,
     payment_status: str,
     confirmation_url: str | None,
+    expires_at=None,
 ):
     return session.execute(
         text("""
@@ -345,6 +447,7 @@ def set_attempt_payment_details(
             SET provider_payment_id = :payment_id,
                 status = :payment_status,
                 confirmation_url = COALESCE(:confirmation_url, confirmation_url),
+                expires_at = COALESCE(:expires_at, expires_at),
                 last_error = NULL,
                 updated_at = NOW()
             WHERE id = :attempt_id
@@ -357,6 +460,7 @@ def set_attempt_payment_details(
             "payment_id": payment_id,
             "payment_status": payment_status,
             "confirmation_url": confirmation_url,
+            "expires_at": expires_at,
         },
     ).mappings().first()
 
@@ -376,6 +480,62 @@ def set_attempt_error(
                 updated_at = NOW()
             WHERE id = :attempt_id
               AND processed_at IS NULL
+        """),
+        {
+            "attempt_id": attempt_id,
+            "status": status,
+            "error_message": error_message[:1000],
+        },
+    )
+
+
+def claim_invoice_creation(session: Session, attempt_id: int):
+    """Атомарно резервирует попытку для одного вызова invoice/create.
+
+    Возвращает попытку, если этот запрос получил право вызвать провайдера,
+    иначе None (конкурентный запрос уже создаёт или создал инвойс). Устаревший
+    claim (сбой процесса после claim) можно перехватить повторно.
+    """
+    return session.execute(
+        text("""
+            UPDATE migration_temp.payment_attempts
+            SET status = 'creating_in_progress',
+                updated_at = NOW()
+            WHERE id = :attempt_id
+              AND provider_payment_id IS NULL
+              AND processed_at IS NULL
+              AND status NOT IN ('cancel_requested', 'canceled', 'paid_after_cancel')
+              AND (
+                  status <> 'creating_in_progress'
+                  OR updated_at < NOW() - INTERVAL '30 seconds'
+              )
+            RETURNING *
+        """),
+        {"attempt_id": attempt_id},
+    ).mappings().first()
+
+
+def set_attempt_creation_error(
+    session: Session,
+    *,
+    attempt_id: int,
+    status: str,
+    error_message: str,
+) -> None:
+    """Помечает ошибкой только попытку БЕЗ сохранённого инвойса.
+
+    Не перезаписывает состояние, которое уже сохранил конкурентный запрос
+    (provider_payment_id заполнен) — иначе валидная попытка выглядела бы ошибкой.
+    """
+    session.execute(
+        text("""
+            UPDATE migration_temp.payment_attempts
+            SET status = :status,
+                last_error = :error_message,
+                updated_at = NOW()
+            WHERE id = :attempt_id
+              AND processed_at IS NULL
+              AND provider_payment_id IS NULL
         """),
         {
             "attempt_id": attempt_id,
@@ -422,6 +582,7 @@ def get_order_dispatch_state(session: Session, order_id: int):
                 p.status AS payment_status,
                 p.processed_at,
                 p.dispatch_status,
+                p.dispatch_started_at,
                 p.dispatch_error
             FROM migration_temp.orders AS o
             LEFT JOIN migration_temp.payment_attempts AS p
@@ -442,6 +603,7 @@ def get_supplier_attention_orders(session: Session):
                 o.link,
                 o.qnt,
                 o.amount,
+                o.supplier_cost,
                 o.status,
                 o.id_rocket,
                 o.date,
@@ -460,7 +622,8 @@ def get_supplier_attention_orders(session: Session):
                       'supplier_unavailable',
                       'unknown',
                       'rejected',
-                      'save_failed'
+                      'save_failed',
+                      'price_changed'
                   )
                   OR (
                       p.dispatch_status = 'sending'
@@ -470,6 +633,49 @@ def get_supplier_attention_orders(session: Session):
             ORDER BY p.updated_at ASC, o.id ASC
         """),
     ).mappings().all()
+
+
+def get_stale_dispatch_orders_for_alert(
+    session: Session,
+    *,
+    limit: int = 20,
+    stale_minutes: int = 5,
+):
+    """Заказы, зависшие в отправке (sending/unknown) и ещё не уведомлённые.
+
+    dispatch_alerted_at IS NULL гарантирует однократную отправку алерта.
+    """
+    return session.execute(
+        text("""
+            SELECT o.id, o.link, o.qnt, o.amount, p.dispatch_status
+            FROM migration_temp.orders AS o
+            JOIN migration_temp.payment_attempts AS p
+              ON p.order_id = o.id
+            WHERE p.status = 'processed'
+              AND o.dispatch_alerted_at IS NULL
+              AND (
+                  p.dispatch_status = 'unknown'
+                  OR (
+                      p.dispatch_status = 'sending'
+                      AND p.dispatch_started_at < NOW() - (:stale_minutes * INTERVAL '1 minute')
+                  )
+              )
+            ORDER BY p.updated_at ASC, o.id ASC
+            LIMIT :limit
+        """),
+        {"limit": limit, "stale_minutes": stale_minutes},
+    ).mappings().all()
+
+
+def mark_dispatch_alerted(session: Session, order_id: int) -> None:
+    session.execute(
+        text("""
+            UPDATE migration_temp.orders
+            SET dispatch_alerted_at = NOW()
+            WHERE id = :order_id
+        """),
+        {"order_id": order_id},
+    )
 
 
 def lock_user(session: Session, user_id: int):
@@ -738,6 +944,43 @@ def mark_order_paid(session: Session, order_id: int) -> None:
     )
 
 
+def get_dispatch_candidate_ids(
+    session: Session,
+    *,
+    limit: int = 50,
+) -> list[int]:
+    """Оплаченные заказы, которые можно безопасно отправить поставщику.
+
+    Только состояния, в которых заказ у поставщика ещё не создавался
+    (id_rocket = 0), поэтому повторная отправка не создаст дубликат: платёж
+    обработан, а dispatch_status ещё not_started либо завершился определённой
+    ошибкой до создания заказа (insufficient_supplier_balance /
+    supplier_unavailable). Состояния unknown / rejected / save_failed сюда не
+    входят — они требуют ручной проверки администратора.
+    """
+    rows = session.execute(
+        text("""
+            SELECT o.id
+            FROM migration_temp.orders AS o
+            JOIN migration_temp.payment_attempts AS p
+              ON p.order_id = o.id
+            WHERE p.purpose = 'order'
+              AND p.status = 'processed'
+              AND p.processed_at IS NOT NULL
+              AND o.id_rocket = 0
+              AND p.dispatch_status IN (
+                  'not_started',
+                  'insufficient_supplier_balance',
+                  'supplier_unavailable'
+              )
+            ORDER BY o.id
+            LIMIT :limit
+        """),
+        {"limit": limit},
+    ).scalars().all()
+    return [int(order_id) for order_id in rows]
+
+
 def claim_order_for_dispatch(session: Session, order_id: int):
     order = session.execute(
         text("""
@@ -761,7 +1004,7 @@ def claim_order_for_dispatch(session: Session, order_id: int):
                         'supplier_unavailable'
                     )
               )
-            RETURNING id, user_id, service_id, link, qnt, amount
+            RETURNING id, user_id, service_id, link, qnt, amount, supplier_cost
         """),
         {"order_id": order_id},
     ).mappings().first()
@@ -779,6 +1022,86 @@ def claim_order_for_dispatch(session: Session, order_id: int):
             {"order_id": order_id},
         )
     return order
+
+
+def reopen_dispatch_for_retry(session: Session, order_id: int) -> bool:
+    """Возвращает заказ с неопределённым исходом отправки в очередь повторной.
+
+    Используется только после того, как оператор подтвердил по панели
+    поставщика, что заказ у поставщика создан НЕ был. Переход атомарный и
+    безопасный: срабатывает только для заказа без внешнего id_rocket.
+    """
+    result = session.execute(
+        text("""
+            UPDATE migration_temp.orders
+            SET status = 'Ожидает отправки'
+            WHERE id = :order_id
+              AND id_rocket = 0
+              AND status IN ('Отправляется', 'Требует проверки')
+        """),
+        {"order_id": order_id},
+    )
+    if result.rowcount != 1:
+        return False
+    session.execute(
+        text("""
+            UPDATE migration_temp.payment_attempts
+            SET dispatch_status = 'not_started',
+                dispatch_started_at = NULL,
+                dispatch_error = NULL,
+                updated_at = NOW()
+            WHERE order_id = :order_id
+              AND status = 'processed'
+              AND dispatch_status IN ('sending', 'unknown')
+        """),
+        {"order_id": order_id},
+    )
+    return True
+
+
+def record_reconciled_supplier_order(
+    session: Session,
+    *,
+    order_id: int,
+    supplier_order_id: int,
+    status: str,
+) -> None:
+    """Фиксирует внешний ID заказа, найденный оператором при сверке.
+
+    В отличие от повторной отправки, не вызывает action=add: поставщик заказ уже
+    создал, локально лишь сохраняется его ID. Уникальный индекс по id_rocket
+    защищает от привязки чужого заказа.
+    """
+    result = session.execute(
+        text("""
+            UPDATE migration_temp.orders
+            SET id_rocket = :supplier_order_id,
+                status = :status
+            WHERE id = :order_id
+              AND id_rocket = 0
+              AND status IN ('Отправляется', 'Требует проверки')
+        """),
+        {
+            "order_id": order_id,
+            "supplier_order_id": supplier_order_id,
+            "status": status,
+        },
+    )
+    if result.rowcount != 1:
+        raise RuntimeError("Не удалось зафиксировать ID заказа поставщика")
+    session.execute(
+        text("""
+            UPDATE migration_temp.payment_attempts
+            SET dispatch_status = 'completed',
+                dispatch_started_at = NULL,
+                dispatch_finished_at = NOW(),
+                dispatch_error = NULL,
+                updated_at = NOW()
+            WHERE order_id = :order_id
+              AND status = 'processed'
+        """),
+        {"order_id": order_id},
+    )
 
 
 def mark_insufficient_supplier_balance(
@@ -873,6 +1196,41 @@ def mark_dispatch_rejected(
               AND status = 'processed'
         """),
         {"order_id": order_id, "error_message": error_message[:1000]},
+    )
+
+
+def mark_dispatch_price_changed(
+    session: Session,
+    *,
+    order_id: int,
+    error_message: str,
+) -> None:
+    """Фиксирует конфликт себестоимости: заказ требует ручной проверки.
+
+    Заказ не отправляется автоматически — администратор решает, делать ли
+    пересчёт/возврат. Повторная отправка не должна выполняться слепо.
+    """
+    session.execute(
+        text("""
+            UPDATE migration_temp.orders
+            SET status = 'Цена изменилась'
+            WHERE id = :order_id
+              AND status = 'Отправляется'
+              AND id_rocket = 0
+        """),
+        {"order_id": order_id},
+    )
+    session.execute(
+        text("""
+            UPDATE migration_temp.payment_attempts
+            SET dispatch_status = 'price_changed',
+                dispatch_finished_at = NOW(),
+                dispatch_error = :message,
+                updated_at = NOW()
+            WHERE order_id = :order_id
+              AND status = 'processed'
+        """),
+        {"order_id": order_id, "message": error_message[:1000]},
     )
 
 

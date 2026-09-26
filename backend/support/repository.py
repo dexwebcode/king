@@ -82,16 +82,23 @@ def get_ticket_by_public_id(session, public_id, *, for_update=False):
     ).mappings().first()
 
 
-def list_tickets_for_user(session, user_id):
+def list_tickets_for_user(session, user_id, *, limit=50, before_public_id=None):
+    """Страница тикетов пользователя (keyset по public_id DESC).
+
+    public_id — нумерация с фиксированным паддингом, поэтому лексикографический
+    порядок совпадает с порядком создания.
+    """
     return session.execute(
         text("""
             SELECT id, public_id, user_id, subject, description, contact,
                    status, assigned_admin_id, created_at, updated_at, closed_at
             FROM migration_temp.support_tickets
             WHERE user_id = :user_id
-            ORDER BY updated_at DESC, id DESC
+              AND (:before_public_id IS NULL OR public_id < :before_public_id)
+            ORDER BY public_id DESC
+            LIMIT :limit
         """),
-        {"user_id": user_id},
+        {"user_id": user_id, "before_public_id": before_public_id, "limit": limit},
     ).mappings().all()
 
 
@@ -207,3 +214,18 @@ def list_tickets_admin(session, *, status=None, user_id=None, search=None, limit
         {key: value for key, value in params.items() if key not in ("limit", "offset")},
     ).scalar_one()
     return rows, total
+
+
+def get_ticket_admin_context(session, ticket_id):
+    return session.execute(
+        text("""
+            SELECT t.id, t.public_id, t.user_id, t.subject, t.description, t.contact,
+                   t.status, t.assigned_admin_id, t.created_at, t.updated_at, t.closed_at,
+                   COALESCE(NULLIF(u.login, ''), NULLIF(u.mail, ''), 'ID ' || u.id::text) AS user_login
+            FROM migration_temp.support_tickets AS t
+            JOIN migration_temp.users AS u ON u.id = t.user_id
+            WHERE t.id = :ticket_id
+            LIMIT 1
+        """),
+        {"ticket_id": ticket_id},
+    ).mappings().first()

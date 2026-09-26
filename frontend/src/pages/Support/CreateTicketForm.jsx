@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { Panel } from "../../ui/AppShell";
+import { useLanguage } from "../../ui/i18n";
 import { supportApi } from "./supportApi";
 
 const MESSAGE_MIN = 10;
@@ -8,6 +9,7 @@ const MESSAGE_MAX = 5000;
 const CONTACT_MAX = 255;
 
 export default function CreateTicketForm({ onCreated }) {
+  const { t } = useLanguage();
   const [step, setStep] = useState("problem");
   const [message, setMessage] = useState("");
   const [contact, setContact] = useState("");
@@ -18,11 +20,11 @@ export default function CreateTicketForm({ onCreated }) {
     event.preventDefault();
     const value = message.trim();
     if (value.length < MESSAGE_MIN) {
-      setError(`Опишите проблему подробнее — минимум ${MESSAGE_MIN} символов.`);
+      setError(t("Опишите проблему подробнее — минимум {min} символов.", { min: MESSAGE_MIN }));
       return;
     }
     if (value.length > MESSAGE_MAX) {
-      setError(`Сообщение не должно превышать ${MESSAGE_MAX} символов.`);
+      setError(t("Сообщение не должно превышать {max} символов.", { max: MESSAGE_MAX }));
       return;
     }
     setError("");
@@ -33,15 +35,15 @@ export default function CreateTicketForm({ onCreated }) {
     event.preventDefault();
     const trimmedContact = contact.trim();
     if (!trimmedContact) {
-      setError("Укажите способ связи.");
+      setError(t("Укажите способ связи."));
       return;
     }
     if (/[<>\n\r\t]/.test(trimmedContact)) {
-      setError("Контакт не должен содержать HTML или переносы строк.");
+      setError(t("Контакт не должен содержать HTML или переносы строк."));
       return;
     }
     if (trimmedContact.length > CONTACT_MAX) {
-      setError("Контакт слишком длинный.");
+      setError(t("Контакт слишком длинный."));
       return;
     }
     setError("");
@@ -53,7 +55,7 @@ export default function CreateTicketForm({ onCreated }) {
       });
       onCreated(ticket);
     } catch (requestError) {
-      setError(requestError.message || "Не удалось создать обращение. Попробуйте ещё раз.");
+      setError(requestError.message || t("Не удалось создать обращение. Попробуйте ещё раз."));
       setLoading(false);
     }
   }
@@ -63,14 +65,14 @@ export default function CreateTicketForm({ onCreated }) {
       <Panel className="support-form-panel">
         <form className="support-form" onSubmit={handleSubmit}>
           <div className="support-step-head">
-            <p className="kp-eyebrow">Шаг 2 из 2</p>
-            <h2>Как с вами можно связаться?</h2>
+            <p className="kp-eyebrow">{t("Шаг 2 из 2")}</p>
+            <h2>{t("Как с вами можно связаться?")}</h2>
             <p className="kp-page-description">
-              Укажите ссылку на Telegram, WhatsApp, Instagram или другую соцсеть.
+              {t("Укажите ссылку на Telegram, WhatsApp, Instagram или другую соцсеть.")}
             </p>
           </div>
           <label className="support-field">
-            <span>Контакт для связи</span>
+            <span>{t("Контакт для связи")}</span>
             <input
               className="kp-field"
               type="text"
@@ -89,14 +91,14 @@ export default function CreateTicketForm({ onCreated }) {
               onClick={() => setStep("problem")}
               disabled={loading}
             >
-              Назад
+              {t("Назад")}
             </button>
             <button
               className="kp-button kp-button--form"
               type="submit"
               disabled={loading || !contact.trim()}
             >
-              {loading ? "Отправляем…" : "Отправить обращение"}
+              {loading ? t("Отправляем…") : t("Отправить обращение")}
             </button>
           </div>
         </form>
@@ -108,10 +110,10 @@ export default function CreateTicketForm({ onCreated }) {
     <Panel className="support-form-panel">
       <form className="support-form" onSubmit={handleContinue}>
         <div className="support-step-head">
-          <p className="kp-eyebrow">Шаг 1 из 2</p>
-          <h2>Опишите вашу проблему</h2>
+          <p className="kp-eyebrow">{t("Шаг 1 из 2")}</p>
+          <h2>{t("Опишите вашу проблему")}</h2>
           <p className="kp-page-description">
-            Опишите проблему, и наша команда поможет вам.
+            {t("Опишите проблему, и наша команда поможет вам.")}
           </p>
         </div>
         <label className="support-field">
@@ -120,7 +122,7 @@ export default function CreateTicketForm({ onCreated }) {
             rows={6}
             value={message}
             maxLength={MESSAGE_MAX}
-            placeholder="Опишите вашу проблему"
+            placeholder={t("Опишите вашу проблему")}
             autoFocus
             onChange={(event) => setMessage(event.target.value)}
           />
@@ -129,7 +131,7 @@ export default function CreateTicketForm({ onCreated }) {
         {error && <p className="support-form-error" role="alert">{error}</p>}
         <div className="support-form-actions">
           <button className="kp-button" type="submit">
-            Продолжить
+            {t("Продолжить")}
           </button>
         </div>
       </form>

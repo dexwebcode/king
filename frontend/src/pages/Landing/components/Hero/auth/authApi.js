@@ -118,7 +118,23 @@ export function checkToken() {
     return sendRequest('/auth/me', 'GET')
 }
 
-export function logoutUser() {
+export async function logoutUser() {
+    const token = localStorage.getItem("token")
+    if (token) {
+        try {
+            // Серверная инвалидация сессии (token_version++). Best-effort:
+            // при сетевой ошибке локальный выход всё равно выполняется.
+            await fetch(`${API_URL}/auth/logout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+        } catch (error) {
+            // ignore — локальная сессия будет очищена ниже
+        }
+    }
     localStorage.removeItem("token")
     clearAccountCache()
     window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
@@ -140,6 +156,7 @@ export async function isAuth() {
         const result = await checkToken()
         return result.ok
     } catch {
-        return false
+        // Сетевая ошибка ≠ выход из аккаунта: сессия не признаётся недействительной.
+        return null
     }
 }

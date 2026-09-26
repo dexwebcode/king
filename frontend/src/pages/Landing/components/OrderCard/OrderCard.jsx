@@ -1,1 +1,1 @@
-export { default } from "./gpttest/order";
+export { default } from "./order";

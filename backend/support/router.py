@@ -1,11 +1,13 @@
 """Пользовательское REST API поддержки: /api/support/*."""
 
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 
 from backend.auth.dependencies import get_current_user
 from backend.core import config
+from backend.core.ratelimit import client_ip, enforce_rate_limits
 
 from . import notifications
 from .schemas import CreateTicketRequest, SendMessageRequest
@@ -28,8 +30,15 @@ def _is_admin(user: dict) -> bool:
 def create_ticket_endpoint(
     data: CreateTicketRequest,
     background_tasks: BackgroundTasks,
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
+    enforce_rate_limits(
+        [
+            (f"ticket:ip:{client_ip(request)}", config.RATE_LIMIT_TICKET_PER_IP),
+            (f"ticket:user:{current_user['id']}", config.RATE_LIMIT_TICKET_PER_USER),
+        ]
+    )
     try:
         result = SupportService.create_ticket(
             user_id=current_user["id"],
@@ -59,8 +68,20 @@ def create_ticket_endpoint(
 
 
 @router.get("/tickets")
-def list_tickets_endpoint(current_user: dict = Depends(get_current_user)):
-    return {"items": SupportService.list_my_tickets(user_id=current_user["id"])}
+def list_tickets_endpoint(
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    before_public_id: Annotated[str | None, Query()] = None,
+    current_user: dict = Depends(get_current_user),
+):
+    rows = SupportService.list_my_tickets(
+        user_id=current_user["id"],
+        limit=limit + 1,
+        before_public_id=before_public_id,
+    )
+    has_more = len(rows) > limit
+    items = rows[:limit]
+    next_cursor = items[-1]["public_id"] if has_more else None
+    return {"items": items, "next_cursor": next_cursor}
 
 
 @router.get("/tickets/{public_id}")

@@ -1,10 +1,12 @@
 import { SectionTitle } from "../../shared";
+import { useLanguage } from "../../../../ui/i18n";
 import "./css/HowItWorks.css";
 
 export default function HowItWorks() {
+    const { t } = useLanguage();
     return (
         <section className="container panel-section" id="how">
-            <SectionTitle title="Как это работает" subtitle="Всего 4 простых шага до результата" />
+            <SectionTitle title={t("Как это работает")} subtitle={t("Всего 4 простых шага до результата")} />
             <div className="how-grid">
                 {[
                     ['Выберите площадку', 'Выберите социальную сеть для продвижения'],
@@ -14,7 +16,7 @@ export default function HowItWorks() {
                 ].map(([title, text], index) => (
                     <article className="how-step" key={title}>
                         <span>{index + 1}</span>
-                        <div><h3>{title}</h3><p>{text}</p></div>
+                        <div><h3>{t(title)}</h3><p>{t(text)}</p></div>
                     </article>
                 ))}
             </div>

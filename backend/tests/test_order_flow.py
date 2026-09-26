@@ -109,8 +109,7 @@ class AutomaticOrderFlowTests(unittest.TestCase):
 
         dispatch.assert_called_once_with(601)
 
-    def test_order_list_schedules_throttled_supplier_status_sync(self):
-        background_tasks = BackgroundTasks()
+    def test_order_list_is_paginated_and_does_not_fan_out_sync(self):
         order = {
             "id": 601,
             "soc": "instagram",
@@ -129,11 +128,11 @@ class AutomaticOrderFlowTests(unittest.TestCase):
             patch("backend.payments.router.get_user_orders", return_value=[order]),
             patch("backend.payments.router.sync_order_safely") as sync,
         ):
-            response = my_orders_endpoint(background_tasks, {"id": 151})
-            asyncio.run(background_tasks())
+            response = my_orders_endpoint(current_user={"id": 151})
 
         self.assertEqual(response["items"][0]["remains"], 500)
-        sync.assert_called_once_with(601, 151)
+        self.assertIsNone(response["next_cursor"])
+        sync.assert_not_called()
 
 
 if __name__ == "__main__":

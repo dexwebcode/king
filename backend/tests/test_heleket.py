@@ -176,7 +176,6 @@ class HeleketAccountingTests(unittest.TestCase):
             patch("backend.payments.service.set_user_balance"),
             patch("backend.payments.service.mark_payment_processed"),
             patch("backend.payments.service.set_attempt_status"),
-            patch("backend.payments.service.mark_payment_paid_after_cancel"),
         )
 
     def test_paid_webhook_credits_local_amount(self):
@@ -273,21 +272,18 @@ class HeleketAccountingTests(unittest.TestCase):
             with self.assertRaises(PaymentVerificationError):
                 process_heleket_webhook_payload(webhook_payload())
 
-    def test_payment_after_cancel_is_not_credited(self):
+    def test_payment_after_cancel_is_credited(self):
         stored = heleket_attempt(status="cancel_requested")
+        patches = self.accounting_patches(stored)
         with (
-            patch("backend.payments.service.SessionLocal", return_value=FakeSession()),
-            patch(
-                "backend.payments.service.get_attempt_by_provider_order_id",
-                return_value=stored,
-            ),
-            patch("backend.payments.service.mark_payment_paid_after_cancel") as late,
-            patch("backend.payments.service.create_balance_transaction") as create_tx,
+            tuple_context(patches) as mocks,
+            patch("backend.payments.service._send_admin_alert_safely") as alert,
         ):
             credited = process_heleket_webhook_payload(webhook_payload())
-        self.assertFalse(credited)
-        late.assert_called_once_with(unittest.mock.ANY, 501)
-        create_tx.assert_not_called()
+        self.assertTrue(credited)
+        mocks[3].assert_called_once()
+        mocks[7].assert_called_once()
+        alert.assert_called_once()
 
     def test_concurrent_webhooks_credit_once(self):
         shared_attempt = heleket_attempt()

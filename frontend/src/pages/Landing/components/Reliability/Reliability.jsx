@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { reliability } from "../../landingData";
 import { SectionTitle } from "../../shared";
+import { useLanguage } from "../../../../ui/i18n";
 import "./css/Reliability.css";
 
 // Интервал между раскрытием соседних панелей, мс
@@ -31,6 +32,7 @@ function getOpenDelay(index, activeIndex) {
 }
 
 export default function Reliability() {
+    const { t } = useLanguage();
     const [pinnedIndex, setPinnedIndex] = useState(null);
     const [hoveredIndex, setHoveredIndex] = useState(null);
 
@@ -40,7 +42,7 @@ export default function Reliability() {
 
     return (
         <section className="container panel-section reliability-section" id="reliability">
-            <SectionTitle title="Надёжность и безопасность" subtitle="Мы гарантируем безопасность ваших данных и качество услуг" />
+            <SectionTitle title={t("Надёжность и безопасность")} subtitle={t("Мы гарантируем безопасность ваших данных и качество услуг")} />
 
             <div className="reliability-grid" onMouseLeave={() => setHoveredIndex(null)}>
                 {reliability.map(([title, text, details, badge], index) => {
@@ -68,19 +70,15 @@ export default function Reliability() {
                                 onClick={() => setPinnedIndex(pinnedIndex === index ? null : index)}
                             >
                                 <span className="reliability-trigger-copy">
-                                    <span className="reliability-trigger-title">{title}</span>
-                                    <span className="reliability-trigger-text">{text}</span>
-                                </span>
-
-                                <span className="reliability-trigger-mark" aria-hidden="true">
-                                    {String(index + 1).padStart(2, "0")}
+                                    <span className="reliability-trigger-title">{t(title)}</span>
+                                    <span className="reliability-trigger-text">{t(text)}</span>
                                 </span>
                             </button>
 
-                            <div className="reliability-drawer" id={panelId} role="region" aria-label={title}>
+                            <div className="reliability-drawer" id={panelId} role="region" aria-label={t(title)}>
                                 <div className="reliability-drawer-inner">
-                                    <p>{details}</p>
-                                    <span className="reliability-drawer-badge">{badge}</span>
+                                    <p>{t(details)}</p>
+                                    <span className="reliability-drawer-badge">{t(badge)}</span>
                                 </div>
                             </div>
                         </article>

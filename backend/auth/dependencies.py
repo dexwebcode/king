@@ -38,15 +38,17 @@ def get_current_user(
             detail="Некорректный заголовок Authorization",
         )
 
-    # Декодирование токена для получения идентификатора пользователя
-    user_id = decode_access_token(token)
+    # Декодирование токена для получения идентификатора пользователя и версии
+    decoded = decode_access_token(token)
 
-    # Если идентификатор пользователя равен None, выбрасывается исключение HTTPException
-    if user_id is None:
+    # Если токен невалиден, выбрасывается исключение HTTPException
+    if decoded is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Токен недействителен или истёк",
         )
+
+    user_id, token_version = decoded
 
     # Получение информации о пользователе по идентификатору из базы данных
     user = get_user_by_id(session, user_id)
@@ -56,6 +58,13 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Пользователь не найден",
+        )
+
+    # Токен устарел (logout или смена пароля инкрементируют token_version).
+    if int(user.get("token_version") or 0) != token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Сессия устарела. Войдите снова.",
         )
 
     return dict(user)

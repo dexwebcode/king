@@ -6,10 +6,11 @@ import { validatePassword } from './validatePassword'
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import showIcon from '../../../../../assets/icons/show.png'
-import dontShowIcon from '../../../../../assets/icons/dont_show.png'
-import accountIcon from '../../../../../assets/icons/accaunt.png'
+import showIcon from '../../../../../assets/icons/show.svg'
+import dontShowIcon from '../../../../../assets/icons/dont_show.svg'
+import accountIcon from '../../../../../assets/icons/accaunt.svg'
 import { hasPendingCheckoutDraft } from '../../../../../ui/orderDraft'
+import { useLanguage } from '../../../../../ui/i18n'
 
 /// ------ Компонент формы регистрации ------ ///
 export default function RegisterForm({
@@ -35,6 +36,7 @@ export default function RegisterForm({
     onModeChange
 
 }) {
+    const { t } = useLanguage()
     const [showPassword, setShowPassword] = useState(false)
     const [showRepeatPassword, setShowRepeatPassword] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -134,7 +136,7 @@ export default function RegisterForm({
         <>
 
             <div className="login-field">
-                <label htmlFor="register-login">Логин</label>
+                <label htmlFor="register-login">{t('Логин')}</label>
                 <div className="login-input-wrapper">
                     <span className="input-icon" aria-hidden="true">
                         <img src={accountIcon} alt="" />
@@ -145,27 +147,27 @@ export default function RegisterForm({
                         className="Username-input"
                         type="text"
                         autoComplete="username"
-                        placeholder="Придумайте логин"
+                        placeholder={t('Придумайте логин')}
                         value={login}
                         onChange={(event) => setLogin(event.target.value)}
                     />
                 </div>
             </div>
 
-            {loginHint && <p className="Password-hint">{loginHint}</p>}
+            {loginHint && <p className="Password-hint">{t(loginHint)}</p>}
 
             {/* ------ INPUT ПАРОЛЯ ------ */}
 
             <div className="login-field">
                 <label htmlFor="register-password">
-                    Пароль
+                    {t('Пароль')}
                 </label>
 
                 <div className="login-input-wrapper">
                     <button
                         type="button"
                         className="input-icon password-eye password-eye--inline"
-                        aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                        aria-label={showPassword ? t('Скрыть пароль') : t('Показать пароль')}
                         onClick={() => setShowPassword(!showPassword)}
                     >
                         <img
@@ -179,7 +181,7 @@ export default function RegisterForm({
                         id="register-password"
                         className="Password-input"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="Придумайте пароль"
+                        placeholder={t('Придумайте пароль')}
                         value={password}
                         onChange={handlePasswordChange}
                     />
@@ -191,14 +193,14 @@ export default function RegisterForm({
 
             <div className="login-field">
                 <label htmlFor="register-repeat-password">
-                    Повторите пароль
+                    {t('Повторите пароль')}
                 </label>
 
                 <div className="login-input-wrapper">
                     <button
                         type="button"
                         className="input-icon password-eye password-eye--inline"
-                        aria-label={showRepeatPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                        aria-label={showRepeatPassword ? t('Скрыть пароль') : t('Показать пароль')}
                         onClick={() => setShowRepeatPassword(!showRepeatPassword)}
                     >
                         <img
@@ -212,7 +214,7 @@ export default function RegisterForm({
                         id="register-repeat-password"
                         className="Password-input"
                         type={showRepeatPassword ? 'text' : 'password'}
-                        placeholder="Повторите пароль"
+                        placeholder={t('Повторите пароль')}
                         value={repeatPassword}
                         onChange={(event) => {
 
@@ -228,7 +230,7 @@ export default function RegisterForm({
 
             {passwordHint && (
                 <p className="Password-hint">
-                    {passwordHint}
+                    {t(passwordHint)}
                 </p>
             )}
 
@@ -244,7 +246,7 @@ export default function RegisterForm({
                     disabled={isSubmitting}
                     onClick={handleRegister}
                 >
-                    <span>{isSubmitting ? 'Создаем...' : 'Создать аккаунт'}</span>
+                    <span>{isSubmitting ? t('Создаем...') : t('Создать аккаунт')}</span>
                 </button>
 
             </section>
@@ -252,11 +254,11 @@ export default function RegisterForm({
             {showModeSwitch && (
                 <div className="login-register">
                     <span>
-                        Уже есть аккаунт?
+                        {t('Уже есть аккаунт?')}
                     </span>
 
                     <button type="button" className="auth-mode-link" onClick={onModeChange}>
-                        Войти
+                        {t('Войти')}
                     </button>
                 </div>
             )}

@@ -91,7 +91,7 @@ a {
 }
 
 .page-shell::before {
-    background-image: url("../../assets/background/stars.png");
+    background-image: url("../../assets/background/stars.webp");
     background-position: top center;
     background-size: cover;
     background-repeat: no-repeat;
@@ -101,11 +101,11 @@ a {
 .page-shell::after {
     z-index: 1;
     background-image:
-        url("../../assets/background/instagram.png"),
-        url("../../assets/background/telegram.png"),
-        url("../../assets/background/youtube.png"),
-        url("../../assets/background/tiktok.png"),
-        url("../../assets/background/vk.png");
+        url("../../assets/background/instagram.webp"),
+        url("../../assets/background/telegram.webp"),
+        url("../../assets/background/youtube.webp"),
+        url("../../assets/background/tiktok.webp"),
+        url("../../assets/background/vk.webp");
     background-position:
         12vw 8vh,
         50vw 4vh,
@@ -249,21 +249,17 @@ a {
 
 .scroll-top-button {
     position: fixed;
-    top: 105px;
-    right: calc((var(--page-gutter) - 56px) / 2);
+    right: 24px;
+    bottom: 24px;
     z-index: 1100;
-    width: 56px;
-    height: 56px;
+    width: 88px;
+    height: 88px;
     display: grid;
     place-items: center;
     border: 0;
     border-radius: 999px;
     background: transparent;
-    color: rgba(255, 255, 255, .78);
     padding: 0;
-    font-size: 56px;
-    font-weight: 500;
-    line-height: 0;
     cursor: pointer;
     opacity: 0;
     visibility: hidden;
@@ -281,8 +277,17 @@ a {
     transform: translateY(0);
 }
 
-.scroll-top-button:hover {
-    color: #ffffff;
+.scroll-top-button__icon {
+    width: 76px;
+    height: 76px;
+    display: block;
+    opacity: .78;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.scroll-top-button:hover .scroll-top-button__icon {
+    opacity: 1;
+    transform: translateY(-2px);
 }
 
 .scroll-top-button:focus-visible {

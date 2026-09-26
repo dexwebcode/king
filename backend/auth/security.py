@@ -14,6 +14,7 @@ from jose import JWTError, jwt
 # ЛОКАЛЬНЫЕ ИМПОРТЫ
 from backend.core.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
+    ALLOW_LEGACY_MD5_LOGIN,
     JWT_ALGORITHM,
     SECRET_KEY,
 )
@@ -48,6 +49,10 @@ def verify_password(password: str, stored_hash: str | None) -> bool:
         return False
 
     if not stored_hash.startswith(f"{PBKDF2_PREFIX}$"):
+        # Старый MD5-хеш. При закрытом миграционном окне вход по нему запрещён:
+        # аккаунт должен сбросить пароль.
+        if not ALLOW_LEGACY_MD5_LOGIN:
+            return False
         return hmac.compare_digest(hash_md5_password(password), stored_hash)
 
     try:
@@ -78,7 +83,7 @@ def password_needs_rehash(stored_hash: str | None) -> bool:
         return True
 
 # Создаёт JWT для авторизованного пользователя.
-def create_access_token(user_id: int) -> str:
+def create_access_token(user_id: int, token_version: int = 0) -> str:
     # Создаёт JWT-токен с идентификатором пользователя и временем истечения срока действия.
     expires_at = datetime.now(timezone.utc) + timedelta(
         minutes=ACCESS_TOKEN_EXPIRE_MINUTES
@@ -87,6 +92,7 @@ def create_access_token(user_id: int) -> str:
 
     payload = {
         "sub": str(user_id),
+        "ver": int(token_version),
         "exp": expires_at,
     }
 
@@ -96,8 +102,8 @@ def create_access_token(user_id: int) -> str:
         algorithm=JWT_ALGORITHM,
     )
 
-# Проверяет JWT и возвращает ID пользователя.
-def decode_access_token(token: str) -> int | None:
+# Проверяет JWT и возвращает (ID пользователя, версию токена).
+def decode_access_token(token: str) -> tuple[int, int] | None:
 
     try:
         payload = jwt.decode(
@@ -111,7 +117,13 @@ def decode_access_token(token: str) -> int | None:
         if user_id is None:
             return None
 
-        return int(user_id)
+        # Токены без "ver" (выпущенные до введения версий) считаются версией 0.
+        token_version = payload.get("ver", 0)
+
+        try:
+            return int(user_id), int(token_version)
+        except (TypeError, ValueError):
+            return None
 
     except (JWTError, ValueError):
         return None

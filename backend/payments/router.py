@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from typing import Annotated
 from urllib.error import HTTPError, URLError
 
 from fastapi import (
@@ -8,14 +9,24 @@ from fastapi import (
     BackgroundTasks,
     Depends,
     HTTPException,
+    Query,
     Request,
     status,
 )
 from heleket_sdk import SignatureError, WebhookVerifier
 
 from backend.auth.dependencies import get_current_user
-from backend.core.config import HELEKET_PAYMENT_API_KEY
+from backend.core.config import (
+    HELEKET_PAYMENT_API_KEY,
+    RATE_LIMIT_PAYMENT_PER_IP,
+    RATE_LIMIT_PAYMENT_PER_USER,
+)
 from backend.core.database import SessionLocal
+from backend.core.ratelimit import (
+    client_ip,
+    enforce_rate_limits,
+    enforce_rate_limits_async,
+)
 from backend.services.supplier import (
     SupplierNotConfiguredError,
     SupplierRejectedError,
@@ -34,8 +45,9 @@ from .repository import (
     get_balance_topup_for_user,
     get_order_for_user,
     get_payment_attempt_for_user,
-    request_payment_cancellation,
     get_user_orders,
+    mark_provider_cancel_pending,
+    request_payment_cancellation,
 )
 from .schemas import (
     BalanceTopUpStatusResponse,
@@ -57,6 +69,7 @@ from .service import (
     PaymentConflictError,
     PaymentVerificationError,
     ServiceNotFoundError,
+    _format_expires_at,
     cancel_order_with_supplier,
     create_balance_topup_payment,
     create_crystalpay_order_payment,
@@ -71,6 +84,7 @@ from .service import (
     reconcile_payment_if_due,
     process_crystalpay_invoice,
     process_heleket_webhook_payload,
+    process_verified_payment,
     sync_order_safely,
     sync_order_with_supplier,
     verify_payment_notification,
@@ -83,8 +97,11 @@ from .crystalpay_service import (
     verify_callback_signature,
 )
 from .yookassa_service import (
+    YooKassaCancelNotAllowedError,
     YooKassaNotConfiguredError,
     YooKassaPaymentMethodUnavailableError,
+    cancel_yookassa_payment,
+    get_yookassa_payment,
 )
 
 
@@ -105,8 +122,15 @@ MAX_WEBHOOK_BODY_SIZE = 64 * 1024
 )
 async def create_order_endpoint(
     data: CreateOrderRequest,
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
+    await enforce_rate_limits_async(
+        [
+            (f"payment:ip:{client_ip(request)}", RATE_LIMIT_PAYMENT_PER_IP),
+            (f"payment:user:{current_user['id']}", RATE_LIMIT_PAYMENT_PER_USER),
+        ]
+    )
     try:
         arguments = {
             "user_id": current_user["id"],
@@ -118,8 +142,9 @@ async def create_order_endpoint(
         if data.payment_method == "crystalpay":
             return await create_crystalpay_order_payment(**arguments)
         if data.payment_method == "heleket":
-            return create_heleket_order_payment(**arguments)
-        return create_order_payment(
+            return await asyncio.to_thread(create_heleket_order_payment, **arguments)
+        return await asyncio.to_thread(
+            create_order_payment,
             **arguments,
             payment_method=data.payment_method,
         )
@@ -168,8 +193,15 @@ async def create_order_endpoint(
 )
 def create_balance_topup_endpoint(
     data: CreateBalanceTopUpRequest,
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
+    enforce_rate_limits(
+        [
+            (f"payment:ip:{client_ip(request)}", RATE_LIMIT_PAYMENT_PER_IP),
+            (f"payment:user:{current_user['id']}", RATE_LIMIT_PAYMENT_PER_USER),
+        ]
+    )
     try:
         return create_balance_topup_payment(
             user_id=current_user["id"],
@@ -278,6 +310,7 @@ def _payment_attempt_response(attempt, account=None) -> dict:
         'balance': format(account['balance'], '.2f') if account is not None else None,
         'dispatch_status': attempt.get('dispatch_status'),
         'message': messages.get(status_value),
+        'expires_at': _format_expires_at(attempt.get('expires_at')),
     }
 
 
@@ -301,9 +334,13 @@ async def payment_attempt_status_endpoint(
         if attempt.get('provider') == 'crystalpay':
             await reconcile_crystalpay_invoice_if_due(attempt['provider_payment_id'])
         elif attempt.get('provider') == 'heleket':
-            reconcile_heleket_invoice_if_due(attempt['provider_payment_id'])
+            await asyncio.to_thread(
+                reconcile_heleket_invoice_if_due, attempt['provider_payment_id']
+            )
         else:
-            reconcile_payment_if_due(attempt['provider_payment_id'])
+            await asyncio.to_thread(
+                reconcile_payment_if_due, attempt['provider_payment_id']
+            )
     session = SessionLocal()
     try:
         attempt = get_payment_attempt_for_user(session, attempt_id, current_user['id'])
@@ -330,9 +367,11 @@ async def cancel_payment_attempt_endpoint(
     if attempt.get('provider') == 'crystalpay' and attempt.get('provider_payment_id'):
         invoice = await crystalpay_client.get_invoice(attempt['provider_payment_id'])
         if str(invoice.get('state') or '').lower() == 'payed':
-            result = process_crystalpay_invoice(attempt['provider_payment_id'], invoice)
+            result = await asyncio.to_thread(
+                process_crystalpay_invoice, attempt['provider_payment_id'], invoice
+            )
             if type(result) is int:
-                dispatch_order(result)
+                await asyncio.to_thread(dispatch_order, result)
             raise HTTPException(status_code=409, detail='Платёж уже подтверждён провайдером')
     if attempt.get('provider') == 'heleket' and attempt.get('provider_payment_id'):
         invoice = await asyncio.to_thread(
@@ -340,14 +379,62 @@ async def cancel_payment_attempt_endpoint(
         )
         payload = invoice_to_payload(invoice)
         if payload.get('status') in {'paid', 'paid_over'}:
-            result = process_heleket_webhook_payload(payload)
+            result = await asyncio.to_thread(process_heleket_webhook_payload, payload)
             if type(result) is int:
-                dispatch_order(result)
+                await asyncio.to_thread(dispatch_order, result)
             raise HTTPException(status_code=409, detail='Платёж уже подтверждён провайдером')
+    provider_cancel_pending = False
+    if attempt.get('provider') == 'yookassa' and attempt.get('provider_payment_id'):
+        payment = None
+        try:
+            payment = await asyncio.to_thread(
+                get_yookassa_payment, attempt['provider_payment_id']
+            )
+        except Exception as error:
+            logger.warning(
+                'YooKassa status check failed during cancel attempt_id=%s error=%s',
+                attempt['id'],
+                type(error).__name__,
+            )
+            provider_cancel_pending = True
+        if payment is not None:
+            payment_status = str(getattr(payment, 'status', ''))
+            if payment_status == 'succeeded':
+                order_id = await asyncio.to_thread(process_verified_payment, payment)
+                if order_id is not None:
+                    await asyncio.to_thread(dispatch_order, order_id)
+                raise HTTPException(
+                    status_code=409, detail='Платёж уже подтверждён провайдером'
+                )
+            if payment_status in {'pending', 'waiting_for_capture'}:
+                try:
+                    await asyncio.to_thread(
+                        cancel_yookassa_payment,
+                        attempt['provider_payment_id'],
+                        f"cancel-attempt-{attempt['id']}",
+                    )
+                except YooKassaCancelNotAllowedError as error:
+                    # ЮKassa не отменяет одностадийные платежи (capture=true).
+                    # Ссылку убираем локально; повтор не поможет — не ставим
+                    # флаг provider_cancel_pending, чтобы не было ложных алертов.
+                    logger.info(
+                        'YooKassa cancel not allowed attempt_id=%s error=%s',
+                        attempt['id'],
+                        str(error),
+                    )
+                except Exception as error:
+                    logger.warning(
+                        'YooKassa cancel failed attempt_id=%s error=%s',
+                        attempt['id'],
+                        type(error).__name__,
+                    )
+                    provider_cancel_pending = True
     session = SessionLocal()
     try:
         with session.begin():
             canceled = request_payment_cancellation(session, attempt_id, current_user['id'])
+            if canceled is not None and provider_cancel_pending:
+                mark_provider_cancel_pending(session, attempt_id)
         account = get_account_summary(session, current_user['id'])
     finally:
         session.close()
@@ -363,8 +450,15 @@ async def cancel_payment_attempt_endpoint(
 )
 async def create_crystalpay_topup_endpoint(
     data: CreateCrystalPayTopUpRequest,
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
+    await enforce_rate_limits_async(
+        [
+            (f"payment:ip:{client_ip(request)}", RATE_LIMIT_PAYMENT_PER_IP),
+            (f"payment:user:{current_user['id']}", RATE_LIMIT_PAYMENT_PER_USER),
+        ]
+    )
     try:
         return await create_crystalpay_topup(
             user_id=current_user["id"],
@@ -399,6 +493,7 @@ async def create_crystalpay_topup_endpoint(
 )
 def create_heleket_topup_endpoint(
     data: CreateHeleketTopUpRequest,
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
     """Пополнение баланса криптовалютой через Heleket.
@@ -406,6 +501,12 @@ def create_heleket_topup_endpoint(
     Sync-эндпоинт: FastAPI исполняет его в threadpool, поэтому синхронный
     SDK-клиент Heleket не блокирует event loop.
     """
+    enforce_rate_limits(
+        [
+            (f"payment:ip:{client_ip(request)}", RATE_LIMIT_PAYMENT_PER_IP),
+            (f"payment:user:{current_user['id']}", RATE_LIMIT_PAYMENT_PER_USER),
+        ]
+    )
     try:
         return create_heleket_topup(
             user_id=current_user["id"],
@@ -466,7 +567,7 @@ async def heleket_webhook(request: Request, background_tasks: BackgroundTasks):
         payload.status,
     )
     try:
-        result = process_heleket_webhook_payload(payload.raw)
+        result = await asyncio.to_thread(process_heleket_webhook_payload, payload.raw)
         if type(result) is int:
             background_tasks.add_task(dispatch_order, result)
         credited = bool(result)
@@ -542,6 +643,7 @@ _ORDER_DISPLAY_STATUS = {
     "Отмена запрошена": "Отмена в обработке",
     "Требует проверки": "Требует проверки",
     "Отклонен поставщиком": "Отклонён поставщиком",
+    "Цена изменилась": "Требует проверки",
 }
 
 
@@ -565,6 +667,8 @@ def _order_message(order) -> str | None:
         return "Оплата принята. Отправка заказа проверяется поддержкой."
     if order["status"] == "Отклонен поставщиком":
         return "Поставщик отклонил заказ. Требуется проверка администратора."
+    if order["status"] == "Цена изменилась":
+        return "Себестоимость поставщика выросла после оплаты. Заказ передан на проверку поддержки."
     if order["status"] == "Отмена запрошена":
         return "Поставщик принял запрос на отмену. Финансовый результат не подтверждён."
     if order["status"] == "Оплата отменена":
@@ -593,7 +697,7 @@ def order_status_endpoint(
         background_tasks.add_task(dispatch_order, order_id)
     elif (
         order["id_rocket"]
-        and order["status"] not in {"Завершен", "Отменен поставщиком"}
+        and order["status"] not in {"Завершен", "Отменен поставщиком", "Готово", "Отменен"}
     ):
         background_tasks.add_task(
             sync_order_safely,
@@ -605,11 +709,12 @@ def order_status_endpoint(
         and order["provider_payment_id"]
         and order["payment_status"] not in {"canceled", "cancel_requested", "paid_after_cancel"}
     ):
-        reconciliation = (
-            reconcile_crystalpay_invoice_if_due
-            if order.get("provider") == "crystalpay"
-            else reconcile_payment_if_due
-        )
+        if order.get("provider") == "crystalpay":
+            reconciliation = reconcile_crystalpay_invoice_if_due
+        elif order.get("provider") == "heleket":
+            reconciliation = reconcile_heleket_invoice_if_due
+        else:
+            reconciliation = reconcile_payment_if_due
         background_tasks.add_task(reconciliation, order["provider_payment_id"])
 
     return {
@@ -738,24 +843,25 @@ def account_summary_endpoint(current_user: dict = Depends(get_current_user)):
 
 @router.get("/api/my-orders")
 def my_orders_endpoint(
-    background_tasks: BackgroundTasks,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    before_id: Annotated[int | None, Query()] = None,
     current_user: dict = Depends(get_current_user),
 ):
     session = SessionLocal()
     try:
-        orders = get_user_orders(session, current_user["id"])
+        orders = get_user_orders(
+            session,
+            current_user["id"],
+            limit=limit + 1,
+            before_id=before_id,
+        )
     finally:
         session.close()
-    for item in orders:
-        if item["id_rocket"] and item["status"] not in {
-            "Завершен",
-            "Отменен поставщиком",
-        }:
-            background_tasks.add_task(
-                sync_order_safely,
-                item["id"],
-                current_user["id"],
-            )
+    # Статусы активных заказов обновляет фоновый ограниченный worker
+    # (sync_due_orders), а не fan-out при открытии списка.
+    has_more = len(orders) > limit
+    items = orders[:limit]
+    next_cursor = items[-1]["id"] if has_more else None
     return {
         "items": [
             {
@@ -771,8 +877,9 @@ def my_orders_endpoint(
                 "remains": item["remains"],
                 "created_at": item["date"],
             }
-            for item in orders
-        ]
+            for item in items
+        ],
+        "next_cursor": next_cursor,
     }
 
 
@@ -811,7 +918,7 @@ async def yookassa_webhook(
 
     logger.info("YooKassa webhook received event=%s", event)
     try:
-        order_id = verify_payment_notification(payment_id)
+        order_id = await asyncio.to_thread(verify_payment_notification, payment_id)
     except (PaymentVerificationError, PaymentConflictError) as error:
         logger.warning("YooKassa payment verification failed: %s", error)
         raise HTTPException(status_code=400, detail="Платёж не подтверждён") from error
@@ -865,7 +972,7 @@ async def crystalpay_callback(request: Request, background_tasks: BackgroundTask
 
     try:
         invoice = await crystalpay_client.get_invoice(invoice_id)
-        result = process_crystalpay_invoice(invoice_id, invoice)
+        result = await asyncio.to_thread(process_crystalpay_invoice, invoice_id, invoice)
         if type(result) is int:
             background_tasks.add_task(dispatch_order, result)
         credited = bool(result)

@@ -19,6 +19,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(
     os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")
 )
 
+# Миграционное окно для старых MD5-хешей паролей. true — вход по MD5
+# принимается (и пароль прозрачно переводится в PBKDF2); false — MD5
+# отклоняется, такие аккаунты должны сбросить пароль.
+ALLOW_LEGACY_MD5_LOGIN = os.getenv("ALLOW_LEGACY_MD5_LOGIN", "false").lower() == "true"
+
 KINGPROMOTION_API_KEY = os.getenv("KINGPROMOTION_API_KEY", "")
 KINGPROMOTION_API_URL = os.getenv(
     "KINGPROMOTION_API_URL",
@@ -28,6 +33,28 @@ KINGPROMOTION_MARKUP_PERCENT = float(
     os.getenv("KINGPROMOTION_MARKUP_PERCENT", "50")
 )
 REFERRAL_REWARD_PERCENT = os.getenv("REFERRAL_REWARD_PERCENT", "12")
+
+# Комиссия платёжных систем (ЮKassa/CrystalPAY/Heleket) в процентах от суммы
+# платежа. Учитывается в проверке маржинальности заказа.
+PAYMENT_PROVIDER_FEE_PERCENT = float(
+    os.getenv("PAYMENT_PROVIDER_FEE_PERCENT", "3")
+)
+# Допустимое повышение себестоимости поставщика после оплаты (в процентах), при
+# котором заказ всё ещё отправляется без ручной проверки. Проект одновалютный
+# (RUB), поэтому валютный дрейф не актуален; порог страхует от ложных
+# срабатываний из-за незначительной переоценки тарифа.
+SUPPLIER_PRICE_DRIFT_TOLERANCE_PERCENT = float(
+    os.getenv("SUPPLIER_PRICE_DRIFT_TOLERANCE_PERCENT", "2")
+)
+_ECONOMICS_PERCENTS = (
+    PAYMENT_PROVIDER_FEE_PERCENT,
+    SUPPLIER_PRICE_DRIFT_TOLERANCE_PERCENT,
+)
+if any(not (0 <= value < 100) for value in _ECONOMICS_PERCENTS):
+    raise RuntimeError(
+        "PAYMENT_PROVIDER_FEE_PERCENT и SUPPLIER_PRICE_DRIFT_TOLERANCE_PERCENT "
+        "должны быть в диапазоне [0, 100)"
+    )
 
 
 def _parse_admin_user_ids(raw_value: str) -> frozenset[int]:
@@ -113,6 +140,87 @@ if PAYMENT_TIMEOUT_MINUTES <= 0 or PAYMENT_EXPIRY_SWEEP_SECONDS <= 0:
     raise RuntimeError(
         "PAYMENT_TIMEOUT_MINUTES и PAYMENT_EXPIRY_SWEEP_SECONDS должны быть больше нуля"
     )
+
+# Как часто фоновый обход подхватывает оплаченные заказы, ещё не отправленные
+# поставщику (durable fallback на случай сбоя процесса после webhook).
+DISPATCH_SWEEP_SECONDS = int(os.getenv("DISPATCH_SWEEP_SECONDS", "15"))
+# Сколько заказов за один проход можно попытаться отправить поставщику.
+DISPATCH_SWEEP_BATCH_SIZE = int(os.getenv("DISPATCH_SWEEP_BATCH_SIZE", "50"))
+if DISPATCH_SWEEP_SECONDS <= 0 or DISPATCH_SWEEP_BATCH_SIZE <= 0:
+    raise RuntimeError(
+        "DISPATCH_SWEEP_SECONDS и DISPATCH_SWEEP_BATCH_SIZE должны быть больше нуля"
+    )
+
+# Фоновая синхронизация статусов активных заказов с поставщиком (ограниченный
+# worker вместо fan-out при открытии списка заказов).
+STATUS_SYNC_SWEEP_SECONDS = int(os.getenv("STATUS_SYNC_SWEEP_SECONDS", "60"))
+STATUS_SYNC_BATCH_SIZE = int(os.getenv("STATUS_SYNC_BATCH_SIZE", "30"))
+STATUS_SYNC_DUE_SECONDS = int(os.getenv("STATUS_SYNC_DUE_SECONDS", "60"))
+# Синхронизировать статус только у «свежих» заказов. Старые заказы в
+# «Выполняется»/«Частично» поставщик уже не отдаёт по action=status (возвращает
+# error), поэтому опрашивать их бессмысленно и шумно.
+STATUS_SYNC_MAX_ORDER_AGE_DAYS = int(
+    os.getenv("STATUS_SYNC_MAX_ORDER_AGE_DAYS", "30")
+)
+if (
+    STATUS_SYNC_SWEEP_SECONDS <= 0
+    or STATUS_SYNC_BATCH_SIZE <= 0
+    or STATUS_SYNC_DUE_SECONDS <= 0
+    or STATUS_SYNC_MAX_ORDER_AGE_DAYS <= 0
+):
+    raise RuntimeError(
+        "STATUS_SYNC_SWEEP_SECONDS, STATUS_SYNC_BATCH_SIZE, "
+        "STATUS_SYNC_DUE_SECONDS и STATUS_SYNC_MAX_ORDER_AGE_DAYS "
+        "должны быть больше нуля"
+    )
+
+# Фоновая повторная попытка отмены «зависших» платежей ЮKassa (локальная отмена
+# прошла, а cancel у провайдера упал).
+PROVIDER_CANCEL_RETRY_SWEEP_SECONDS = int(
+    os.getenv("PROVIDER_CANCEL_RETRY_SWEEP_SECONDS", "300")
+)
+PROVIDER_CANCEL_RETRY_BATCH_SIZE = int(
+    os.getenv("PROVIDER_CANCEL_RETRY_BATCH_SIZE", "20")
+)
+if PROVIDER_CANCEL_RETRY_SWEEP_SECONDS <= 0 or PROVIDER_CANCEL_RETRY_BATCH_SIZE <= 0:
+    raise RuntimeError(
+        "PROVIDER_CANCEL_RETRY_SWEEP_SECONDS и PROVIDER_CANCEL_RETRY_BATCH_SIZE "
+        "должны быть больше нуля"
+    )
+
+# Как часто фоновый обход уведомляет администраторов о заказах, зависших в
+# отправке (sending/unknown) и требующих ручной сверки.
+STALE_DISPATCH_ALERT_SWEEP_SECONDS = int(
+    os.getenv("STALE_DISPATCH_ALERT_SWEEP_SECONDS", "300")
+)
+STALE_DISPATCH_ALERT_BATCH_SIZE = int(
+    os.getenv("STALE_DISPATCH_ALERT_BATCH_SIZE", "20")
+)
+if STALE_DISPATCH_ALERT_SWEEP_SECONDS <= 0 or STALE_DISPATCH_ALERT_BATCH_SIZE <= 0:
+    raise RuntimeError(
+        "STALE_DISPATCH_ALERT_SWEEP_SECONDS и STALE_DISPATCH_ALERT_BATCH_SIZE "
+        "должны быть больше нуля"
+    )
+
+# Лимиты частоты запросов (фиксированное окно 60 секунд, попыток в минуту).
+RATE_LIMIT_LOGIN_PER_IP = int(os.getenv("RATE_LIMIT_LOGIN_PER_IP", "10"))
+RATE_LIMIT_LOGIN_PER_ACCOUNT = int(os.getenv("RATE_LIMIT_LOGIN_PER_ACCOUNT", "5"))
+RATE_LIMIT_REGISTER_PER_IP = int(os.getenv("RATE_LIMIT_REGISTER_PER_IP", "5"))
+RATE_LIMIT_TICKET_PER_IP = int(os.getenv("RATE_LIMIT_TICKET_PER_IP", "10"))
+RATE_LIMIT_TICKET_PER_USER = int(os.getenv("RATE_LIMIT_TICKET_PER_USER", "10"))
+RATE_LIMIT_PAYMENT_PER_IP = int(os.getenv("RATE_LIMIT_PAYMENT_PER_IP", "20"))
+RATE_LIMIT_PAYMENT_PER_USER = int(os.getenv("RATE_LIMIT_PAYMENT_PER_USER", "20"))
+_RATE_LIMIT_VALUES = (
+    RATE_LIMIT_LOGIN_PER_IP,
+    RATE_LIMIT_LOGIN_PER_ACCOUNT,
+    RATE_LIMIT_REGISTER_PER_IP,
+    RATE_LIMIT_TICKET_PER_IP,
+    RATE_LIMIT_TICKET_PER_USER,
+    RATE_LIMIT_PAYMENT_PER_IP,
+    RATE_LIMIT_PAYMENT_PER_USER,
+)
+if any(value <= 0 for value in _RATE_LIMIT_VALUES):
+    raise RuntimeError("Все RATE_LIMIT_* должны быть больше нуля")
 
 CRYSTALPAY_AUTH_LOGIN = os.getenv("CRYSTALPAY_AUTH_LOGIN", "").strip()
 CRYSTALPAY_AUTH_SECRET = os.getenv("CRYSTALPAY_AUTH_SECRET", "").strip()

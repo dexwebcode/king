@@ -2,6 +2,7 @@ import logo from "../../../../assets/logo.png";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Modal from "../../../../ui/Modal";
+import { useLanguage } from "../../../../ui/i18n";
 import HeroRegisterForm from "../Hero/HeroRegisterForm";
 import "./css/Header.css";
 
@@ -11,6 +12,7 @@ export default function Header({
     actionLabel = "Авторизация",
     onAction,
 }) {
+    const { t } = useLanguage();
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const isLanding = window.location.pathname === "/";
     const sectionLink = (section) => isLanding ? `#${section}` : `/#${section}`;
@@ -30,11 +32,11 @@ export default function Header({
             <Link
                 to="/"
                 className="brand"
-                aria-label="KingPromotion"
+                aria-label={t("KingPromotion")}
             >
                 <img
                     src={logo}
-                    alt="KingPromotion"
+                    alt={t("KingPromotion")}
                     width={40}
                     height={40}
                 />
@@ -48,39 +50,38 @@ export default function Header({
             <nav className="main-nav">
 
                 <a href={sectionLink("services")}>
-                    Услуги
+                    {t("Услуги")}
                 </a>
 
                 <a href={sectionLink("prices")}>
-                    Цены
+                    {t("Цены")}
                 </a>
 
                 <a href={sectionLink("how")}>
-                    Как это работает
+                    {t("Как это работает")}
                 </a>
 
                 <Link to="/reviews">
-                    Отзывы
+                    {t("Отзывы")}
                 </Link>
 
                 <Link to="/faq">
-                    FAQ
+                    {t("FAQ")}
                 </Link>
 
                 <a href={sectionLink("support")}>
-                    Поддержка
+                    {t("Поддержка")}
                 </a>
 
             </nav>
             <div className="header-actions">
                 <button
                     type="button"
-                    className={`button button-gold ${showAuthButton ? "is-visible" : ""}`}
+                    className="button button-gold"
                     onClick={handleAction}
-                    tabIndex={showAuthButton ? 0 : -1}
                 >
                     <span className="button-label">
-                        {actionLabel}
+                        {t(actionLabel)}
                     </span>
                 </button>
             </div>
@@ -88,7 +89,7 @@ export default function Header({
             </header>
 
             {isAuthModalOpen && (
-                <Modal title="Авторизация" onClose={() => setIsAuthModalOpen(false)}>
+                <Modal title={t("Авторизация")} onClose={() => setIsAuthModalOpen(false)}>
                     <HeroRegisterForm />
                 </Modal>
             )}

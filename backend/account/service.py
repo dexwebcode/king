@@ -4,6 +4,7 @@ import logging
 
 from sqlalchemy.exc import IntegrityError
 
+from backend.auth.repository import increment_user_token_version
 from backend.auth.security import hash_password, verify_password
 from backend.auth.social_accounts import (
     delete_user_social_account,
@@ -168,6 +169,9 @@ class AccountService:
                 updated = repository.update_user_credentials(
                     session, user_id, login, password_hash
                 )
+                if password is not None:
+                    # Смена пароля инвалидирует все ранее выпущенные токены.
+                    increment_user_token_version(session, user_id)
                 session.commit()
             except IntegrityError as error:
                 session.rollback()

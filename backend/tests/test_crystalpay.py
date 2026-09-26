@@ -16,7 +16,9 @@ from backend.payments.crystalpay_service import (
 )
 from backend.payments.router import crystalpay_callback
 from backend.payments.service import (
+    PaymentConflictError,
     PaymentVerificationError,
+    _claim_crystalpay_invoice_creation,
     create_crystalpay_order_payment,
     create_crystalpay_topup,
     process_crystalpay_invoice,
@@ -170,6 +172,10 @@ class CrystalPayClientTests(unittest.IsolatedAsyncioTestCase):
             patch("backend.payments.service.validate_crystalpay_configuration"),
             patch("backend.payments.service._create_or_get_topup_attempt", return_value=created),
             patch(
+                "backend.payments.service._claim_crystalpay_invoice_creation",
+                return_value=created,
+            ),
+            patch(
                 "backend.payments.service.crystalpay_client.create_invoice",
                 new=AsyncMock(return_value={
                     "error": False,
@@ -212,6 +218,10 @@ class CrystalPayClientTests(unittest.IsolatedAsyncioTestCase):
             patch("backend.payments.service.validate_crystalpay_configuration"),
             patch("backend.payments.service._prepare_order_attempt", return_value=created),
             patch(
+                "backend.payments.service._claim_crystalpay_invoice_creation",
+                return_value=created,
+            ),
+            patch(
                 "backend.payments.service.crystalpay_client.create_invoice",
                 new=AsyncMock(return_value={
                     "error": False,
@@ -238,6 +248,45 @@ class CrystalPayClientTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result["confirmation_url"], "https://pay.crystalpay.io/?i=invoice-kopeck")
         self.assertEqual(result["status"], "created")
+
+
+class CrystalPayInvoiceClaimTests(unittest.IsolatedAsyncioTestCase):
+    async def test_claim_returns_fresh_invoice_when_race_lost(self):
+        fresh = {
+            **attempt(),
+            "provider_payment_id": "invoice-winner",
+            "confirmation_url": "https://pay.crystalpay.io/invoice-winner",
+        }
+        with (
+            patch("backend.payments.service.SessionLocal", return_value=FakeSession()),
+            patch("backend.payments.service.claim_invoice_creation", return_value=None),
+            patch(
+                "backend.payments.service.get_attempt_by_idempotence_key",
+                return_value=fresh,
+            ),
+        ):
+            result = _claim_crystalpay_invoice_creation(
+                attempt_id=501,
+                user_id=151,
+                idempotence_key="00000000-0000-0000-0000-000000000001",
+            )
+        self.assertEqual(result["provider_payment_id"], "invoice-winner")
+
+    async def test_claim_raises_when_creation_still_in_progress(self):
+        with (
+            patch("backend.payments.service.SessionLocal", return_value=FakeSession()),
+            patch("backend.payments.service.claim_invoice_creation", return_value=None),
+            patch(
+                "backend.payments.service.get_attempt_by_idempotence_key",
+                return_value={**attempt(), "provider_payment_id": None, "confirmation_url": None},
+            ),
+        ):
+            with self.assertRaises(PaymentConflictError):
+                _claim_crystalpay_invoice_creation(
+                    attempt_id=501,
+                    user_id=151,
+                    idempotence_key="00000000-0000-0000-0000-000000000001",
+                )
 
 
 class CrystalPayCallbackTests(unittest.IsolatedAsyncioTestCase):
@@ -451,19 +500,25 @@ class CrystalPayOrderAndCancellationTests(unittest.TestCase):
         mark_order_paid.assert_called_once_with(unittest.mock.ANY, 601)
         mark_processed.assert_called_once()
 
-    def test_payed_invoice_after_cancel_is_not_processed(self):
+    def test_payed_invoice_after_cancel_is_credited(self):
         stored_attempt = {**attempt(), "status": "cancel_requested"}
         with (
             patch("backend.payments.service.SessionLocal", return_value=FakeSession()),
             patch("backend.payments.service.get_attempt_by_payment_id", return_value=stored_attempt),
-            patch("backend.payments.service.mark_payment_paid_after_cancel") as late_payment,
-            patch("backend.payments.service.create_balance_transaction") as create_transaction,
+            patch("backend.payments.service.lock_user", return_value={"id": 151, "balance": Decimal("10.00")}),
+            patch("backend.payments.service.create_balance_transaction", return_value=701) as create_transaction,
+            patch("backend.payments.service.create_expense"),
+            patch("backend.payments.service.add_referral_reward"),
+            patch("backend.payments.service.set_user_balance"),
+            patch("backend.payments.service.mark_payment_processed") as mark_processed,
+            patch("backend.payments.service._send_admin_alert_safely") as alert,
         ):
             result = process_crystalpay_invoice("invoice-1", invoice())
 
-        self.assertFalse(result)
-        late_payment.assert_called_once_with(unittest.mock.ANY, 501)
-        create_transaction.assert_not_called()
+        self.assertTrue(result)
+        create_transaction.assert_called_once()
+        mark_processed.assert_called_once()
+        alert.assert_called_once()
 
 
     def test_payed_purchase_with_kopecks_credits_exact_amount(self):

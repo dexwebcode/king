@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { AppShell, EmptyState, PageHeader, Panel } from "../../ui/AppShell";
+import { useLanguage } from "../../ui/i18n";
 import { supportApi } from "../Support/supportApi";
 import { formatDate, STATUS_ORDER, statusMeta } from "../Support/statusMeta";
 import TicketMessages from "../Support/TicketMessages";
@@ -18,6 +19,7 @@ const FILTERS = [
 ];
 
 export default function AdminSupport() {
+  const { t } = useLanguage();
   const [tickets, setTickets] = useState([]);
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState("");
@@ -28,6 +30,8 @@ export default function AdminSupport() {
   const [forbidden, setForbidden] = useState(false);
   const [selected, setSelected] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const listRequestId = useRef(0);
+  const detailRequestId = useRef(0);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -35,10 +39,14 @@ export default function AdminSupport() {
   }, [search]);
 
   const loadList = useCallback(async () => {
+    const requestId = ++listRequestId.current;
     const data = await supportApi.adminListTickets({
       status: statusFilter || undefined,
       search: debouncedSearch || undefined,
     });
+    // Применяем результат только последнего запроса: быстрый поиск/фильтр
+    // не должен перезаписывать новый список старым ответом.
+    if (requestId !== listRequestId.current) return;
     setTickets(Array.isArray(data.items) ? data.items : []);
     setTotal(data.total || 0);
   }, [statusFilter, debouncedSearch]);
@@ -51,7 +59,7 @@ export default function AdminSupport() {
       .catch((requestError) => {
         if (!active) return;
         if (requestError.status === 403) setForbidden(true);
-        else setError(requestError.message || "Не удалось загрузить обращения.");
+        else setError(requestError.message || t("Не удалось загрузить обращения."));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -59,18 +67,21 @@ export default function AdminSupport() {
     return () => {
       active = false;
     };
-  }, [loadList]);
+  }, [loadList, t]);
 
   async function openTicket(publicId) {
+    const requestId = ++detailRequestId.current;
     setDetailLoading(true);
     setError("");
     try {
       const data = await supportApi.adminGetTicket(publicId);
+      if (requestId !== detailRequestId.current) return;
       setSelected(data);
     } catch (requestError) {
-      setError(requestError.message || "Не удалось загрузить обращение.");
+      if (requestId !== detailRequestId.current) return;
+      setError(requestError.message || t("Не удалось загрузить обращение."));
     } finally {
-      setDetailLoading(false);
+      if (requestId === detailRequestId.current) setDetailLoading(false);
     }
   }
 
@@ -97,29 +108,29 @@ export default function AdminSupport() {
       setSelected((current) => (current ? { ...current, ...result.ticket, messages: current.messages } : current));
       loadList().catch(() => {});
     } catch (requestError) {
-      setError(requestError.message || "Не удалось изменить статус.");
+      setError(requestError.message || t("Не удалось изменить статус."));
     }
   }
 
   if (forbidden) {
     return (
-      <AppShell title="Админ-панель">
+      <AppShell title={t("Админ-панель")}>
         <Panel className="admin-denied">
-          <p className="kp-eyebrow">403 · доступ запрещён</p>
-          <h1>Админ-панель недоступна</h1>
-          <p>У текущего аккаунта нет административных прав.</p>
-          <Link className="kp-button" to="/main">Вернуться в кабинет</Link>
+          <p className="kp-eyebrow">{t("403 · доступ запрещён")}</p>
+          <h1>{t("Админ-панель недоступна")}</h1>
+          <p>{t("У текущего аккаунта нет административных прав.")}</p>
+          <Link className="kp-button" to="/main">{t("Вернуться в кабинет")}</Link>
         </Panel>
       </AppShell>
     );
   }
 
   return (
-    <AppShell active="admin" contentClassName="admin-page" title="Поддержка">
+    <AppShell active="admin" contentClassName="admin-page" title={t("Поддержка")}>
       <PageHeader
-        eyebrow="Операционный центр"
-        description="Все обращения пользователей и переписка с ними."
-        actions={<Link className="kp-button kp-button--secondary" to="/admin">Контроль заказов</Link>}
+        eyebrow={t("Операционный центр")}
+        description={t("Все обращения пользователей и переписка с ними.")}
+        actions={<Link className="kp-button kp-button--secondary" to="/admin">{t("Контроль заказов")}</Link>}
       />
 
       {error && <p className="admin-alert" role="alert">{error}</p>}
@@ -127,7 +138,7 @@ export default function AdminSupport() {
       <section className="asup-layout">
         <Panel className="asup-list">
           <div className="asup-filters">
-            <div className="asup-filter-tabs" role="tablist" aria-label="Фильтр по статусу">
+            <div className="asup-filter-tabs" role="tablist" aria-label={t("Фильтр по статусу")}>
               {FILTERS.map((filter) => (
                 <button
                   key={filter.value}
@@ -135,23 +146,23 @@ export default function AdminSupport() {
                   className={statusFilter === filter.value ? "is-active" : ""}
                   onClick={() => setStatusFilter(filter.value)}
                 >
-                  {filter.label}
+                  {t(filter.label)}
                 </button>
               ))}
             </div>
             <input
               className="kp-field asup-search"
               type="search"
-              placeholder="Поиск: номер, тема, пользователь…"
+              placeholder={t("Поиск: номер, тема, пользователь…")}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
 
           {loading ? (
-            <p className="asup-empty">Загрузка обращений…</p>
+            <p className="asup-empty">{t("Загрузка обращений…")}</p>
           ) : tickets.length === 0 ? (
-            <EmptyState>Обращения не найдены.</EmptyState>
+            <EmptyState>{t("Обращения не найдены.")}</EmptyState>
           ) : (
             <div className="asup-rows">
               {tickets.map((ticket) => {
@@ -171,7 +182,7 @@ export default function AdminSupport() {
                     <div className="asup-row-side">
                       <span className={`kp-status kp-status--${meta.tone}`}>
                         <i />
-                        {meta.label}
+                        {t(meta.label)}
                       </span>
                       <time>{formatDate(ticket.updated_at)}</time>
                     </div>
@@ -180,14 +191,14 @@ export default function AdminSupport() {
               })}
             </div>
           )}
-          <div className="asup-count">Всего обращений: {total}</div>
+          <div className="asup-count">{t("Всего обращений: {total}", { total })}</div>
         </Panel>
 
         <Panel className="asup-detail">
           {detailLoading ? (
-            <p className="asup-empty">Загрузка обращения…</p>
+            <p className="asup-empty">{t("Загрузка обращения…")}</p>
           ) : selected === null ? (
-            <p className="asup-empty">Выберите обращение из списка.</p>
+            <p className="asup-empty">{t("Выберите обращение из списка.")}</p>
           ) : (
             <>
               <header className="asup-detail-head">
@@ -195,9 +206,9 @@ export default function AdminSupport() {
                   <p className="kp-eyebrow">#{selected.public_id}</p>
                   <h2>{selected.subject}</h2>
                   <p className="asup-detail-meta">
-                    Пользователь: {selected.user_login} · Создано: {formatDate(selected.created_at)}
+                    {t("Пользователь: {login} · Создано: {date}", { login: selected.user_login, date: formatDate(selected.created_at) })}
                   </p>
-                  {selected.contact ? <p className="asup-detail-meta">Контакт: {selected.contact}</p> : null}
+                  {selected.contact ? <p className="asup-detail-meta">{t("Контакт: {contact}", { contact: selected.contact })}</p> : null}
                 </div>
                 <select
                   className="kp-field asup-status-select"
@@ -206,7 +217,7 @@ export default function AdminSupport() {
                 >
                   {STATUS_ORDER.map((status) => (
                     <option key={status} value={status}>
-                      {statusMeta(status, true).label}
+                      {t(statusMeta(status, true).label)}
                     </option>
                   ))}
                 </select>
@@ -217,7 +228,7 @@ export default function AdminSupport() {
               </div>
 
               {selected.status === "closed" ? (
-                <p className="asup-closed-note">Обращение закрыто</p>
+                <p className="asup-closed-note">{t("Обращение закрыто")}</p>
               ) : (
                 <TicketReplyForm
                   publicId={selected.public_id}
@@ -227,7 +238,7 @@ export default function AdminSupport() {
               )}
 
               <button className="kp-button kp-button--secondary asup-refresh" type="button" onClick={refreshDetail}>
-                Обновить
+                {t("Обновить")}
               </button>
             </>
           )}

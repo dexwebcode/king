@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Panel } from "../../../ui/AppShell";
+import { useLanguage } from "../../../ui/i18n";
 import StarRating from "./StarRating";
 
 const dateFormat = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric" });
@@ -21,7 +22,8 @@ export default function ReviewCard({ review }) {
 }
 
 export function ReviewsSkeleton() {
-    return <div className="reviews-grid" role="status" aria-label="Загружаем отзывы">
+    const { t } = useLanguage();
+    return <div className="reviews-grid" role="status" aria-label={t("Загружаем отзывы")}>
         {Array.from({ length: 6 }, (_, i) => <div className="review-card review-skeleton" key={i} aria-hidden="true"><div className="review-skeleton-head" /><div /><div /><div /></div>)}
     </div>;
 }

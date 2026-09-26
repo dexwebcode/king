@@ -37,21 +37,26 @@ export function getCachedPrices() {
     return prices;
 }
 
+function fetchPrices() {
+    return fetch(`${API_URL}/price`).then(async (response) => {
+        const data = await response.json();
+        if (!response.ok || !data?.success || !Array.isArray(data.items)) {
+            throw new Error("Не удалось загрузить актуальный каталог");
+        }
+        return data.items;
+    });
+}
+
 export function getPrices() {
     if (prices !== null) return Promise.resolve(prices);
     if (pricesRequest) return pricesRequest;
 
-    const request = fetch(`${API_URL}/price`)
-        .then(async (response) => {
-            const data = await response.json();
-            if (!response.ok || !data?.success || !Array.isArray(data.items)) {
-                throw new Error("Не удалось загрузить актуальный каталог");
-            }
-            prices = data.items;
-            return prices;
-        })
+    const request = fetchPrices()
+        /* Один повтор: сеть/туннель иногда обрывают запрос. Без повтора одна
+           неудача оставляла страницу заказа «залипшей» в ошибке загрузки цен. */
+        .catch(() => fetchPrices())
         .then(
-            (items) => { pricesRequest = null; return items; },
+            (items) => { prices = items; pricesRequest = null; return items; },
             (error) => { pricesRequest = null; throw error; },
         );
     pricesRequest = request;

@@ -1,10 +1,12 @@
 import { useState } from "react";
 
+import { useLanguage } from "../../ui/i18n";
 import { supportApi } from "./supportApi";
 
 const MESSAGE_MAX = 5000;
 
 export default function TicketReplyForm({ publicId, onSent, sendMessage, disabled = false }) {
+  const { t } = useLanguage();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -13,11 +15,11 @@ export default function TicketReplyForm({ publicId, onSent, sendMessage, disable
     event.preventDefault();
     const value = text.trim();
     if (!value) {
-      setError("Сообщение не может быть пустым.");
+      setError(t("Сообщение не может быть пустым."));
       return;
     }
     if (value.length > MESSAGE_MAX) {
-      setError(`Сообщение не должно превышать ${MESSAGE_MAX} символов.`);
+      setError(t("Сообщение не должно превышать {max} символов.", { max: MESSAGE_MAX }));
       return;
     }
     setError("");
@@ -29,7 +31,7 @@ export default function TicketReplyForm({ publicId, onSent, sendMessage, disable
       setText("");
       if (onSent) onSent(result);
     } catch (requestError) {
-      setError(requestError.message || "Не удалось отправить сообщение.");
+      setError(requestError.message || t("Не удалось отправить сообщение."));
     } finally {
       setSending(false);
     }
@@ -42,7 +44,7 @@ export default function TicketReplyForm({ publicId, onSent, sendMessage, disable
         rows={3}
         value={text}
         maxLength={MESSAGE_MAX}
-        placeholder="Напишите сообщение..."
+        placeholder={t("Напишите сообщение...")}
         disabled={disabled || sending}
         onChange={(event) => setText(event.target.value)}
       />
@@ -52,7 +54,7 @@ export default function TicketReplyForm({ publicId, onSent, sendMessage, disable
         type="submit"
         disabled={disabled || sending || !text.trim()}
       >
-        {sending ? "Отправляем…" : "Отправить"}
+        {sending ? t("Отправляем…") : t("Отправить")}
       </button>
     </form>
   );

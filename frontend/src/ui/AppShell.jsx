@@ -5,6 +5,8 @@ import Header from "../pages/Landing/components/Header/Header";
 import { logoutUser } from "../pages/Landing/components/Hero/auth/authApi";
 import { getAccount, getCachedAccount, refreshAccount, subscribeAccount } from "./dataCache";
 import { formatMoney } from "./catalogMeta";
+import { useLanguage } from "./i18n";
+import { formatUsd, useUsdRate } from "./usdRate";
 import logo from "../assets/logo.png";
 
 
@@ -31,6 +33,7 @@ export function AppShell({
     contentClassName = "",
     title = "Личный кабинет",
     titleClassName = "",
+    headerAside = null,
 }) {
     const navigate = useNavigate();
     const token = localStorage.getItem("token");
@@ -88,6 +91,7 @@ export function AppShell({
                     />
                 )}
                 <h1 className={`kp-section-title ${titleClassName}`.trim()}>{title}</h1>
+                {headerAside}
                 <AccountMenu
                     open={isMenuOpen}
                     onClose={() => setIsMenuOpen(false)}
@@ -105,19 +109,21 @@ export function AppShell({
 
 export function InternalHeader({ menuOpen = false, onMenuToggle, onLogin, showAuthenticatedMenu = true }) {
     const token = localStorage.getItem("token");
+    const { t } = useLanguage();
     return (
         <Header
             showAuthButton={!token || showAuthenticatedMenu}
             initiallyDark
-            actionLabel={token ? "Меню" : "Авторизация"}
+            actionLabel={token ? t("Меню") : t("Авторизация")}
             onAction={token ? onMenuToggle : onLogin}
         />
     );
 }
 
 export function MenuToggle({ menuOpen = false, onMenuToggle, className = "" }) {
+    const { t } = useLanguage();
     return (
-        <button className={`kp-menu-toggle ${menuOpen ? "is-open" : ""} ${className}`.trim()} type="button" aria-label="Открыть меню аккаунта" aria-expanded={menuOpen} onClick={onMenuToggle}>
+        <button className={`kp-menu-toggle ${menuOpen ? "is-open" : ""} ${className}`.trim()} type="button" aria-label={t("Открыть меню аккаунта")} aria-expanded={menuOpen} onClick={onMenuToggle}>
             <img src={logo} alt="" />
         </button>
     );
@@ -126,6 +132,8 @@ export function MenuToggle({ menuOpen = false, onMenuToggle, className = "" }) {
 export function AccountMenu({ open, onClose, active, account, isAdmin = false, onSectionChange, onLogout }) {
     const navigate = useNavigate();
     const token = localStorage.getItem("token");
+    const { lang, setLang, t } = useLanguage();
+    const usdRate = useUsdRate();
     /* Разворот панели идёт в два шага: сначала выставляем свёрнутое состояние,
        на следующем кадре — раскрытое. Так анимация гарантированно проигрывается
        при каждом открытии, а не только при первом. */
@@ -199,15 +207,24 @@ export function AccountMenu({ open, onClose, active, account, isAdmin = false, o
 
     return (
         <>
-            <button className={`kp-menu-backdrop ${open ? "is-open" : ""}`} type="button" aria-label="Закрыть меню аккаунта" onClick={onClose} />
+            <button className={`kp-menu-backdrop ${open ? "is-open" : ""}`} type="button" aria-label={t("Закрыть меню аккаунта")} onClick={onClose} />
             <aside
                 className={`kp-side-menu${phase === "open" ? " is-open" : ""}${phase === "starting" ? " is-starting" : ""}`}
-                aria-label="Меню аккаунта"
+                aria-label={t("Меню аккаунта")}
                 aria-hidden={!open}
             >
-                <div className="kp-side-menu-head"><div><small>KingPromotion</small><strong>{(liveAccount || account)?.login || "KING PROMOTION"}</strong></div><button className="kp-side-menu-logout" type="button" onClick={() => { onClose(); window.setTimeout(onLogout, MENU_CLOSE_MS); }}>Выйти</button></div>
-                <button className="kp-side-menu-balance" type="button" onClick={() => goToSection("balance")}><span>Баланс</span><strong>{formatMoney((liveAccount || account)?.balance)} ₽</strong></button>
-                <nav className="kp-side-menu-links" aria-label="Разделы аккаунта">
+                <div className="kp-side-menu-head">
+                    <div><small>KingPromotion</small><strong>{(liveAccount || account)?.login || "KING PROMOTION"}</strong></div>
+                    <div className="kp-side-menu-head-actions">
+                        <div className="kp-lang-switch" role="group" aria-label="Language">
+                            <button type="button" className={lang === "ru" ? "is-active" : ""} aria-pressed={lang === "ru"} onClick={() => setLang("ru")}>RU</button>
+                            <button type="button" className={lang === "en" ? "is-active" : ""} aria-pressed={lang === "en"} onClick={() => setLang("en")}>EN</button>
+                        </div>
+                        <button className="kp-side-menu-logout" type="button" onClick={() => { onClose(); window.setTimeout(onLogout, MENU_CLOSE_MS); }}>{t("Выйти")}</button>
+                    </div>
+                </div>
+                <button className="kp-side-menu-balance" type="button" onClick={() => goToSection("balance")}><span>{t("Баланс")}</span><strong>{lang === "en" && usdRate != null ? formatUsd((liveAccount || account)?.balance, usdRate) : `${formatMoney((liveAccount || account)?.balance)} ₽`}</strong></button>
+                <nav className="kp-side-menu-links" aria-label={t("Разделы аккаунта")}>
                     {menuItems.map((item) => (
                         item.to ? (
                             <Link
@@ -216,7 +233,7 @@ export function AccountMenu({ open, onClose, active, account, isAdmin = false, o
                                 to={item.to}
                                 onClick={(event) => { event.preventDefault(); goToPage(item.to); }}
                             >
-                                {item.label}
+                                {t(item.label)}
                             </Link>
                         ) : (
                             <button
@@ -225,7 +242,7 @@ export function AccountMenu({ open, onClose, active, account, isAdmin = false, o
                                 type="button"
                                 onClick={() => goToSection(item.section)}
                             >
-                                {item.label}
+                                {t(item.label)}
                             </button>
                         )
                     ))}

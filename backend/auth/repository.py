@@ -13,7 +13,7 @@ def get_user_by_login_or_email(
 ):
     result = session.execute(
         text("""
-            SELECT id, login, mail, password
+            SELECT id, login, mail, password, token_version
             FROM migration_temp.users
             WHERE LOWER(login) = LOWER(:value)
                OR LOWER(mail) = LOWER(:value)
@@ -60,7 +60,7 @@ def get_user_by_id(
 ):
     result = session.execute(
         text("""
-            SELECT id, login, mail
+            SELECT id, login, mail, token_version
             FROM migration_temp.users
             WHERE id = :user_id
             LIMIT 1
@@ -115,3 +115,29 @@ def update_user_password(session: Session, user_id: int, password: str) -> None:
         """),
         {"user_id": user_id, "password": password},
     )
+
+
+def increment_user_token_version(session: Session, user_id: int) -> None:
+    """Инвалидирует все ранее выпущенные токены пользователя."""
+    session.execute(
+        text("""
+            UPDATE migration_temp.users
+            SET token_version = token_version + 1
+            WHERE id = :user_id
+        """),
+        {"user_id": user_id},
+    )
+
+
+def count_legacy_password_hashes(session: Session) -> int:
+    """Число аккаунтов со старым MD5-хешем (без префикса pbkdf2_sha256$)."""
+    result = session.execute(
+        text("""
+            SELECT COUNT(*)
+            FROM migration_temp.users
+            WHERE password IS NOT NULL
+              AND btrim(password) <> ''
+              AND password NOT LIKE 'pbkdf2_sha256$%'
+        """),
+    )
+    return int(result.scalar_one())

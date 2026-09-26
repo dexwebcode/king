@@ -17,6 +17,7 @@ import {
     readPendingCheckoutDraft,
 } from "../../ui/orderDraft";
 import { getCachedAccount, getCachedPrices, getPrices, refreshAccount, subscribeAccount, updateCachedBalance } from "../../ui/dataCache";
+import { useLanguage } from "../../ui/i18n";
 import BalanceSection from "./BalanceSection";
 import "./Main.css";
 
@@ -40,6 +41,7 @@ function resolveOrdersView(rawSection, rawView) {
 }
 
 export default function Main() {
+    const { t } = useLanguage();
     const location = useLocation();
     const navigate = useNavigate();
     const sectionFromQuery = new URLSearchParams(location.search).get("section");
@@ -75,7 +77,7 @@ export default function Main() {
 
         refreshAccount()
             .then((data) => { if (active) setAccount(data); })
-            .catch((loadError) => { if (active) setError(loadError.message || "Не удалось загрузить баланс"); })
+            .catch((loadError) => { if (active) setError(loadError.message || t("Не удалось загрузить баланс")); })
             .finally(() => { if (active) setLoading(false); });
 
         getPrices()
@@ -84,11 +86,11 @@ export default function Main() {
 
         fetch(`${API_URL}/api/my-orders`, { headers })
             .then(async (response) => {
-                if (!response.ok) throw new Error("Не удалось загрузить заказы");
+                if (!response.ok) throw new Error(t("Не удалось загрузить заказы"));
                 return response.json();
             })
             .then((data) => { if (active) setOrders(Array.isArray(data.items) ? data.items : []); })
-            .catch((loadError) => { if (active) setError(loadError.message || "Не удалось загрузить заказы"); })
+            .catch((loadError) => { if (active) setError(loadError.message || t("Не удалось загрузить заказы")); })
             .finally(() => { if (active) setOrdersLoading(false); });
 
         return () => { active = false; unsubscribe(); };
@@ -142,7 +144,7 @@ export default function Main() {
                         aria-pressed={ordersView === "quick"}
                         onClick={() => setOrdersView("quick")}
                     >
-                        Быстрый заказ
+                        {t("Быстрый заказ")}
                     </button>
                     <button
                         type="button"
@@ -150,28 +152,21 @@ export default function Main() {
                         aria-pressed={ordersView === "history"}
                         onClick={() => setOrdersView("history")}
                     >
-                        История
+                        {t("История")}
                     </button>
                 </span>
-            ) : "Баланс"}
+            ) : t("Баланс")}
         >
-            {loading ? <Panel className="main-message">Загружаем кабинет…</Panel> : (
+            {loading ? <Panel className="main-message">{t("Загружаем кабинет…")}</Panel> : (
                 <>
-                    {section === "balance" && (
-                        <PageHeader
-                            eyebrow="Личный кабинет"
-                            description={descriptions.balance}
-                        />
-                    )}
-
                     {section === "orders" && ordersView === "history" && (
                         <PageHeader
-                            eyebrow="Личный кабинет"
-                            description={descriptions.orders}
+                            eyebrow={t("Личный кабинет")}
+                            description={t(descriptions.orders)}
                         />
                     )}
 
-                    {error && <p className="main-alert" role="alert">{error}</p>}
+                    {error && <p className="main-alert" role="alert">{t(error)}</p>}
 
                     {isQuickOrder && (
                         <OrderCard
@@ -182,7 +177,7 @@ export default function Main() {
 
                     {section === "orders" && ordersView === "history" && (
                         <Panel className="orders-panel">
-                            {ordersLoading ? <p>Загружаем заказы…</p> : orders.length === 0 ? <EmptyState>У вас пока нет заказов.</EmptyState> : (
+                            {ordersLoading ? <p>{t("Загружаем заказы…")}</p> : orders.length === 0 ? <EmptyState>{t("У вас пока нет заказов.")}</EmptyState> : (
                                 <div className="orders-list">
                                     {orders.map((order) => {
                                         const service = servicesById.get(String(order.service_id));
@@ -191,14 +186,14 @@ export default function Main() {
                                             <article className="order-row" key={order.id}>
                                                 <div className="order-platform-icon">{icon ? <img src={icon} alt="" /> : displayPlatform(order.platform).slice(0, 1)}</div>
                                                 <div className="order-primary">
-                                                    <small>Заказ №{order.id} · {displayPlatform(order.platform)}</small>
-                                                    <strong>{service ? cleanServiceName(service.name) : `Услуга #${order.service_id}`}</strong>
-                                                    <span>{service ? displayServiceType(itemServiceType(service)) : "Продвижение"}</span>
+                                                    <small>{t("Заказ №")}{order.id} · {t(displayPlatform(order.platform))}</small>
+                                                    <strong>{service ? t(cleanServiceName(service.name)) : `${t("Услуга #")}${order.service_id}`}</strong>
+                                                    <span>{service ? t(displayServiceType(itemServiceType(service))) : t("Продвижение")}</span>
                                                 </div>
                                                 <dl className="order-metrics">
-                                                    <div><dt>Количество</dt><dd>{Number(order.quantity).toLocaleString("ru-RU")}</dd></div>
-                                                    {order.remains !== null && order.remains !== undefined && <div><dt>Осталось</dt><dd>{Number(order.remains).toLocaleString("ru-RU")}</dd></div>}
-                                                    <div><dt>Сумма</dt><dd>{formatMoney(order.amount)} ₽</dd></div>
+                                                    <div><dt>{t("Количество")}</dt><dd>{Number(order.quantity).toLocaleString("ru-RU")}</dd></div>
+                                                    {order.remains !== null && order.remains !== undefined && <div><dt>{t("Осталось")}</dt><dd>{Number(order.remains).toLocaleString("ru-RU")}</dd></div>}
+                                                    <div><dt>{t("Сумма")}</dt><dd>{formatMoney(order.amount)} ₽</dd></div>
                                                 </dl>
                                                 <StatusBadge status={order.display_status || order.status}>
                                                     {order.display_status || order.status}

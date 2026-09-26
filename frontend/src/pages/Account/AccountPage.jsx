@@ -14,6 +14,7 @@ import {
     refreshAccountDetails,
     subscribeAccountDetails,
 } from "../../ui/dataCache";
+import { useLanguage } from "../../ui/i18n";
 import { accountApi } from "./accountApi";
 import telegramIcon from "../../assets/social_icons/telegram.svg";
 import vkIcon from "../../assets/social_icons/vk.svg";
@@ -23,6 +24,7 @@ const VK_APP_ID = 54737931;
 const VK_REDIRECT_URL = "https://monument-cuddly-outsell.ngrok-free.dev/auth/vk/callback";
 
 function ConnectionCard({ icon, title, children, actions, className = "" }) {
+    const { t } = useLanguage();
     return (
         <article className={`account-card ${className}`.trim()}>
             <div className="account-card-head">
@@ -31,7 +33,7 @@ function ConnectionCard({ icon, title, children, actions, className = "" }) {
                         <img src={icon} alt="" aria-hidden="true" />
                     </span>
                 )}
-                <h2>{title}</h2>
+                <h2>{t(title)}</h2>
             </div>
             <div className="account-card-body">{children}</div>
             {actions && <div className="account-card-actions">{actions}</div>}
@@ -40,6 +42,7 @@ function ConnectionCard({ icon, title, children, actions, className = "" }) {
 }
 
 export default function AccountPage() {
+    const { t } = useLanguage();
     const [account, setAccount] = useState(getCachedAccountDetails);
     const [loading, setLoading] = useState(() => !getCachedAccountDetails());
     const [error, setError] = useState("");
@@ -68,7 +71,7 @@ export default function AccountPage() {
             const data = force ? await refreshAccountDetails() : await getAccountDetails();
             if (data) setAccount(data);
         } catch (requestError) {
-            setError(requestError?.message || "Не удалось загрузить аккаунт.");
+            setError(requestError?.message || t("Не удалось загрузить аккаунт."));
         }
     }, []);
 
@@ -98,23 +101,23 @@ export default function AccountPage() {
             const response = await getTelegramSessionStatus(token);
             if (!response.ok) {
                 stopPolling();
-                setError(response.data?.detail || "Ошибка проверки Telegram.");
+                setError(response.data?.detail || t("Ошибка проверки Telegram."));
                 setConnecting(null);
                 return;
             }
             const status = response.data?.status;
             if (status === "connected") {
                 stopPolling();
-                setNotice("Telegram подключён.");
+                setNotice(t("Telegram подключён."));
                 setConnecting(null);
                 reload();
             } else if (status === "conflict") {
                 stopPolling();
-                setError("Этот Telegram-аккаунт уже связан с другим аккаунтом.");
+                setError(t("Этот Telegram-аккаунт уже связан с другим аккаунтом."));
                 setConnecting(null);
             } else if (status === "expired" || status === "not_found") {
                 stopPolling();
-                setError("Сессия подключения истекла. Попробуйте ещё раз.");
+                setError(t("Сессия подключения истекла. Попробуйте ещё раз."));
                 setConnecting(null);
             }
         }, 2500);
@@ -129,18 +132,18 @@ export default function AccountPage() {
             const response = await createTelegramSession();
             if (!response.ok || !response.data?.success) {
                 tgWindow?.close();
-                setError(response.data?.detail || "Не удалось начать подключение Telegram.");
+                setError(response.data?.detail || t("Не удалось начать подключение Telegram."));
                 setConnecting(null);
                 return;
             }
             const { token, bot_url } = response.data;
             if (!token || !bot_url) {
                 tgWindow?.close();
-                setError("Telegram-бот не настроен на backend.");
+                setError(t("Telegram-бот не настроен на backend."));
                 setConnecting(null);
                 return;
             }
-            setNotice("Откройте Telegram и нажмите Start.");
+            setNotice(t("Откройте Telegram и нажмите Start."));
             if (tgWindow) {
                 tgWindow.opener = null;
                 tgWindow.location.href = bot_url;
@@ -150,7 +153,7 @@ export default function AccountPage() {
             pollTelegram(token);
         } catch {
             tgWindow?.close();
-            setError("Не удалось подключиться к серверу.");
+            setError(t("Не удалось подключиться к серверу."));
             setConnecting(null);
         }
     }
@@ -175,14 +178,14 @@ export default function AccountPage() {
             );
             const response = await connectVk(tokenPayload.access_token);
             if (!response.ok) {
-                setError(response.data?.detail || "Не удалось подключить VK.");
+                setError(response.data?.detail || t("Не удалось подключить VK."));
                 return;
             }
-            setNotice("VK подключён.");
+            setNotice(t("VK подключён."));
             reload();
         } catch (vkError) {
             setError(
-                vkError?.error_description || vkError?.error || "VK подключение не завершено."
+                vkError?.error_description || vkError?.error || t("VK подключение не завершено.")
             );
         } finally {
             setConnecting(null);
@@ -194,10 +197,10 @@ export default function AccountPage() {
         setNotice("");
         const response = await accountApi.disconnect(provider);
         if (response.ok) {
-            setNotice(provider === "telegram" ? "Telegram отключён." : "VK отключён.");
+            setNotice(provider === "telegram" ? t("Telegram отключён.") : t("VK отключён."));
             reload();
         } else {
-            setError(response.data?.detail || "Не удалось отключить способ входа.");
+            setError(response.data?.detail || t("Не удалось отключить способ входа."));
         }
     }
 
@@ -210,11 +213,11 @@ export default function AccountPage() {
         setNotice("");
         const response = await accountApi.addEmail(email);
         if (response.ok) {
-            setNotice("Email добавлен.");
+            setNotice(t("Email добавлен."));
             setEmailValue("");
             reload();
         } else {
-            setError(response.data?.detail || "Не удалось добавить Email.");
+            setError(response.data?.detail || t("Не удалось добавить Email."));
         }
         setEmailSubmitting(false);
     }
@@ -242,7 +245,7 @@ export default function AccountPage() {
         const value = currentPassword.trim();
         setCredentialsError("");
         if (!value) {
-            setCredentialsError("Введите текущий пароль.");
+            setCredentialsError(t("Введите текущий пароль."));
             return;
         }
         setCheckingPassword(true);
@@ -251,7 +254,7 @@ export default function AccountPage() {
             setPasswordVerified(true);
         } else {
             setPasswordVerified(false);
-            setCredentialsError(response.data?.detail || "Неверный пароль.");
+            setCredentialsError(response.data?.detail || t("Неверный пароль."));
         }
         setCheckingPassword(false);
     }
@@ -263,11 +266,11 @@ export default function AccountPage() {
         setPasswordHint("");
 
         if (login.length < 3 || login.length > 40 || /\s/.test(login)) {
-            setCredentialsError("Логин: от 3 до 40 символов, без пробелов.");
+            setCredentialsError(t("Логин: от 3 до 40 символов, без пробелов."));
             return;
         }
         if (!account.has_password && !credentialsPassword) {
-            setCredentialsError("Придумайте пароль для входа по логину.");
+            setCredentialsError(t("Придумайте пароль для входа по логину."));
             return;
         }
         if (credentialsPassword) {
@@ -278,7 +281,7 @@ export default function AccountPage() {
             }
         }
         if (account.has_password && !passwordVerified) {
-            setCredentialsError("Сначала подтвердите текущий пароль кнопкой «Проверить».");
+            setCredentialsError(t("Сначала подтвердите текущий пароль кнопкой «Проверить»."));
             return;
         }
 
@@ -289,11 +292,11 @@ export default function AccountPage() {
             current_password: currentPassword || null,
         });
         if (response.ok) {
-            setNotice("Логин и пароль сохранены.");
+            setNotice(t("Логин и пароль сохранены."));
             closeCredentials();
             reload();
         } else {
-            setCredentialsError(response.data?.detail || "Не удалось сохранить логин и пароль.");
+            setCredentialsError(response.data?.detail || t("Не удалось сохранить логин и пароль."));
         }
         setCredentialsSubmitting(false);
     }
@@ -302,38 +305,38 @@ export default function AccountPage() {
     const vk = account?.connections?.vk;
 
     return (
-        <AppShell active="account" title="Личный кабинет" contentClassName="account-page">
+        <AppShell active="account" title={t("Личный кабинет")} contentClassName="account-page">
             <PageHeader
-                description="Способы входа в ваш аккаунт и связанные аккаунты."
+                description={t("Способы входа в ваш аккаунт и связанные аккаунты.")}
             />
 
-            {error && <p className="account-alert" role="alert">{error}</p>}
-            {notice && <p className="account-notice" role="status">{notice}</p>}
+            {error && <p className="account-alert" role="alert">{t(error)}</p>}
+            {notice && <p className="account-notice" role="status">{t(notice)}</p>}
 
             {loading ? (
-                <Panel className="account-message">Загрузка аккаунта…</Panel>
+                <Panel className="account-message">{t("Загрузка аккаунта…")}</Panel>
             ) : account ? (
                 <section className="account-layout">
-                    <div className="account-connections" aria-label="Способы входа">
+                    <div className="account-connections" aria-label={t("Способы входа")}>
                         <ConnectionCard title="Email">
                             {account.email ? (
                                 <>
                                     <p className="account-status">
                                         <span className="account-username">{account.email}</span>
                                         {account.email_verified ? (
-                                            <span className="account-badge account-badge--connected">Подтверждено</span>
+                                            <span className="account-badge account-badge--connected">{t("Подтверждено")}</span>
                                         ) : (
-                                            <span className="account-badge account-badge--muted">Не подтверждено</span>
+                                            <span className="account-badge account-badge--muted">{t("Не подтверждено")}</span>
                                         )}
                                     </p>
                                     {!account.email_verified && (
-                                        <span className="account-tooltip" data-tooltip="Функция в разработке">
+                                        <span className="account-tooltip" data-tooltip={t("Функция в разработке")}>
                                             <button
                                                 className="kp-button kp-button--form kp-button--small"
                                                 type="button"
                                                 disabled
                                             >
-                                                Подтвердить
+                                                {t("Подтвердить")}
                                             </button>
                                         </span>
                                     )}
@@ -353,7 +356,7 @@ export default function AccountPage() {
                                         type="submit"
                                         disabled={emailSubmitting || !emailValue.trim()}
                                     >
-                                        {emailSubmitting ? "Сохраняем…" : "Добавить Email"}
+                                        {emailSubmitting ? t("Сохраняем…") : t("Добавить Email")}
                                     </button>
                                 </form>
                             )}
@@ -369,7 +372,7 @@ export default function AccountPage() {
                                         type="button"
                                         onClick={() => handleDisconnect("telegram")}
                                     >
-                                        Отключить
+                                        {t("Отключить")}
                                     </button>
                                 ) : (
                                     <button
@@ -378,21 +381,21 @@ export default function AccountPage() {
                                         disabled={connecting === "telegram"}
                                         onClick={handleConnectTelegram}
                                     >
-                                        {connecting === "telegram" ? "Подключается…" : "Подключить"}
+                                        {connecting === "telegram" ? t("Подключается…") : t("Подключить")}
                                     </button>
                                 )
                             }
                         >
                             {telegram?.connected ? (
                                 <p className="account-status">
-                                    <span className="account-badge account-badge--connected">Подключено</span>
+                                    <span className="account-badge account-badge--connected">{t("Подключено")}</span>
                                     {telegram.username && (
                                         <span className="account-username">@{telegram.username}</span>
                                     )}
                                 </p>
                             ) : (
                                 <p className="account-status">
-                                    <span className="account-badge account-badge--muted">Не подключено</span>
+                                    <span className="account-badge account-badge--muted">{t("Не подключено")}</span>
                                 </p>
                             )}
                         </ConnectionCard>
@@ -407,7 +410,7 @@ export default function AccountPage() {
                                         type="button"
                                         onClick={() => handleDisconnect("vk")}
                                     >
-                                        Отключить
+                                        {t("Отключить")}
                                     </button>
                                 ) : (
                                     <button
@@ -416,25 +419,25 @@ export default function AccountPage() {
                                         disabled={connecting === "vk"}
                                         onClick={handleConnectVk}
                                     >
-                                        {connecting === "vk" ? "Подключается…" : "Подключить"}
+                                        {connecting === "vk" ? t("Подключается…") : t("Подключить")}
                                     </button>
                                 )
                             }
                         >
                             {vk?.connected ? (
                                 <p className="account-status">
-                                    <span className="account-badge account-badge--connected">Подключено</span>
+                                    <span className="account-badge account-badge--connected">{t("Подключено")}</span>
                                     {vk.display_name && <span className="account-username">{vk.display_name}</span>}
                                 </p>
                             ) : (
                                 <p className="account-status">
-                                    <span className="account-badge account-badge--muted">Не подключено</span>
+                                    <span className="account-badge account-badge--muted">{t("Не подключено")}</span>
                                 </p>
                             )}
                         </ConnectionCard>
 
                         <ConnectionCard
-                            className="account-card--login"
+                            className={`account-card--login${!account.has_password || credentialsOpen ? " is-open" : ""}`}
                             title="Логин"
                             actions={
                                 account.has_password && !credentialsOpen ? (
@@ -443,7 +446,7 @@ export default function AccountPage() {
                                         type="button"
                                         onClick={openCredentials}
                                     >
-                                        Изменить логин и пароль
+                                        {t("Изменить логин и пароль")}
                                     </button>
                                 ) : null
                             }
@@ -451,17 +454,17 @@ export default function AccountPage() {
                             <p className="account-status">
                                 {account.has_password ? (
                                     <>
-                                        <span className="account-badge account-badge--connected">Подключено</span>
+                                        <span className="account-badge account-badge--connected">{t("Подключено")}</span>
                                         {account.login && <span className="account-username">{account.login}</span>}
                                     </>
                                 ) : (
-                                    <span className="account-badge account-badge--muted">Не подключено</span>
+                                    <span className="account-badge account-badge--muted">{t("Не подключено")}</span>
                                 )}
                             </p>
                             <span className="account-hint">
                                 {account.has_password
-                                    ? "Вход по логину и паролю."
-                                    : "Придумайте логин и пароль, чтобы входить без соцсетей."}
+                                    ? t("Вход по логину и паролю.")
+                                    : t("Придумайте логин и пароль, чтобы входить без соцсетей.")}
                             </span>
 
                             {(!account.has_password || credentialsOpen) && (
@@ -471,13 +474,13 @@ export default function AccountPage() {
                                     {account.has_password && (
                                         <div className="account-verify">
                                             <label className="account-field">
-                                                <span>Текущий пароль</span>
+                                                <span>{t("Текущий пароль")}</span>
                                                 <input
                                                     className="kp-field"
                                                     type="password"
                                                     autoComplete="current-password"
                                                     maxLength={100}
-                                                    placeholder="Введите текущий пароль"
+                                                    placeholder={t("Введите текущий пароль")}
                                                     value={currentPassword}
                                                     disabled={credentialsSubmitting || passwordVerified}
                                                     onChange={(event) => {
@@ -499,28 +502,28 @@ export default function AccountPage() {
                                                 }
                                             >
                                                 {passwordVerified
-                                                    ? "Проверен"
+                                                    ? t("Проверен")
                                                     : checkingPassword
-                                                        ? "Проверяем…"
-                                                        : "Проверить"}
+                                                        ? t("Проверяем…")
+                                                        : t("Проверить")}
                                             </button>
                                         </div>
                                     )}
 
                                     {account.has_password && !passwordVerified && (
                                         <p className="account-form-hint">
-                                            Введите текущий пароль и нажмите «Проверить» — только после этого можно изменить логин или пароль.
+                                            {t("Введите текущий пароль и нажмите «Проверить» — только после этого можно изменить логин или пароль.")}
                                         </p>
                                     )}
 
                                     <label className="account-field">
-                                        <span>Логин</span>
+                                        <span>{t("Логин")}</span>
                                         <input
                                             className="kp-field"
                                             type="text"
                                             autoComplete="username"
                                             maxLength={40}
-                                            placeholder="Придумайте логин"
+                                            placeholder={t("Придумайте логин")}
                                             value={credentialsLogin}
                                             disabled={credentialsSubmitting || (account.has_password && !passwordVerified)}
                                             onChange={(event) => setCredentialsLogin(event.target.value)}
@@ -528,7 +531,7 @@ export default function AccountPage() {
                                     </label>
 
                                     <label className="account-field">
-                                        <span>{account.has_password ? "Новый пароль" : "Пароль"}</span>
+                                        <span>{account.has_password ? t("Новый пароль") : t("Пароль")}</span>
                                         <input
                                             className="kp-field"
                                             type="password"
@@ -536,8 +539,8 @@ export default function AccountPage() {
                                             maxLength={100}
                                             placeholder={
                                                 account.has_password
-                                                    ? "Оставьте пустым, чтобы не менять"
-                                                    : "Придумайте пароль"
+                                                    ? t("Оставьте пустым, чтобы не менять")
+                                                    : t("Придумайте пароль")
                                             }
                                             value={credentialsPassword}
                                             disabled={credentialsSubmitting || (account.has_password && !passwordVerified)}
@@ -545,9 +548,9 @@ export default function AccountPage() {
                                         />
                                     </label>
 
-                                    {passwordHint && <p className="account-form-hint">{passwordHint}</p>}
+                                    {passwordHint && <p className="account-form-hint">{t(passwordHint)}</p>}
                                     {credentialsError && (
-                                        <p className="account-form-error" role="alert">{credentialsError}</p>
+                                        <p className="account-form-error" role="alert">{t(credentialsError)}</p>
                                     )}
 
                                     <div className="account-credentials-actions">
@@ -560,7 +563,7 @@ export default function AccountPage() {
                                                 (account.has_password && !passwordVerified)
                                             }
                                         >
-                                            {credentialsSubmitting ? "Сохраняем…" : "Сохранить"}
+                                            {credentialsSubmitting ? t("Сохраняем…") : t("Сохранить")}
                                         </button>
                                         {account.has_password && (
                                             <button
@@ -569,7 +572,7 @@ export default function AccountPage() {
                                                 onClick={closeCredentials}
                                                 disabled={credentialsSubmitting}
                                             >
-                                                Отмена
+                                                {t("Отмена")}
                                             </button>
                                         )}
                                     </div>

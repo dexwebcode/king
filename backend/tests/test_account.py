@@ -166,11 +166,12 @@ class AccountServiceTests(unittest.TestCase):
 
 # --------------------------------------------------------------------------- #
 class SetCredentialsTests(unittest.TestCase):
+    @patch("backend.account.service.increment_user_token_version")
     @patch("backend.account.service.repository.update_user_credentials")
     @patch("backend.account.service.repository.find_user_by_login", return_value=None)
     @patch("backend.account.service.repository.get_user_for_credentials")
     @patch("backend.account.service.SessionLocal")
-    def test_social_user_sets_login_and_password(self, session_local, get_creds, _find, update):
+    def test_social_user_sets_login_and_password(self, session_local, get_creds, _find, update, bump_version):
         session_local.return_value = _FakeSession()
         get_creds.return_value = {"id": 1, "login": None, "password": None}
         update.return_value = {"id": 1, "login": "newlogin"}
@@ -180,6 +181,7 @@ class SetCredentialsTests(unittest.TestCase):
         self.assertTrue(result["has_password"])
         self.assertEqual(result["login"], "newlogin")
         self.assertTrue(update.call_args.args[3].startswith("pbkdf2_sha256$"))
+        bump_version.assert_called_once_with(session_local.return_value, 1)
 
     @patch("backend.account.service.repository.update_user_credentials")
     @patch("backend.account.service.repository.find_user_by_login", return_value={"id": 99})
@@ -193,11 +195,12 @@ class SetCredentialsTests(unittest.TestCase):
             AccountService.set_credentials(1, login="taken", password="StrongPass1")
         update.assert_not_called()
 
+    @patch("backend.account.service.increment_user_token_version")
     @patch("backend.account.service.repository.find_user_by_login", return_value=None)
     @patch("backend.account.service.repository.update_user_credentials")
     @patch("backend.account.service.repository.get_user_for_credentials")
     @patch("backend.account.service.SessionLocal")
-    def test_password_change_requires_and_verifies_current(self, session_local, get_creds, update, _find):
+    def test_password_change_requires_and_verifies_current(self, session_local, get_creds, update, _find, bump_version):
         session_local.return_value = _FakeSession()
         get_creds.return_value = {"id": 1, "login": "ava", "password": hash_password("OldPass1")}
 
@@ -206,6 +209,7 @@ class SetCredentialsTests(unittest.TestCase):
         with self.assertRaises(CurrentPasswordError):
             AccountService.set_credentials(1, login="ava", password="NewPass1", current_password="wrong")
         update.assert_not_called()
+        bump_version.assert_not_called()
 
         update.return_value = {"id": 1, "login": "ava"}
         result = AccountService.set_credentials(
@@ -213,6 +217,7 @@ class SetCredentialsTests(unittest.TestCase):
         )
         self.assertTrue(result["has_password"])
         update.assert_called_once()
+        bump_version.assert_called_once_with(session_local.return_value, 1)
 
     @patch("backend.account.service.repository.update_user_credentials")
     @patch("backend.account.service.repository.find_user_by_login", return_value=None)

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { useLanguage } from "../../ui/i18n";
 
-import searchIcon from "../../assets/icons/search.png";
+import searchIcon from "../../assets/icons/search.svg";
 
 
 export default function CatalogSearch({ value, onChange, staticSearch = false }) {
@@ -12,24 +13,25 @@ export default function CatalogSearch({ value, onChange, staticSearch = false })
 }
 
 function StaticCatalogSearch({ value, onChange }) {
+    const { t } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
 
     return (
         <div className={`catalog-search-control is-static ${isOpen ? "is-open" : ""}`} role="search">
             <label className="catalog-search-field">
-                <span>Поиск по каталогу</span>
+                <span>{t("Поиск по каталогу")}</span>
                 <input
                     type="search"
                     value={value}
                     onChange={(event) => onChange(event.target.value)}
-                    placeholder="Поиск по каталогу"
+                    placeholder={t("Поиск по каталогу")}
                     tabIndex={isOpen ? 0 : -1}
                 />
             </label>
             <button
                 className="catalog-search-static-toggle"
                 type="button"
-                aria-label={isOpen ? "Свернуть поиск" : "Открыть поиск"}
+                aria-label={isOpen ? t("Свернуть поиск") : t("Открыть поиск")}
                 aria-expanded={isOpen}
                 onClick={() => setIsOpen((current) => !current)}
             >
@@ -40,6 +42,7 @@ function StaticCatalogSearch({ value, onChange }) {
 }
 
 function ExpandableCatalogSearch({ value, onChange }) {
+    const { t } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
     const inputRef = useRef(null);
     const triggerRef = useRef(null);
@@ -64,7 +67,7 @@ function ExpandableCatalogSearch({ value, onChange }) {
                 ref={triggerRef}
                 className="catalog-search-trigger"
                 type="button"
-                aria-label="Открыть поиск по каталогу"
+                aria-label={t("Открыть поиск по каталогу")}
                 aria-expanded={isOpen}
                 onClick={() => setIsOpen(true)}
             >
@@ -73,21 +76,21 @@ function ExpandableCatalogSearch({ value, onChange }) {
             <div className="catalog-search-panel" aria-hidden={!isOpen}>
                 <img className="catalog-search-icon" src={searchIcon} alt="" />
                 <label className="catalog-search-field">
-                    <span>Поиск по каталогу</span>
+                    <span>{t("Поиск по каталогу")}</span>
                     <input
                         ref={inputRef}
                         type="search"
                         value={value}
                         onChange={(event) => onChange(event.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Введите запрос"
+                        placeholder={t("Введите запрос")}
                         tabIndex={isOpen ? 0 : -1}
                     />
                 </label>
                 <button
                     className="catalog-search-close"
                     type="button"
-                    aria-label="Закрыть поиск"
+                    aria-label={t("Закрыть поиск")}
                     tabIndex={isOpen ? 0 : -1}
                     onClick={closeSearch}
                 >

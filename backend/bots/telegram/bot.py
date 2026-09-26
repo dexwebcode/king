@@ -4,6 +4,7 @@ import aiohttp
 from aiogram import Bot, Dispatcher
 from aiogram.exceptions import TelegramNetworkError
 from aiogram.filters import CommandObject, CommandStart
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message
 
 from backend.bots.config import (
@@ -11,6 +12,7 @@ from backend.bots.config import (
     TELEGRAM_BOT_BACKEND_SECRET,
     TELEGRAM_BOT_TOKEN,
 )
+from backend.support.telegram_bot import router as support_router
 
 
 async def send_token_to_backend(
@@ -96,8 +98,10 @@ async def run_telegram_bot() -> None:
         )
 
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
-    dispatcher = Dispatcher()
+    dispatcher = Dispatcher(storage=MemoryStorage())
 
+    # Один бот обслуживает и авторизацию (/start TOKEN), и поддержку (кнопки админа).
+    dispatcher.include_router(support_router)
     dispatcher.message.register(start_handler, CommandStart())
 
     print("Telegram bot started. Waiting for messages...")

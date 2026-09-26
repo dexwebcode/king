@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from threading import Lock
 from time import monotonic
@@ -13,8 +13,17 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.core.config import (
     CRYSTALPAY_ORDER_REDIRECT_URL,
+    DISPATCH_SWEEP_BATCH_SIZE,
+    FRONTEND_URL,
+    PAYMENT_PROVIDER_FEE_PERCENT,
     PAYMENT_TIMEOUT_MINUTES,
+    PROVIDER_CANCEL_RETRY_BATCH_SIZE,
     REFERRAL_REWARD_PERCENT,
+    STALE_DISPATCH_ALERT_BATCH_SIZE,
+    STATUS_SYNC_BATCH_SIZE,
+    STATUS_SYNC_DUE_SECONDS,
+    STATUS_SYNC_MAX_ORDER_AGE_DAYS,
+    SUPPLIER_PRICE_DRIFT_TOLERANCE_PERCENT,
     YOOKASSA_BALANCE_RETURN_URL,
     YOOKASSA_RETURN_URL,
 )
@@ -38,7 +47,9 @@ from backend.services.supplier import (
 from .repository import (
     add_referral_reward,
     claim_payment_reconciliation,
+    claim_invoice_creation,
     claim_order_for_dispatch,
+    clear_provider_cancel_pending,
     complete_order_dispatch,
     create_balance_topup_attempt,
     create_balance_transaction,
@@ -48,21 +59,31 @@ from .repository import (
     get_attempt_by_idempotence_key,
     get_attempt_by_payment_id,
     get_attempt_by_provider_order_id,
+    get_dispatch_candidate_ids,
     get_order_dispatch_state,
     get_order_for_user,
+    get_orders_due_for_status_sync,
+    get_pending_provider_cancellations,
+    get_stale_dispatch_orders_for_alert,
     list_expired_unpaid_attempts,
     lock_order,
     lock_user,
+    mark_dispatch_alerted,
+    mark_dispatch_price_changed,
     mark_dispatch_rejected,
     mark_dispatch_unknown,
     mark_insufficient_supplier_balance,
     mark_order_cancel_requested,
     mark_order_paid,
+    mark_order_status_synced,
     mark_payment_canceled,
-    mark_payment_paid_after_cancel,
     mark_payment_processed,
+    mark_provider_cancel_pending,
     mark_supplier_precheck_unavailable,
+    record_reconciled_supplier_order,
     record_supplier_order_for_review,
+    reopen_dispatch_for_retry,
+    set_attempt_creation_error,
     set_attempt_error,
     set_attempt_heleket_details,
     set_attempt_payment_details,
@@ -80,6 +101,7 @@ from .heleket_service import (
     validate_heleket_configuration,
 )
 from .yookassa_service import (
+    YooKassaCancelNotAllowedError,
     cancel_yookassa_payment,
     create_yookassa_payment,
     get_yookassa_payment,
@@ -90,6 +112,9 @@ logger = logging.getLogger(__name__)
 MONEY_STEP = Decimal("0.01")
 MOSCOW_TIMEZONE = ZoneInfo("Europe/Moscow")
 STATUS_SYNC_INTERVAL_SECONDS = 15
+# После какого времени заказ в 'sending' считается застрявшим (процесс упал до
+# сохранения результата). Должно совпадать с порогом в get_supplier_attention_orders.
+STALE_SENDING_TIMEOUT_MINUTES = 5
 _status_sync_lock = Lock()
 _status_sync_started_at: dict[int, float] = {}
 
@@ -118,6 +143,10 @@ class RetryDispatchError(ValueError):
     pass
 
 
+class DispatchResolutionError(ValueError):
+    pass
+
+
 def _legacy_now() -> str:
     return datetime.now(MOSCOW_TIMEZONE).strftime("%H:%M:%S %d.%m.%Y")
 
@@ -139,6 +168,60 @@ def _payment_method_type(payment) -> str:
     return str(getattr(payment_method, "type", ""))
 
 
+def _as_utc(value):
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _parse_provider_expiry(value):
+    """Приводит expire-значение провайдера к aware datetime (UTC) или None.
+
+    Поддерживает unix-таймстамп (Heleket expired_at — int), ISO 8601 строку
+    (ЮKassa expires_at) и datetime.
+    """
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        try:
+            return datetime.fromtimestamp(value, tz=timezone.utc)
+        except (OverflowError, OSError, ValueError):
+            return None
+    if isinstance(value, datetime):
+        return _as_utc(value)
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        try:
+            return _as_utc(datetime.fromisoformat(text.replace("Z", "+00:00")))
+        except ValueError:
+            return None
+    return None
+
+
+def _invoice_expires_at(created_at, provider_expiry=None):
+    """Единая точка расчёта времени истечения счёта.
+
+    Если провайдер вернул expire_at/lifetime — используем его; иначе берём
+    created_at + PAYMENT_TIMEOUT_MINUTES (одинаково для всех провайдеров).
+    """
+    parsed = _parse_provider_expiry(provider_expiry)
+    if parsed is not None:
+        return parsed
+    base = _as_utc(created_at) or datetime.now(timezone.utc)
+    return base + timedelta(minutes=PAYMENT_TIMEOUT_MINUTES)
+
+
+def _format_expires_at(value) -> str | None:
+    if value is None:
+        return None
+    dt = _as_utc(value)
+    return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+
 def _payment_response(attempt) -> dict:
     confirmation_url = attempt.get("confirmation_url")
     if attempt.get("processed_at") is not None and not confirmation_url:
@@ -151,6 +234,7 @@ def _payment_response(attempt) -> dict:
         "status": attempt["status"],
         "provider": attempt.get("provider") or "yookassa",
         "purpose": "order",
+        "expires_at": _format_expires_at(attempt.get("expires_at")),
     }
 
 
@@ -166,6 +250,7 @@ def _topup_response(attempt) -> dict:
         "status": attempt["status"],
         "provider": attempt.get("provider") or "yookassa",
         "purpose": "balance_topup",
+        "expires_at": _format_expires_at(attempt.get("expires_at")),
     }
 
 
@@ -206,6 +291,7 @@ def _create_or_get_attempt(
     quantity: int,
     recipient_link: str,
     amount: Decimal,
+    supplier_cost: Decimal,
     idempotence_key: str,
     provider: str = "yookassa",
 ):
@@ -237,6 +323,7 @@ def _create_or_get_attempt(
                 recipient_link=recipient_link,
                 quantity=quantity,
                 amount=amount,
+                supplier_cost=supplier_cost,
                 created_at=_legacy_now(),
                 idempotence_key=idempotence_key,
                 provider=provider,
@@ -283,6 +370,17 @@ def _prepare_order_attempt(
     if amount <= 0:
         raise ValueError("Стоимость заказа должна быть больше нуля")
 
+    supplier_cost = calculate_supplier_order_cost(service, quantity)
+    if supplier_cost <= 0:
+        raise ValueError("Себестоимость заказа должна быть больше нуля")
+
+    fee_rate = Decimal(str(PAYMENT_PROVIDER_FEE_PERCENT)) / Decimal("100")
+    net_after_fee = amount * (Decimal("1") - fee_rate)
+    if net_after_fee <= supplier_cost:
+        raise ValueError(
+            "Наценка не покрывает себестоимость и комиссию платёжной системы"
+        )
+
     raw_service_id = service.get("id", service.get("service", service_id))
     try:
         persisted_service_id = int(raw_service_id)
@@ -302,6 +400,7 @@ def _prepare_order_attempt(
         quantity=quantity,
         recipient_link=recipient_link,
         amount=amount,
+        supplier_cost=supplier_cost,
         idempotence_key=idempotence_key,
         provider=provider,
     )
@@ -365,6 +464,9 @@ def create_order_payment(
                     payment_id=str(payment.id),
                     payment_status=payment_status,
                     confirmation_url=confirmation_url,
+                    expires_at=_invoice_expires_at(
+                        attempt.get("created_at"), getattr(payment, "expires_at", None)
+                    ),
                 )
                 if saved_attempt is None:
                     raise PaymentConflictError("Платёж уже связан с другим ID")
@@ -412,6 +514,40 @@ def create_order_payment(
         raise
 
 
+def _claim_crystalpay_invoice_creation(*, attempt_id, user_id, idempotence_key):
+    """Резервирует попытку для одного вызова invoice/create.
+
+    Если конкурентный запрос уже создал инвойс, возвращает актуальную попытку
+    (с provider_payment_id). Если создание ещё идёт — PaymentConflictError.
+    """
+    session = SessionLocal()
+    try:
+        with session.begin():
+            claimed = claim_invoice_creation(session, attempt_id)
+    finally:
+        session.close()
+    if claimed is not None:
+        return claimed
+
+    session = SessionLocal()
+    try:
+        fresh = get_attempt_by_idempotence_key(
+            session,
+            user_id=user_id,
+            idempotence_key=idempotence_key,
+            provider="crystalpay",
+        )
+    finally:
+        session.close()
+    if (
+        fresh is not None
+        and fresh.get("provider_payment_id")
+        and fresh.get("confirmation_url")
+    ):
+        return fresh
+    raise PaymentConflictError("Платёж уже создаётся, повторите запрос")
+
+
 async def create_crystalpay_order_payment(
     *,
     user_id: int,
@@ -421,7 +557,8 @@ async def create_crystalpay_order_payment(
     idempotence_key: str,
 ) -> dict:
     validate_crystalpay_configuration(require_salt=True)
-    attempt = _prepare_order_attempt(
+    attempt = await asyncio.to_thread(
+        _prepare_order_attempt,
         user_id=user_id,
         service_id=service_id,
         quantity=quantity,
@@ -432,6 +569,15 @@ async def create_crystalpay_order_payment(
     if attempt.get("provider_payment_id") and attempt.get("confirmation_url"):
         return _payment_response(attempt)
     if attempt.get("processed_at") is not None:
+        return _payment_response(attempt)
+
+    attempt = await asyncio.to_thread(
+        _claim_crystalpay_invoice_creation,
+        attempt_id=attempt["id"],
+        user_id=user_id,
+        idempotence_key=idempotence_key,
+    )
+    if attempt.get("provider_payment_id") and attempt.get("confirmation_url"):
         return _payment_response(attempt)
 
     invoice = None
@@ -473,6 +619,12 @@ async def create_crystalpay_order_payment(
                     payment_id=invoice_id,
                     payment_status="created",
                     confirmation_url=checkout_url,
+                    expires_at=_invoice_expires_at(
+                        attempt.get("created_at"),
+                        invoice.get("expire_at")
+                        or invoice.get("expires_at")
+                        or invoice.get("expired_at"),
+                    ),
                 )
                 if saved_attempt is None:
                     raise PaymentConflictError("Платёж уже связан с другим ID")
@@ -486,7 +638,7 @@ async def create_crystalpay_order_payment(
         session = SessionLocal()
         try:
             with session.begin():
-                set_attempt_error(
+                set_attempt_creation_error(
                     session,
                     attempt_id=attempt["id"],
                     status="creation_failed",
@@ -619,6 +771,9 @@ def create_balance_topup_payment(
                     payment_id=str(payment.id),
                     payment_status=payment_status,
                     confirmation_url=confirmation_url,
+                    expires_at=_invoice_expires_at(
+                        attempt.get("created_at"), getattr(payment, "expires_at", None)
+                    ),
                 )
                 if saved_attempt is None:
                     raise PaymentConflictError("Платёж уже связан с другим ID")
@@ -668,11 +823,21 @@ async def create_crystalpay_topup(
     if amount < Decimal("10.00") or amount > Decimal("100000.00"):
         raise ValueError("Сумма пополнения должна быть от 10 до 100 000 рублей")
 
-    attempt = _create_or_get_topup_attempt(
+    attempt = await asyncio.to_thread(
+        _create_or_get_topup_attempt,
         user_id=user_id,
         amount=amount,
         idempotence_key=idempotence_key,
         provider="crystalpay",
+    )
+    if attempt.get("provider_payment_id") and attempt.get("confirmation_url"):
+        return _topup_response(attempt)
+
+    attempt = await asyncio.to_thread(
+        _claim_crystalpay_invoice_creation,
+        attempt_id=attempt["id"],
+        user_id=user_id,
+        idempotence_key=idempotence_key,
     )
     if attempt.get("provider_payment_id") and attempt.get("confirmation_url"):
         return _topup_response(attempt)
@@ -707,6 +872,12 @@ async def create_crystalpay_topup(
                     payment_id=invoice_id,
                     payment_status="created",
                     confirmation_url=checkout_url,
+                    expires_at=_invoice_expires_at(
+                        attempt.get("created_at"),
+                        invoice.get("expire_at")
+                        or invoice.get("expires_at")
+                        or invoice.get("expired_at"),
+                    ),
                 )
                 if saved_attempt is None:
                     raise PaymentConflictError("Платёж уже связан с другим ID")
@@ -726,7 +897,7 @@ async def create_crystalpay_topup(
         session = SessionLocal()
         try:
             with session.begin():
-                set_attempt_error(
+                set_attempt_creation_error(
                     session,
                     attempt_id=attempt["id"],
                     status="creation_failed",
@@ -824,6 +995,9 @@ def _heleket_create_invoice_for_attempt(attempt, *, amount: Decimal):
                     payment_id=invoice_uuid,
                     payment_status="pending",
                     confirmation_url=checkout_url,
+                    expires_at=_invoice_expires_at(
+                        attempt.get("created_at"), getattr(invoice, "expired_at", None)
+                    ),
                 )
                 if saved_attempt is None:
                     raise PaymentConflictError("Платёж уже связан с другим инвойсом")
@@ -936,6 +1110,7 @@ def process_heleket_webhook_payload(payload: dict) -> bool:
     if not provider_order_id or not invoice_uuid:
         raise PaymentVerificationError("Webhook Heleket без идентификаторов платежа")
 
+    late_payment_alert = None
     session = SessionLocal()
     try:
         with session.begin():
@@ -965,9 +1140,22 @@ def process_heleket_webhook_payload(payload: dict) -> bool:
                 )
                 return False
             if attempt.get("status") in {"cancel_requested", "canceled", "paid_after_cancel"}:
-                if status in _HELEKET_SUCCESS_STATUSES:
-                    mark_payment_paid_after_cancel(session, attempt["id"])
-                return False
+                if status not in _HELEKET_SUCCESS_STATUSES:
+                    return False
+                logger.warning(
+                    "LATE_PAYMENT_AFTER_CANCEL provider=heleket attempt_id=%s order_id=%s uuid=%s — платёж зачисляется",
+                    attempt["id"],
+                    provider_order_id,
+                    invoice_uuid,
+                )
+                late_payment_alert = (
+                    "⚠️ Поздняя оплата после отмены\n"
+                    "Провайдер: heleket\n"
+                    f"Попытка: {attempt['id']}\n"
+                    f"UUID: {invoice_uuid}\n"
+                    f"Сумма: {_money(attempt['amount'])} RUB\n"
+                    "Платёж зачислен автоматически — проверьте на дубль."
+                )
 
             if status not in _HELEKET_SUCCESS_STATUSES:
                 set_attempt_status(
@@ -1091,6 +1279,8 @@ def process_heleket_webhook_payload(payload: dict) -> bool:
             return order["id"]
     finally:
         session.close()
+        if late_payment_alert is not None:
+            _send_admin_alert_safely(late_payment_alert)
 
 
 def reconcile_heleket_invoice_if_due(payment_id: str) -> None:
@@ -1135,6 +1325,7 @@ def _process_crystalpay_topup_invoice(invoice_id: str, invoice: dict) -> bool:
     if not state:
         raise PaymentVerificationError("CrystalPAY не вернул статус инвойса")
 
+    late_payment_alert = None
     session = SessionLocal()
     try:
         with session.begin():
@@ -1158,9 +1349,21 @@ def _process_crystalpay_topup_invoice(invoice_id: str, invoice: dict) -> bool:
                 )
                 return False
             if attempt.get("status") in {"cancel_requested", "canceled", "paid_after_cancel"}:
-                if state == "payed":
-                    mark_payment_paid_after_cancel(session, attempt["id"])
-                return False
+                if state != "payed":
+                    return False
+                logger.warning(
+                    "LATE_PAYMENT_AFTER_CANCEL provider=crystalpay attempt_id=%s invoice_id=%s purpose=topup — платёж зачисляется",
+                    attempt["id"],
+                    invoice_id,
+                )
+                late_payment_alert = (
+                    "⚠️ Поздняя оплата после отмены\n"
+                    "Провайдер: crystalpay\n"
+                    f"Попытка: {attempt['id']}\n"
+                    f"Инвойс: {invoice_id}\n"
+                    f"Сумма: {_money(attempt['amount'])} RUB\n"
+                    "Платёж зачислен автоматически — проверьте на дубль."
+                )
             if state != "payed":
                 set_attempt_status(session, attempt_id=attempt["id"], status=state)
                 logger.info(
@@ -1230,6 +1433,8 @@ def _process_crystalpay_topup_invoice(invoice_id: str, invoice: dict) -> bool:
             return True
     finally:
         session.close()
+        if late_payment_alert is not None:
+            _send_admin_alert_safely(late_payment_alert)
 
 
 def _process_crystalpay_order_invoice(invoice_id: str, invoice: dict) -> int | bool:
@@ -1244,6 +1449,7 @@ def _process_crystalpay_order_invoice(invoice_id: str, invoice: dict) -> int | b
     if not state:
         raise PaymentVerificationError('CrystalPAY не вернул статус инвойса')
 
+    late_payment_alert = None
     session = SessionLocal()
     try:
         with session.begin():
@@ -1259,9 +1465,21 @@ def _process_crystalpay_order_invoice(invoice_id: str, invoice: dict) -> int | b
             if attempt.get('processed_at') is not None:
                 return False
             if attempt.get('status') in {'cancel_requested', 'canceled', 'paid_after_cancel'}:
-                if state == 'payed':
-                    mark_payment_paid_after_cancel(session, attempt['id'])
-                return False
+                if state != 'payed':
+                    return False
+                logger.warning(
+                    "LATE_PAYMENT_AFTER_CANCEL provider=crystalpay attempt_id=%s invoice_id=%s purpose=order — платёж зачисляется",
+                    attempt['id'],
+                    invoice_id,
+                )
+                late_payment_alert = (
+                    "⚠️ Поздняя оплата после отмены\n"
+                    "Провайдер: crystalpay\n"
+                    f"Попытка: {attempt['id']}\n"
+                    f"Инвойс: {invoice_id}\n"
+                    f"Сумма: {_money(attempt['amount'])} RUB\n"
+                    "Платёж зачислен автоматически — проверьте на дубль."
+                )
             if state != 'payed':
                 set_attempt_status(session, attempt_id=attempt['id'], status=state)
                 return False
@@ -1310,6 +1528,8 @@ def _process_crystalpay_order_invoice(invoice_id: str, invoice: dict) -> int | b
             return order['id']
     finally:
         session.close()
+        if late_payment_alert is not None:
+            _send_admin_alert_safely(late_payment_alert)
 
 
 def process_crystalpay_invoice(invoice_id: str, invoice: dict) -> bool | int:
@@ -1348,6 +1568,24 @@ async def reconcile_crystalpay_invoice_if_due(invoice_id: str) -> None:
         )
 
 
+def _confirm_yookassa_payment(payment_id: str, attempt_id: int) -> tuple[bool, int | None]:
+    """Синхронная сверка ЮKassa для фонового обхода.
+
+    Вызывается из asyncio.to_thread: SDK ЮKassa синхронный и блокирующий.
+    """
+    payment = get_yookassa_payment(payment_id)
+    status = str(getattr(payment, "status", ""))
+    if status == "succeeded":
+        result = process_verified_payment(payment)
+        if type(result) is int:
+            dispatch_order(result)
+        return True, (result if type(result) is int else None)
+    if status in {"pending", "waiting_for_capture"}:
+        # Закрываем платёж у провайдера, чтобы по ссылке больше нельзя было заплатить.
+        cancel_yookassa_payment(payment_id, f"expire-{attempt_id}")
+    return False, None
+
+
 async def _confirm_provider_payment(attempt) -> bool:
     """Сверяет просроченную попытку с провайдером перед отменой.
 
@@ -1377,17 +1615,29 @@ async def _confirm_provider_payment(attempt) -> bool:
             dispatch_order(result)
         return True
 
-    payment = get_yookassa_payment(payment_id)
-    status = str(getattr(payment, "status", ""))
-    if status == "succeeded":
-        result = process_verified_payment(payment)
-        if type(result) is int:
-            dispatch_order(result)
-        return True
-    if status in {"pending", "waiting_for_capture"}:
-        # Закрываем платёж у провайдера, чтобы по ссылке больше нельзя было заплатить.
-        cancel_yookassa_payment(payment_id, f"expire-{attempt['id']}")
-    return False
+    paid, _ = await asyncio.to_thread(_confirm_yookassa_payment, payment_id, attempt["id"])
+    return paid
+
+
+def _load_expired_unpaid_attempts(window: int):
+    session = SessionLocal()
+    try:
+        return list_expired_unpaid_attempts(session, timeout_minutes=window)
+    finally:
+        session.close()
+
+
+def _expire_one_payment(attempt) -> bool:
+    session = SessionLocal()
+    try:
+        with session.begin():
+            return expire_payment_attempt(
+                session,
+                attempt_id=attempt["id"],
+                order_id=attempt.get("order_id"),
+            )
+    finally:
+        session.close()
 
 
 async def expire_stale_payments(*, timeout_minutes: int | None = None) -> dict[str, int]:
@@ -1401,11 +1651,7 @@ async def expire_stale_payments(*, timeout_minutes: int | None = None) -> dict[s
     """
     window = PAYMENT_TIMEOUT_MINUTES if timeout_minutes is None else timeout_minutes
 
-    session = SessionLocal()
-    try:
-        candidates = list_expired_unpaid_attempts(session, timeout_minutes=window)
-    finally:
-        session.close()
+    candidates = await asyncio.to_thread(_load_expired_unpaid_attempts, window)
 
     credited = 0
     expired = 0
@@ -1426,17 +1672,8 @@ async def expire_stale_payments(*, timeout_minutes: int | None = None) -> dict[s
                 f"{type(error).__name__}: {error}",
             )
 
-        session = SessionLocal()
-        try:
-            with session.begin():
-                if expire_payment_attempt(
-                    session,
-                    attempt_id=attempt["id"],
-                    order_id=attempt.get("order_id"),
-                ):
-                    expired += 1
-        finally:
-            session.close()
+        if await asyncio.to_thread(_expire_one_payment, attempt):
+            expired += 1
 
     if candidates:
         logger.info(
@@ -1667,6 +1904,135 @@ def reconcile_payment_if_due(payment_id: str) -> None:
         logger.exception("Payment reconciliation failed")
 
 
+def retry_pending_provider_cancellations(*, limit: int | None = None) -> int:
+    """Повторяет отмену «зависших» платежей ЮKassa.
+
+    Когда локальная отмена прошла, но cancel у провайдера упал, попытка помечается
+    provider_cancel_pending_at. Этот обход перепроверяет статус и повторяет отмену;
+    при неудаче отправляет алерт администраторам.
+    """
+    batch = PROVIDER_CANCEL_RETRY_BATCH_SIZE if limit is None else limit
+    session = SessionLocal()
+    try:
+        rows = get_pending_provider_cancellations(session, limit=batch)
+    finally:
+        session.close()
+
+    for row in rows:
+        attempt_id = row["id"]
+        payment_id = row["provider_payment_id"]
+        try:
+            payment = get_yookassa_payment(payment_id)
+            status = str(getattr(payment, "status", ""))
+            if status == "canceled":
+                _clear_provider_cancel_pending(attempt_id)
+                continue
+            if status == "succeeded":
+                # Клиент всё-таки оплатил: зачисляем как позднюю оплату.
+                order_id = process_verified_payment(payment)
+                if type(order_id) is int:
+                    dispatch_order(order_id)
+                _clear_provider_cancel_pending(attempt_id)
+                continue
+            if status in {"pending", "waiting_for_capture"}:
+                cancel_yookassa_payment(payment_id, f"cancel-retry-{attempt_id}")
+                _clear_provider_cancel_pending(attempt_id)
+                continue
+            # Прочие терминальные статусы — больше отменять нечего.
+            _clear_provider_cancel_pending(attempt_id)
+        except YooKassaCancelNotAllowedError as error:
+            # ЮKassa принципиально не отменяет одностадийные платежи (capture=true).
+            # Повторять бессмысленно: ссылку мы уже убрали локально, платёж у
+            # провайдера истечёт сам, а если клиент всё же оплатит — зачислится
+            # как поздняя оплата (LATE_PAYMENT_AFTER_CANCEL).
+            logger.info(
+                "Provider cancel not allowed attempt_id=%s error=%s",
+                attempt_id,
+                str(error),
+            )
+            _clear_provider_cancel_pending(attempt_id)
+        except Exception as error:
+            logger.warning(
+                "Provider cancel retry failed attempt_id=%s error=%s",
+                attempt_id,
+                type(error).__name__,
+            )
+            _bump_provider_cancel_pending(attempt_id)
+            _send_admin_alert_safely(
+                "⚠️ Не удалось отменить платёж ЮKassa после локальной отмены.\n"
+                f"Попытка: {attempt_id}\n"
+                f"Платёж: {payment_id}\n"
+                f"Ошибка: {type(error).__name__}: {error}\n"
+                "Счёт у провайдера может оставаться активным — проверьте вручную."
+            )
+
+    if rows:
+        logger.info("Provider cancel retry checked=%s", len(rows))
+    return len(rows)
+
+
+def _clear_provider_cancel_pending(attempt_id: int) -> None:
+    session = SessionLocal()
+    try:
+        with session.begin():
+            clear_provider_cancel_pending(session, attempt_id)
+    finally:
+        session.close()
+
+
+def _bump_provider_cancel_pending(attempt_id: int) -> None:
+    session = SessionLocal()
+    try:
+        with session.begin():
+            mark_provider_cancel_pending(session, attempt_id)
+    finally:
+        session.close()
+
+
+def alert_stale_dispatch_orders(*, limit: int | None = None) -> int:
+    """Уведомляет администраторов о заказах, зависших в отправке.
+
+    Отправка однократная: dispatch_alerted_at фиксируется до отправки алерта,
+    поэтому повторный обход не спамит одним и тем же заказом.
+    """
+    batch = STALE_DISPATCH_ALERT_BATCH_SIZE if limit is None else limit
+    session = SessionLocal()
+    try:
+        rows = get_stale_dispatch_orders_for_alert(
+            session,
+            limit=batch,
+            stale_minutes=STALE_SENDING_TIMEOUT_MINUTES,
+        )
+    finally:
+        session.close()
+
+    for row in rows:
+        order_id = row["id"]
+        _mark_dispatch_alerted(order_id)
+        _send_admin_alert_safely(
+            "⚠️ Заказ завис в отправке\n"
+            f"Заказ: #{order_id}\n"
+            f"Статус отправки: {row['dispatch_status']}\n"
+            f"Ссылка: {row['link']}\n"
+            f"Количество: {row['qnt']}\n"
+            f"Сумма: {row['amount']} ₽\n"
+            f"{FRONTEND_URL}/admin — требуется ручная сверка."
+        )
+
+    if rows:
+        logger.info("Stale dispatch alert sent=%s", len(rows))
+    return len(rows)
+
+
+def _mark_dispatch_alerted(order_id: int) -> None:
+    session = SessionLocal()
+    try:
+        with session.begin():
+            mark_dispatch_alerted(session, order_id)
+    finally:
+        session.close()
+
+
 def _save_dispatch_state(callback, **kwargs) -> None:
     session = SessionLocal()
     try:
@@ -1685,6 +2051,23 @@ def _is_insufficient_funds_error(error: Exception) -> bool:
         "недостаточно средств",
         "недостаточный баланс",
     ))
+
+
+def _send_admin_alert_safely(text: str) -> None:
+    """Best-effort уведомление администраторов; никогда не бросает исключение."""
+    try:
+        from backend.support.notifications import send_admin_alert
+
+        send_admin_alert(text)
+    except Exception:
+        logger.warning("admin_alert_failed", exc_info=True)
+
+
+def _notify_price_conflict(order_id: int, message: str) -> None:
+    """Best-effort алерт администраторам о конфликте себестоимости."""
+    _send_admin_alert_safely(
+        f"⚠️ Себестоимость заказа #{order_id} требует проверки.\n{message}"
+    )
 
 
 def dispatch_order(order_id: int) -> str:
@@ -1737,6 +2120,41 @@ def dispatch_order(order_id: int) -> str:
             error_message=f"{type(error).__name__}: {error}",
         )
         return "supplier_unavailable"
+
+    snapshot_cost = order.get("supplier_cost")
+    price_conflict_message = None
+    if snapshot_cost is not None:
+        tolerance_rate = (
+            Decimal("1")
+            + Decimal(str(SUPPLIER_PRICE_DRIFT_TOLERANCE_PERCENT)) / Decimal("100")
+        )
+        drift_threshold = snapshot_cost * tolerance_rate
+        if supplier_cost > drift_threshold:
+            price_conflict_message = (
+                "supplier cost increased after checkout: "
+                f"required={supplier_cost} snapshot={snapshot_cost}"
+            )
+    elif supplier_cost >= _money(order["amount"]):
+        # Legacy-заказ без снимка: защищаемся от нулевой/отрицательной маржи.
+        price_conflict_message = (
+            "supplier cost exceeds paid amount (legacy order): "
+            f"required={supplier_cost} amount={order['amount']}"
+        )
+
+    if price_conflict_message is not None:
+        logger.warning(
+            "Supplier price conflict local_order_id=%s snapshot=%s current=%s",
+            order_id,
+            snapshot_cost,
+            supplier_cost,
+        )
+        _save_dispatch_state(
+            mark_dispatch_price_changed,
+            order_id=order_id,
+            error_message=price_conflict_message,
+        )
+        _notify_price_conflict(order_id, price_conflict_message)
+        return "price_changed"
 
     if supplier_balance.balance < supplier_cost:
         logger.warning(
@@ -1869,6 +2287,43 @@ def retry_dispatch_order(order_id: int) -> str:
     return dispatch_order(order_id)
 
 
+def dispatch_pending_orders(*, limit: int | None = None) -> dict[str, int]:
+    """Подхватывает все оплаченные заказы, ещё не отправленные поставщику.
+
+    Durable fallback: webhook запускает отправку через BackgroundTasks, но при
+    рестарте процесса эта задача теряется, и оплаченный заказ навсегда остаётся
+    в «Ожидает отправки». Этот обход периодически находит такие заказы и
+    отправляет их независимо от webhook. Атомарный claim внутри dispatch_order
+    гарантирует, что при конкурентном запуске (несколько процессов, повторный
+    webhook, ручной retry) заказ будет отправлен ровно один раз.
+    """
+    batch = DISPATCH_SWEEP_BATCH_SIZE if limit is None else limit
+
+    session = SessionLocal()
+    try:
+        candidate_ids = get_dispatch_candidate_ids(session, limit=batch)
+    finally:
+        session.close()
+
+    claimed = 0
+    for order_id in candidate_ids:
+        try:
+            result = dispatch_order(order_id)
+        except Exception:
+            logger.exception("dispatch sweep failed order_id=%s", order_id)
+            continue
+        if result != "not_dispatchable":
+            claimed += 1
+
+    if candidate_ids:
+        logger.info(
+            "dispatch sweep candidates=%s claimed=%s",
+            len(candidate_ids),
+            claimed,
+        )
+    return {"candidates": len(candidate_ids), "claimed": claimed}
+
+
 def _owned_supplier_order(order_id: int, user_id: int):
     session = SessionLocal()
     try:
@@ -1889,6 +2344,127 @@ SUPPLIER_TO_LOCAL_STATUS = {
     "Completed": "Завершен",
     "Canceled": "Отменен поставщиком",
 }
+
+
+def _normalize_recipient_link(value: object) -> str:
+    """Сравнимая форма ссылки получателя: без пробелов и хвостового слэша."""
+    return str(value or "").strip().rstrip("/").casefold()
+
+
+def resolve_dispatch_order(
+    order_id: int,
+    *,
+    resolution: str,
+    supplier_order_id: int | None = None,
+) -> str:
+    """Разрешает заказ с неопределённым исходом отправки поставщику.
+
+    dispatch_order() атомарно переводит заказ в 'sending' до вызова поставщика.
+    Если процесс падает до сохранения результата (заказ застревает в 'sending')
+    либо action=add отвечает неоднозначно ('unknown'), внешний ID неизвестен, а
+    слепой повтор грозит дублем. Поэтому разрешение выполняет оператор:
+
+    - "not_created": оператор подтвердил по панели поставщика, что заказ НЕ был
+      создан. Заказ возвращается в 'not_started' и отправляется заново;
+    - "record_order": оператор нашёл внешний ID. Он сверяется через action=status
+      (услуга/количество/ссылка) и фиксируется без повторного add.
+
+    @returns "recorded" для record_order либо результат dispatch_order.
+    """
+    if resolution not in {"not_created", "record_order"}:
+        raise DispatchResolutionError("Некорректное значение resolution")
+
+    session = SessionLocal()
+    try:
+        order = get_order_dispatch_state(session, order_id)
+    finally:
+        session.close()
+    if order is None:
+        raise OrderNotFoundError("Заказ не найден")
+    if order["payment_status"] != "processed" or order["processed_at"] is None:
+        raise DispatchResolutionError("Заказ ещё не оплачен")
+    if order["id_rocket"]:
+        raise DispatchResolutionError("У заказа уже есть внешний ID поставщика")
+    if order["dispatch_status"] not in {"sending", "unknown"}:
+        raise DispatchResolutionError(
+            "Заказ не находится в состоянии неопределённой отправки"
+        )
+    if order["dispatch_status"] == "sending":
+        started_at = order.get("dispatch_started_at")
+        if started_at is None:
+            raise DispatchResolutionError("Заказ не имеет времени начала отправки")
+        if started_at.tzinfo is None:
+            started_at = started_at.replace(tzinfo=timezone.utc)
+        stale_after = datetime.now(timezone.utc) - timedelta(
+            minutes=STALE_SENDING_TIMEOUT_MINUTES
+        )
+        if started_at > stale_after:
+            raise DispatchResolutionError(
+                "Отправка ещё может выполняться — повторите позже"
+            )
+
+    if resolution == "record_order":
+        if supplier_order_id is None or supplier_order_id <= 0:
+            raise DispatchResolutionError("Необходимо указать supplier_order_id")
+        try:
+            supplier_status = get_supplier_order_status(supplier_order_id)
+        except SupplierNotConfiguredError:
+            raise
+        except (
+            SupplierRejectedError,
+            SupplierResponseError,
+            HTTPError,
+            URLError,
+            TimeoutError,
+            OSError,
+        ) as error:
+            raise DispatchResolutionError(
+                f"Не удалось сверить заказ у поставщика: {type(error).__name__}"
+            ) from error
+
+        if int(supplier_status.service_id) != int(order["service_id"]):
+            raise DispatchResolutionError(
+                "Поставщик вернул заказ с другой услугой — проверьте supplier_order_id"
+            )
+        if int(supplier_status.quantity) != int(order["qnt"]):
+            raise DispatchResolutionError(
+                "Поставщик вернул заказ с другим количеством — проверьте supplier_order_id"
+            )
+        if _normalize_recipient_link(supplier_status.link) != _normalize_recipient_link(
+            order["link"]
+        ):
+            raise DispatchResolutionError(
+                "Поставщик вернул заказ с другой ссылкой — проверьте supplier_order_id"
+            )
+
+        session = SessionLocal()
+        try:
+            with session.begin():
+                record_reconciled_supplier_order(
+                    session,
+                    order_id=order_id,
+                    supplier_order_id=supplier_order_id,
+                    status=SUPPLIER_TO_LOCAL_STATUS[supplier_status.status],
+                )
+        except IntegrityError as error:
+            raise DispatchResolutionError(
+                "Этот ID заказа уже привязан к другому локальному заказу"
+            ) from error
+        finally:
+            session.close()
+        return "recorded"
+
+    session = SessionLocal()
+    try:
+        with session.begin():
+            reopened = reopen_dispatch_for_retry(session, order_id)
+    finally:
+        session.close()
+    if not reopened:
+        raise DispatchResolutionError(
+            "Заказ изменился и не может быть отправлен повторно"
+        )
+    return dispatch_order(order_id)
 
 
 def sync_order_with_supplier(order_id: int, user_id: int):
@@ -1933,6 +2509,53 @@ def sync_order_safely(order_id: int, user_id: int) -> None:
             order_id,
             type(error).__name__,
         )
+
+
+def sync_due_orders(*, limit: int | None = None) -> int:
+    """Ограниченный worker синхронизации статусов активных заказов.
+
+    Вместо fan-out при открытии списка заказов фоновый обход берёт батч заказов,
+    которым пора обновить статус (last_synced_at устарел), и сверяется с
+    поставщиком. DB-backed due-время делает обход глобальным и ограниченным.
+    """
+    batch = STATUS_SYNC_BATCH_SIZE if limit is None else limit
+    session = SessionLocal()
+    try:
+        rows = get_orders_due_for_status_sync(
+            session,
+            limit=batch,
+            due_seconds=STATUS_SYNC_DUE_SECONDS,
+            max_age_days=STATUS_SYNC_MAX_ORDER_AGE_DAYS,
+        )
+    finally:
+        session.close()
+
+    for row in rows:
+        order_id = row["id"]
+        user_id = row["user_id"]
+        try:
+            sync_order_with_supplier(order_id, user_id)
+        except Exception as error:
+            logger.warning(
+                "Status sync worker failed local_order_id=%s error_type=%s error=%s",
+                order_id,
+                type(error).__name__,
+                str(error),
+            )
+        _mark_status_synced(order_id)
+
+    if rows:
+        logger.info("Status sync worker checked=%s", len(rows))
+    return len(rows)
+
+
+def _mark_status_synced(order_id: int) -> None:
+    session = SessionLocal()
+    try:
+        with session.begin():
+            mark_order_status_synced(session, order_id)
+    finally:
+        session.close()
 
 
 def cancel_order_with_supplier(order_id: int, user_id: int) -> None:

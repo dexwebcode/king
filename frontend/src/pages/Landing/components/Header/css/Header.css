@@ -269,12 +269,11 @@
     height: 44px;
     min-width: 112px;
     font-size: 14px;
-    /* Кнопка в шапке есть всегда: пока панель авторизации на экране — потухшая
-       и не реагирует на наведение; после прокрутки ниже неё — белая, кликабельная,
-       при наведении — акцентная. */
-    opacity: .4;
+    /* Кнопка в шапке всегда активна: без затухания, кликабельна, при наведении —
+       акцентная (золотая). */
+    opacity: 1;
     visibility: visible;
-    pointer-events: none;
+    pointer-events: auto;
     transition:
         opacity .25s ease,
         color .45s ease,
@@ -318,22 +317,22 @@
     transition: color .45s ease;
 }
 
-/* Ховер только у активной (белой) кнопки — потухшая не подсвечивается. */
-.header-actions .button-gold.is-visible:hover,
-.header-actions .button-gold.is-visible:focus-visible {
+/* Кнопка всегда активна, поэтому ховер работает всегда. */
+.header-actions .button-gold:hover,
+.header-actions .button-gold:focus-visible {
     border-color: #ffd15d;
     color: #131313;
     box-shadow: 0 8px 22px rgba(235, 170, 35, .22);
     transform: translateY(-1px);
 }
 
-.header-actions .button-gold.is-visible:hover::before,
-.header-actions .button-gold.is-visible:focus-visible::before {
+.header-actions .button-gold:hover::before,
+.header-actions .button-gold:focus-visible::before {
     opacity: 1;
 }
 
-.header-actions .button-gold.is-visible:hover .button-label,
-.header-actions .button-gold.is-visible:focus-visible .button-label {
+.header-actions .button-gold:hover .button-label,
+.header-actions .button-gold:focus-visible .button-label {
     color: #131313;
 }
 

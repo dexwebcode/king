@@ -5,15 +5,16 @@ import {
     loginUser,
     loginWithVk
 } from './authApi'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as VKID from '@vkid/sdk'
-import showIcon from '../../../../../assets/icons/show.png'
-import dontShowIcon from '../../../../../assets/icons/dont_show.png'
-import accountIcon from '../../../../../assets/icons/accaunt.png'
+import showIcon from '../../../../../assets/icons/show.svg'
+import dontShowIcon from '../../../../../assets/icons/dont_show.svg'
+import accountIcon from '../../../../../assets/icons/accaunt.svg'
 import telegramIcon from '../../../../../assets/social_icons/telegram.svg'
 import vkIcon from '../../../../../assets/social_icons/vk.svg'
 import { hasPendingCheckoutDraft } from '../../../../../ui/orderDraft'
+import { useLanguage } from '../../../../../ui/i18n'
 
 const rememberedLoginKey = 'king_remembered_login'
 const VK_APP_ID = 54737931
@@ -39,6 +40,7 @@ export default function LoginForm({
     onModeChange
 
 }) {
+    const { t } = useLanguage()
     const [showPassword, setShowPassword] = useState(false)
     const [rememberMe, setRememberMe] = useState(true)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -47,6 +49,8 @@ export default function LoginForm({
     const [vkState, setVkState] = useState('idle')
     const [errorMessage, setErrorMessage] = useState('')
     const navigate = useNavigate()
+    /* Вкладка с Telegram: закрываем её, когда в боте нажали Start. */
+    const telegramWindowRef = useRef(null)
 
     const continueAfterAuth = useCallback(async ({ replace = false } = {}) => {
         if (onAuthSuccess) {
@@ -93,6 +97,13 @@ export default function LoginForm({
             if (response.data.action === 'login' && response.data.token) {
                 localStorage.setItem('token', response.data.token)
                 window.dispatchEvent(new Event('king-auth-changed'))
+                /* Start в боте нажат — вкладку с Telegram закрываем. */
+                try {
+                    telegramWindowRef.current?.close()
+                } catch {
+                    // Вкладку мог закрыть сам браузер — это не ошибка.
+                }
+                telegramWindowRef.current = null
                 await continueAfterAuth({ replace: true })
                 return
             }
@@ -169,6 +180,7 @@ export default function LoginForm({
 
     async function handleTelegramClick() {
         const telegramWindow = window.open('about:blank', '_blank')
+        telegramWindowRef.current = telegramWindow
 
         try {
             setTelegramState('loading')
@@ -198,7 +210,9 @@ export default function LoginForm({
                 telegramWindow.opener = null
                 telegramWindow.location.href = response.data.bot_url
             } else {
-                window.open(response.data.bot_url, '_blank', 'noopener,noreferrer')
+                const fallbackWindow = window.open(response.data.bot_url, '_blank')
+                if (fallbackWindow) fallbackWindow.opener = null
+                telegramWindowRef.current = fallbackWindow
             }
 
         } catch (error) {
@@ -257,7 +271,7 @@ export default function LoginForm({
 
             <div className="login-field">
                 <label htmlFor="auth-login">
-                    Логин или почта
+                    {t('Логин или почта')}
                 </label>
 
                 <div className="login-input-wrapper">
@@ -271,7 +285,7 @@ export default function LoginForm({
                         className="Username-input"
                         type="text"
                         autoComplete="username"
-                        placeholder="Введите логин или почту"
+                        placeholder={t('Введите логин или почту')}
                         value={login}
 
                         onChange={(event) => {
@@ -288,14 +302,14 @@ export default function LoginForm({
             <div className="login-field">
                 <div className="password-label">
                     <label htmlFor="auth-password">
-                        Пароль
+                        {t('Пароль')}
                     </label>
 
                     <button
                         type="button"
                         className="forgot-password"
                     >
-                        Забыли пароль?
+                        {t('Забыли пароль?')}
                     </button>
                 </div>
 
@@ -303,7 +317,7 @@ export default function LoginForm({
                     <button
                         type="button"
                         className="input-icon password-eye password-eye--inline"
-                        aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                        aria-label={showPassword ? t('Скрыть пароль') : t('Показать пароль')}
                         onClick={() => setShowPassword(!showPassword)}
                     >
                         <img
@@ -319,7 +333,7 @@ export default function LoginForm({
                         className="Password-input"
                         type={showPassword ? 'text' : 'password'}
                         autoComplete="current-password"
-                        placeholder="Введите пароль"
+                        placeholder={t('Введите пароль')}
                         value={password}
 
                         onChange={(event) => {
@@ -334,7 +348,7 @@ export default function LoginForm({
 
             {errorMessage && (
                 <p className="Password-hint auth-message auth-message--error">
-                    {errorMessage}
+                    {t(errorMessage)}
                 </p>
             )}
 
@@ -350,7 +364,7 @@ export default function LoginForm({
                 </span>
 
                 <span>
-                    Запомнить меня
+                    {t('Запомнить меня')}
                 </span>
             </label>
 
@@ -365,29 +379,29 @@ export default function LoginForm({
                     type="submit"
                     disabled={isSubmitting}
                 >
-                    <span>{isSubmitting ? 'Входим...' : 'Войти'}</span>
+                    <span>{isSubmitting ? t('Входим...') : t('Войти')}</span>
                 </button>
 
                 <button
                     className="social-login-square social-login-square--telegram"
                     type="button"
-                    aria-label="Войти через Telegram"
+                    aria-label={t('Войти через Telegram')}
                     onClick={handleTelegramClick}
                     disabled={telegramState === 'loading'}
                 >
                     <img src={telegramIcon} alt="" aria-hidden="true" />
-                    <span className="social-login-label">Войти через Telegram</span>
+                    <span className="social-login-label">{t('Войти через Telegram')}</span>
                 </button>
 
                 <button
                     className="social-login-square social-login-square--vk"
                     type="button"
-                    aria-label="Войти через ВКонтакте"
+                    aria-label={t('Войти через ВКонтакте')}
                     onClick={handleVkClick}
                     disabled={vkState === 'loading'}
                 >
                     <img src={vkIcon} alt="" aria-hidden="true" />
-                    <span className="social-login-label">Войти через VK</span>
+                    <span className="social-login-label">{t('Войти через VK')}</span>
                 </button>
 
             </section>
@@ -395,11 +409,11 @@ export default function LoginForm({
             {showModeSwitch && (
                 <div className="login-register">
                     <span>
-                        Нет аккаунта?
+                        {t('Нет аккаунта?')}
                     </span>
 
                     <button type="button" className="auth-mode-link" onClick={onModeChange}>
-                        Зарегистрируйтесь
+                        {t('Зарегистрируйтесь')}
                     </button>
                 </div>
             )}

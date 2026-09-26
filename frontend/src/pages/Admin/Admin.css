@@ -164,3 +164,92 @@
         grid-column: 1;
     }
 }
+
+/* Модалка разрешения ситуации с заказом. */
+.admin-modal {
+    position: fixed;
+    z-index: 2200;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+}
+
+.admin-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(4, 5, 7, .72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.admin-modal-card {
+    position: relative;
+    z-index: 1;
+    width: min(480px, 100%);
+    padding: 24px;
+    border: 1px solid var(--kp-border);
+    border-radius: var(--kp-radius-md);
+    background: linear-gradient(160deg, rgba(24, 25, 29, .98), rgba(11, 12, 15, .98));
+    box-shadow: 0 28px 80px rgba(0, 0, 0, .45);
+}
+
+.admin-modal-card h2 {
+    margin: 0 0 10px;
+    font-size: 20px;
+    font-weight: 750;
+}
+
+.admin-modal-warn {
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 170, 60, .4);
+    border-radius: 10px;
+    background: rgba(255, 170, 60, .08);
+    color: #ffd08a;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.admin-modal-facts {
+    margin: 0 0 18px;
+    display: grid;
+    gap: 8px;
+}
+
+.admin-modal-facts div {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 10px;
+    font-size: 13px;
+}
+
+.admin-modal-facts dt {
+    color: var(--kp-text-muted);
+}
+
+.admin-modal-facts dd {
+    margin: 0;
+    word-break: break-all;
+}
+
+.admin-modal-actions {
+    display: grid;
+    gap: 10px;
+}
+
+.admin-modal-record {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+}
+
+@media (max-width: 560px) {
+    .admin-modal-record {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-modal-facts div {
+        grid-template-columns: 1fr;
+    }
+}

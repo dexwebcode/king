@@ -35,6 +35,7 @@ ATTENTION_KIND = {
     "rejected": "manual_review",
     "save_failed": "manual_review",
     "sending": "manual_review",
+    "price_changed": "manual_review",
 }
 
 
@@ -48,12 +49,18 @@ def list_supplier_attention_orders() -> list[dict]:
         {
             "id": order["id"],
             "service_id": order["service_id"],
+            "link": order["link"],
             "quantity": order["qnt"],
             "public_amount": format(order["amount"], ".2f"),
             "supplier_cost": (
                 format(required, ".2f")
                 if (required := _required_cost_from_error(order["dispatch_error"]))
                 is not None
+                else None
+            ),
+            "snapshot_cost": (
+                format(order["supplier_cost"], ".2f")
+                if order.get("supplier_cost") is not None
                 else None
             ),
             "currency": "RUB",
@@ -68,6 +75,8 @@ def list_supplier_attention_orders() -> list[dict]:
                 "insufficient_supplier_balance",
                 "supplier_unavailable",
             } and not order["id_rocket"],
+            "can_resolve": order["dispatch_status"] in {"sending", "unknown"}
+            and not order["id_rocket"],
             "created_at": order["date"],
             "updated_at": order["updated_at"].isoformat()
             if order["updated_at"]

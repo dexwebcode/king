@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import { formatMoney } from "../../ui/catalogMeta";
+import { useLanguage } from "../../ui/i18n";
+import { formatUsd, useUsdRate } from "../../ui/usdRate";
+import PaymentMethodCard from "../../ui/PaymentMethodCard";
+import { usePaymentOverlay } from "../../ui/PaymentOverlay";
+import { rememberCheckoutWindow } from "../../ui/checkoutWindow";
 import { availablePaymentMethods } from "./paymentMethods";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
@@ -37,32 +41,19 @@ function validateAmount(value) {
     return "";
 }
 
-function PaymentMethodCard({ method, selected, onSelect }) {
+/* Баланс рядом с названием раздела «Баланс» — только цифра, без плашки. */
+export function BalanceHero({ balance = 0 }) {
+    const { lang, t } = useLanguage();
+    const usdRate = useUsdRate();
+
     return (
-        <button
-            className={`payment-method-card ${selected ? "is-selected" : ""}`}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={() => onSelect(method.id)}
-        >
-            <span className="payment-method-logo" aria-hidden="true">
-                {method.mark ? (
-                    <strong className="payment-method-mark">{method.mark}</strong>
-                ) : (
-                    <><i /><i /><i /></>
-                )}
-            </span>
-            <span className="payment-method-copy">
-                <span className="payment-method-heading">
-                    <strong>{method.name}</strong>
-                    {method.badge && <small>{method.badge}</small>}
-                </span>
-                <span>{method.description}</span>
-                <em>Платёж обрабатывает {method.provider}</em>
-            </span>
-            <span className="payment-method-check" aria-hidden="true">✓</span>
-        </button>
+        <section className="balance-hero" aria-label={t("Текущий баланс")}>
+            <p className="balance-hero-value">
+                {lang === "en" && usdRate != null
+                    ? formatUsd(balance, usdRate)
+                    : <>{formatMoney(balance)}<span>₽</span></>}
+            </p>
+        </section>
     );
 }
 
@@ -72,7 +63,8 @@ export default function BalanceSection({
     onBalanceChange,
     onPaymentSettled,
 }) {
-    const navigate = useNavigate();
+    const { t } = useLanguage();
+    const { open: openPaymentOverlay } = usePaymentOverlay();
     const methods = useMemo(availablePaymentMethods, []);
     const [amount, setAmount] = useState("");
     const [selectedMethod, setSelectedMethod] = useState(methods[0]?.id || "");
@@ -87,7 +79,7 @@ export default function BalanceSection({
         const pendingTopUpId = localStorage.getItem(PENDING_TOP_UP_KEY);
         if (!pendingTopUpId) {
             if (returnedFromPayment) {
-                setRequestError("Не удалось найти созданное пополнение. Баланс можно проверить, обновив страницу.");
+                setRequestError(t("Не удалось найти созданное пополнение. Баланс можно проверить, обновив страницу."));
             }
             return undefined;
         }
@@ -104,7 +96,7 @@ export default function BalanceSection({
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await response.json().catch(() => ({}));
-                if (!response.ok) throw new Error(getErrorMessage(data, "Не удалось проверить пополнение"));
+                if (!response.ok) throw new Error(getErrorMessage(data, t("Не удалось проверить пополнение")));
                 if (!active) return;
 
                 if (data.status === "processed") {
@@ -142,7 +134,7 @@ export default function BalanceSection({
                 statusAttempts.current += 1;
                 if (statusAttempts.current >= MAX_STATUS_CHECKS) {
                     setPaymentStatus("delayed");
-                    setRequestError(error.message || "Не удалось проверить пополнение");
+                    setRequestError(error.message || t("Не удалось проверить пополнение"));
                     return;
                 }
                 timeoutId = window.setTimeout(checkStatus, STATUS_CHECK_INTERVAL);
@@ -174,12 +166,13 @@ export default function BalanceSection({
         }
         const method = methods.find((item) => item.id === selectedMethod);
         if (!method) {
-            setRequestError("Выберите доступный способ оплаты");
+            setRequestError(t("Выберите доступный способ оплаты"));
             return;
         }
 
         const checkoutWindow = window.open("about:blank", "king-payment-checkout");
         if (checkoutWindow) checkoutWindow.opener = null;
+        rememberCheckoutWindow(checkoutWindow);
         setIsSubmitting(true);
         setRequestError("");
         setPaymentStatus("");
@@ -198,12 +191,12 @@ export default function BalanceSection({
                 }),
             });
             const data = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(getErrorMessage(data, "Не удалось создать платёж"));
+            if (!response.ok) throw new Error(getErrorMessage(data, t("Не удалось создать платёж")));
             const topUpId = data?.top_up_id;
             const attemptId = data?.attempt_id;
             const checkoutUrl = data?.confirmation_url;
             if (!topUpId || !attemptId || !checkoutUrl) {
-                throw new Error("Платёж создан без ссылки для перехода в банк");
+                throw new Error(t("Платёж создан без ссылки для перехода в банк"));
             }
             localStorage.setItem(PENDING_TOP_UP_KEY, String(topUpId));
             localStorage.setItem("king_pending_payment", JSON.stringify({
@@ -214,142 +207,106 @@ export default function BalanceSection({
                 top_up_id: topUpId,
             }));
             if (checkoutWindow) checkoutWindow.location.replace(checkoutUrl);
-            navigate("/payment/pending?attempt=" + attemptId);
+            openPaymentOverlay({ attemptId, purpose: "balance_topup" });
         } catch (error) {
             checkoutWindow?.close();
-            setRequestError(error.message || "Не удалось создать платёж. Попробуйте ещё раз.");
+            setRequestError(error.message || t("Не удалось создать платёж. Попробуйте ещё раз."));
             setIsSubmitting(false);
         }
     }
-
-    const statusMessages = {
-        checking: "Проверяем статус пополнения…",
-        pending: "Платёж обрабатывается. Баланс обновится после подтверждения платёжной системой.",
-        processed: "Баланс успешно пополнен.",
-        canceled: "Платёж отменён. Баланс не изменён.",
-        failed: "Платёж не завершён. Баланс не изменён.",
-        delayed: "Подтверждение занимает больше времени. Баланс обновится автоматически после уведомления платёжной системы.",
-    };
 
     const currentMethod = methods.find((item) => item.id === selectedMethod);
     const amountValue = parseAmount(amount);
 
     return (
         <div className="balance-page">
-            {/* Текущий баланс */}
-            <section className="balance-hero" aria-label="Текущий баланс">
-                <div className="balance-hero-copy">
-                    <p className="kp-eyebrow">Текущий баланс</p>
-                    <p className="balance-hero-value">
-                        {formatMoney(balance)}<span>₽</span>
-                    </p>
-                    <p className="balance-hero-note">
-                        Средства зачисляются на счёт сразу после подтверждения платежа.
-                    </p>
-                </div>
-                <span className="balance-hero-badge"><i />Безопасная оплата</span>
-            </section>
-
-            {paymentStatus && (
-                <div className={`balance-status balance-status--${paymentStatus}`} role="status">
-                    <i />{statusMessages[paymentStatus]}
-                </div>
-            )}
+            <header className="balance-intro">
+                <h2 className="balance-intro-title">{t("Пополните удобным для вас способом ваш баланс")}</h2>
+                <p className="balance-intro-note">{t("Ваш актуальный баланс отобразится в меню")}</p>
+            </header>
 
             <form className="balance-form" onSubmit={handleSubmit} noValidate>
-                <div className="balance-grid">
-                    {/* Шаг 1 — сумма */}
-                    <section className="balance-card">
-                        <header className="balance-card-head">
-                            <p className="kp-eyebrow">Шаг 1</p>
-                            <h2>Сумма пополнения</h2>
-                        </header>
-
-                        <div className="amount-field-group">
-                            <label htmlFor="top-up-amount">Введите сумму</label>
-                            <div className={`amount-field ${fieldError ? "has-error" : ""}`}>
-                                <input
-                                    id="top-up-amount"
-                                    value={amount}
-                                    onChange={handleAmountChange}
-                                    inputMode="decimal"
-                                    autoComplete="off"
-                                    placeholder="1 000"
-                                    aria-invalid={Boolean(fieldError)}
-                                    aria-describedby={fieldError ? "top-up-amount-error" : "top-up-amount-hint"}
-                                />
-                                <span>₽</span>
-                            </div>
-                            {fieldError ? (
-                                <small className="top-up-error" id="top-up-amount-error">{fieldError}</small>
-                            ) : (
-                                <small id="top-up-amount-hint">От 10 до 100 000 ₽</small>
-                            )}
-                            <div className="quick-amounts" aria-label="Быстрый выбор суммы">
-                                {QUICK_AMOUNTS.map((quickAmount) => (
-                                    <button
-                                        className={amountValue === quickAmount ? "is-active" : ""}
-                                        type="button"
-                                        key={quickAmount}
-                                        onClick={() => {
-                                            setAmount(String(quickAmount));
-                                            setFieldError("");
-                                        }}
-                                    >
-                                        {formatMoney(quickAmount)} ₽
-                                    </button>
+                <section className="balance-panel">
+                    <div className="balance-panel-grid">
+                        {/* Способ оплаты — слева */}
+                        <div className="balance-panel-col balance-panel-col--methods">
+                            <div className="payment-method-list" role="radiogroup" aria-label={t("Способ оплаты")}>
+                                {methods.map((item) => (
+                                    <PaymentMethodCard
+                                        key={item.id}
+                                        method={item}
+                                        selected={selectedMethod === item.id}
+                                        onSelect={setSelectedMethod}
+                                    />
                                 ))}
                             </div>
                         </div>
-                    </section>
 
-                    {/* Шаг 2 — способ оплаты */}
-                    <section className="balance-card balance-card--methods">
-                        <header className="balance-card-head">
-                            <p className="kp-eyebrow">Шаг 2</p>
-                            <h2>Способ оплаты</h2>
-                        </header>
+                        {/* Сумма и кнопка оплаты — справа */}
+                        <div className="balance-panel-col balance-panel-col--amount">
+                            <div className="amount-field-group">
+                                <label htmlFor="top-up-amount">{t("Введите сумму")}</label>
+                                <div className={`amount-field ${fieldError ? "has-error" : ""}`}>
+                                    <input
+                                        id="top-up-amount"
+                                        value={amount}
+                                        onChange={handleAmountChange}
+                                        inputMode="decimal"
+                                        autoComplete="off"
+                                        placeholder="1 000"
+                                        aria-invalid={Boolean(fieldError)}
+                                        aria-describedby={fieldError ? "top-up-amount-error" : "top-up-amount-hint"}
+                                    />
+                                    <span>₽</span>
+                                </div>
+                                {fieldError ? (
+                                    <small className="top-up-error" id="top-up-amount-error">{t(fieldError)}</small>
+                                ) : (
+                                    <small id="top-up-amount-hint">{t("От 10 до 100 000 ₽")}</small>
+                                )}
+                                <div className="quick-amounts" aria-label={t("Быстрый выбор суммы")}>
+                                    {QUICK_AMOUNTS.map((quickAmount) => (
+                                        <button
+                                            className={amountValue === quickAmount ? "is-active" : ""}
+                                            type="button"
+                                            key={quickAmount}
+                                            onClick={() => {
+                                                setAmount(String(quickAmount));
+                                                setFieldError("");
+                                            }}
+                                        >
+                                            {formatMoney(quickAmount)} ₽
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
 
-                        <div className="payment-method-list" role="radiogroup" aria-label="Способ оплаты">
-                            {methods.map((item) => (
-                                <PaymentMethodCard
-                                    key={item.id}
-                                    method={item}
-                                    selected={selectedMethod === item.id}
-                                    onSelect={setSelectedMethod}
-                                />
-                            ))}
+                            {/* Кнопка оплаты — по центру оставшегося места */}
+                            <div className="balance-checkout">
+                                <button className="kp-button balance-submit" type="submit" disabled={isSubmitting || methods.length === 0 || !amountValue}>
+                                    {isSubmitting ? t("Создаём платёж…") : t("Перейти к оплате")}
+                                </button>
+                            </div>
                         </div>
-                    </section>
-                </div>
-
-                {requestError && <p className="top-up-request-error" role="alert">{requestError}</p>}
-
-                {/* Итог */}
-                <div className="balance-checkout">
-                    <div className="balance-total">
-                        <span>К оплате</span>
-                        <strong>{amountValue ? `${formatMoney(amountValue)} ₽` : "—"}</strong>
                     </div>
-                    <button className="kp-button balance-submit" type="submit" disabled={isSubmitting || methods.length === 0}>
-                        {isSubmitting ? "Создаём платёж…" : "Перейти к оплате"}
-                        {!isSubmitting && <span aria-hidden="true">→</span>}
-                    </button>
-                </div>
-                <p className="balance-legal">
-                    Нажимая кнопку, вы перейдёте на защищённую страницу {currentMethod?.provider || "платёжной системы"}.
-                </p>
+
+                    {requestError && <p className="top-up-request-error" role="alert">{t(requestError)}</p>}
+
+                    <p className="balance-legal">
+                        {t("Нажимая кнопку, вы перейдёте на защищённую страницу")} {t(currentMethod?.provider || "платёжной системы")}.
+                    </p>
+                </section>
             </form>
 
             {/* Преимущества */}
-            <section className="balance-benefits" aria-label="Как проходит пополнение">
+            <section className="balance-benefits" aria-label={t("Как проходит пополнение")}>
                 <article className="balance-benefit">
                     <span className="balance-benefit-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" /></svg>
                     </span>
                     <div>
-                        <h3>Зачисление сразу</h3>
-                        <p>Баланс обновляется автоматически после подтверждения платежа.</p>
+                        <h3>{t("Зачисление сразу")}</h3>
+                        <p>{t("Баланс обновляется автоматически после подтверждения платежа.")}</p>
                     </div>
                 </article>
                 <article className="balance-benefit">
@@ -357,8 +314,8 @@ export default function BalanceSection({
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="16" height="10.5" rx="2.5" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
                     </span>
                     <div>
-                        <h3>Безопасная оплата</h3>
-                        <p>Платёж проходит на стороне банка-провайдера, данные карты мы не храним.</p>
+                        <h3>{t("Безопасная оплата")}</h3>
+                        <p>{t("Платёж проходит на стороне банка-провайдера, данные карты мы не храним.")}</p>
                     </div>
                 </article>
                 <article className="balance-benefit">
@@ -366,8 +323,8 @@ export default function BalanceSection({
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5h16v11H9l-5 4V5Z" /></svg>
                     </span>
                     <div>
-                        <h3>Поддержка</h3>
-                        <p>Если платёж задерживается — напишите нам, разберёмся вместе.</p>
+                        <h3>{t("Поддержка")}</h3>
+                        <p>{t("Если платёж задерживается — напишите нам, разберёмся вместе.")}</p>
                     </div>
                 </article>
             </section>
