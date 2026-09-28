@@ -32,6 +32,14 @@
     padding: clamp(12px, 2.5vw, 22px);
 }
 
+/* История не загрузилась — обычный текст, без алярмовой плашки. */
+.orders-note {
+    margin: 0;
+    color: var(--kp-text-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
 .orders-list {
     display: grid;
     gap: 10px;

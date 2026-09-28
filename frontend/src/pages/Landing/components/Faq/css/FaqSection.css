@@ -1,0 +1,114 @@
+.faq-section>.section-heading {
+    margin-bottom: clamp(24px, 4vw, 44px);
+    text-align: center;
+}
+
+.faq-section>.section-heading h2 {
+    font-size: clamp(28px, 3.71vw, 52px);
+    line-height: 1.05;
+    letter-spacing: -.035em;
+}
+
+.faq-section>.section-heading p {
+    margin-top: 12px;
+    font-size: clamp(15px, 1.38vw, 19px);
+}
+
+/* Блок вопросов стоит по центру секции. */
+.faq-section-list {
+    max-width: 780px;
+    margin: 0 auto;
+    display: grid;
+    gap: 12px;
+}
+
+/* Каждый вопрос — карточка с обычным тёмным фоном, как у карточек каталога. */
+.faq-section-item {
+    border: 0;
+    border-radius: var(--kp-radius-md);
+    background: rgba(255, 255, 255, .045);
+    overflow: hidden;
+}
+
+/* Вопрос по левому краю, «+» — у правого края карточки. Карточка высокая,
+   чтобы секция была длиннее. */
+.faq-section-trigger {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 24px;
+    border: 0;
+    background: transparent;
+    color: var(--kp-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.faq-section-question {
+    /* Занимает всю ширину — «+» уезжает к правому краю. */
+    flex: 1;
+    min-width: 0;
+    font-size: clamp(16px, 1.15vw, 19px);
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -.01em;
+    text-align: left;
+}
+
+.faq-section-mark {
+    flex: 0 0 18px;
+    width: 18px;
+    color: var(--kp-gold);
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: center;
+}
+
+/* Ответ — под вопросом, по левому краю, серым цветом. */
+.faq-section-answer {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows .45s cubic-bezier(.22, 1, .36, 1);
+}
+
+.faq-section-item.is-open .faq-section-answer {
+    grid-template-rows: 1fr;
+}
+
+.faq-section-answer-inner {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.faq-section-answer-inner p {
+    margin: 0;
+    /* Тот же боковой отступ, что у вопроса, — ответ встаёт ровно под ним. */
+    padding: 0 24px 24px;
+    color: var(--kp-text-secondary);
+    font-size: 15px;
+    line-height: 1.7;
+    text-align: left;
+}
+
+.faq-section :focus-visible {
+    outline: 2px solid var(--kp-gold);
+    outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+    .faq-section-trigger {
+        padding: 18px;
+    }
+
+    .faq-section-question {
+        font-size: 15px;
+    }
+
+    .faq-section-answer-inner p {
+        padding: 0 18px 18px;
+        font-size: 14.5px;
+    }
+}

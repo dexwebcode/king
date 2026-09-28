@@ -393,6 +393,18 @@ const en = {
     // FAQ
     "Страница в разработке": "Page under development",
     "На главную": "Home",
+    "Часто задаваемые вопросы": "Frequently asked questions",
+    "Ответы на популярные вопросы о старте, оплате и площадках": "Answers to common questions about getting started, payment and platforms",
+    "KingPromotion · FAQ": "KingPromotion · FAQ",
+    "Ответы на популярные вопросы о старте, оплате и площадках. Если не нашли нужный ответ — напишите нам в поддержку.": "Answers to common questions about getting started, payment and platforms. If you don't find the answer you need, write to support.",
+    "С какой суммы я могу начать?": "What amount can I start with?",
+    "Начать можно с 50 рублей — этого хватит, чтобы проверить качество и скорость запуска. Сумму заказа вы выбираете сами: минимальный порог — 50 ₽, а итоговая стоимость и объём видны сразу, до оплаты, без скрытых комиссий и доплат.": "You can start from 50 rubles — enough to check the quality and launch speed. You choose the order amount yourself: the minimum is 50 ₽, and the total cost and volume are shown before payment, with no hidden fees or surcharges.",
+    "Каким способом оплачивать продвижение?": "How can I pay for promotion?",
+    "Оплатить можно через СБП (ЮKassa, без комиссии), банковской картой через CrystalPAY или криптовалютой через Heleket. Способ выбирается при пополнении баланса: средства зачисляются сразу после подтверждения, а данные карты мы не храним.": "Pay via SBP (YooKassa, no fee), by bank card through CrystalPAY, or with cryptocurrency through Heleket. Choose the method when topping up your balance: funds are credited right after confirmation and we never store your card details.",
+    "На каких площадках можно заказать у нас продвижение?": "On which platforms can I order promotion?",
+    "Продвигаем аккаунты в соцсетях и на стриминговых платформах: Instagram, Telegram, VK, TikTok, YouTube, X, Twitch, Дзен, RuTube, а также Spotify, Apple Music, VK Музыка, Shazam и MAX. Полный список и актуальные цены — в каталоге услуг.": "We promote accounts across social networks and streaming platforms: Instagram, Telegram, VK, TikTok, YouTube, X, Twitch, Dzen, RuTube, plus Spotify, Apple Music, VK Music, Shazam and MAX. The full list and current prices are in the service catalog.",
+    "Не нашли ответ на свой вопрос?": "Didn't find the answer to your question?",
+    "Написать в поддержку": "Write to support",
 
     // Лендинг — секции
     "KingPromotion в цифрах": "KingPromotion in numbers",

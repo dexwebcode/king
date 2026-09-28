@@ -31,6 +31,7 @@ import podcastsIcon from "../../assets/icons/podcasts.svg";
 import HeroRegisterForm from "../Landing/components/Hero/HeroRegisterForm";
 import { AUTH_CHANGED_EVENT, logoutUser } from "../Landing/components/Hero/auth/authApi";
 import { AccountMenu, InternalHeader, MenuToggle } from "../../ui/AppShell";
+import Footer from "../Landing/components/Footer/Footer";
 import { getAccount, getCachedAccount, getCachedPrices, getPrices, subscribeAccount } from "../../ui/dataCache";
 import CatalogSearch from "./CatalogSearch";
 import "../Landing/Landing.css";
@@ -520,6 +521,7 @@ export default function Catalog() {
                     </div>
                 </div>
             </section>
+            <Footer />
         </main>
     );
 }

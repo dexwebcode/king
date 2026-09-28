@@ -49,9 +49,10 @@ export default function Header({
 
             <nav className="main-nav">
 
-                <a href={sectionLink("services")}>
+                {/* «Услуги» ведёт в каталог услуг. */}
+                <Link to="/catalog">
                     {t("Услуги")}
-                </a>
+                </Link>
 
                 <a href={sectionLink("prices")}>
                     {t("Цены")}
@@ -65,9 +66,10 @@ export default function Header({
                     {t("Отзывы")}
                 </Link>
 
-                <Link to="/faq">
+                {/* Отдельной страницы FAQ больше нет — пункт ведёт к секции на главной. */}
+                <a href={sectionLink("faq")}>
                     {t("FAQ")}
-                </Link>
+                </a>
 
                 <a href={sectionLink("support")}>
                     {t("Поддержка")}

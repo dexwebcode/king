@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { AUTH_CHANGED_EVENT } from "../pages/Landing/components/Hero/auth/authApi";
 import { updateCachedBalance } from "./dataCache";
 import { useLanguage } from "./i18n";
 import "./PaymentOverlay.css";
@@ -74,10 +75,21 @@ export function usePaymentOverlay() {
    Отдельного окна и кнопки отмены нет: у провайдеров платёж не отменить,
    поэтому достаточно информировать пользователя и вести его на страницу оплаты. */
 export function PaymentOverlayProvider({ children }) {
-    /* Уведомление переживает перезагрузку: поднимаем платёж из localStorage. */
-    const [session, setSession] = useState(() => readStoredPayment());
+    /* Уведомление переживает перезагрузку: поднимаем платёж из localStorage,
+       но показываем его только авторизованному пользователю. */
+    const [session, setSession] = useState(() => (localStorage.getItem("token") ? readStoredPayment() : null));
     const [notice, setNotice] = useState(null);
     const noticeTimer = useRef(null);
+
+    /* Выход — уведомление убираем (сам платёж в localStorage сохраняем),
+       вход — показываем снова, если у пользователя есть активный платёж. */
+    useEffect(() => {
+        function handleAuthChanged() {
+            setSession(localStorage.getItem("token") ? readStoredPayment() : null);
+        }
+        window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
+        return () => window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
+    }, []);
 
     const open = useCallback((next) => {
         setSession({
@@ -142,6 +154,11 @@ function PaymentWidget({ attemptId, purpose = "order", onClose, notify }) {
         const response = await fetch(API_URL + "/api/payment-attempts/" + attemptId, {
             headers: { Authorization: "Bearer " + token },
         });
+        /* Платежа нет или он принадлежит другому аккаунту — уведомление убираем. */
+        if (response.status === 403 || response.status === 404) {
+            dismiss();
+            return true;
+        }
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error("status unavailable");
         setPayment(data);

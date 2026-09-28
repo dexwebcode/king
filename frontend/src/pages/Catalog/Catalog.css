@@ -53,6 +53,9 @@
 }
 
 .catalog-socials {
+    position: relative;
+    /* Панель лежит поверх фона, иконки — поверх панели. */
+    z-index: 2;
     display: flex;
     width: auto;
     flex: 0 1 auto;
@@ -61,8 +64,13 @@
     justify-content: safe center;
     gap: 10px;
     overflow-x: auto;
-    padding: 3px;
+    padding: 8px;
     scrollbar-width: none;
+    /* Тёмный фон панели: сам фон размывает родительская панель каталога,
+       поэтому вложенный backdrop-filter не нужен (он давал двойное размытие). */
+    border-radius: 18px;
+    background: rgba(10, 11, 13, .5);
+    border: 1px solid rgba(255, 255, 255, .08);
 }
 
 .catalog-socials::-webkit-scrollbar {
@@ -70,6 +78,9 @@
 }
 
 .catalog-socials button {
+    position: relative;
+    /* Иконки остаются поверх фона панели и не размываются. */
+    z-index: 1;
     display: grid;
     width: 52px;
     height: 52px;
@@ -148,7 +159,20 @@
 }
 
 .catalog-controls.is-authenticated {
+    /* Панель каталога липнет к верху окна и размывает фон — как шапка сайта. */
+    position: sticky;
+    top: 0;
+    width: 100%;
     margin-top: 0;
+    margin-inline: 0;
+    /* Боковые отступы равны отступу контейнера страницы. */
+    padding-inline: calc((100% - min(var(--kp-page-width), 100% - 32px)) / 2);
+    padding-bottom: 16px;
+    /* Как фон секции авторизации на главной: почти прозрачный фон + размытие. */
+    background: rgba(48, 48, 48, .063);
+    -webkit-backdrop-filter: blur(25px);
+    backdrop-filter: blur(25px);
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
 }
 
 .catalog-filter-bar {
@@ -801,12 +825,18 @@
 }
 
 .catalog-layout {
+    /* Шире обычного контейнера. */
+    width: min(94%, calc(100% - 32px));
+    /* Как шапка: полупрозрачный фон с размытием. */
+    background: rgba(48, 48, 48, .063);
+    -webkit-backdrop-filter: blur(25px);
+    backdrop-filter: blur(25px);
+    border-radius: var(--kp-radius-lg);
     display: grid;
     grid-template-columns: 208px minmax(0, 1fr);
     align-items: start;
     gap: clamp(18px, 2vw, 26px);
-    padding-top: clamp(20px, 2.5vw, 36px);
-    padding-bottom: 84px;
+    padding: clamp(20px, 2.5vw, 30px) clamp(16px, 2vw, 26px) 84px;
 }
 
 .catalog-content {

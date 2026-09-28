@@ -7,6 +7,7 @@ import PopularServices from "./components/PopularServices/PopularServices";
 import TestBanner from "./components/TestBanner/TestBanner";
 import Reliability from "./components/Reliability/Reliability";
 import FinalCTA from "./components/FinalCTA/FinalCTA";
+import FaqSection from "./components/Faq/FaqSection";
 import Footer from "./components/Footer/Footer";
 
 import { useEffect, useLayoutEffect, useState } from "react";
@@ -232,6 +233,7 @@ export default function Landing() {
                 <TestBanner />
                 <Reliability />
                 <FinalCTA onQuickOrderClick={scrollToOrderCard} />
+                <FaqSection />
             </main>
 
             <Footer />

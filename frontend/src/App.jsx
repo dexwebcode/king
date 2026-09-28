@@ -7,7 +7,6 @@ import Main from "./pages/Main/Main";
 import Payment from "./pages/Payment/Payment";
 import Admin from "./pages/Admin/Admin";
 import Reviews from "./pages/Reviews/Reviews";
-import Faq from "./pages/Faq/Faq";
 import SupportPage from "./pages/Support/SupportPage";
 import TicketPage from "./pages/Support/TicketPage";
 import AdminSupport from "./pages/Admin/AdminSupport";
@@ -129,7 +128,6 @@ export default function App() {
             />
             <Route path="/catalog" element={<Catalog />} />
             <Route path="/reviews" element={<Reviews isAuthenticated={isAuthenticated} />} />
-            <Route path="/faq" element={<Faq />} />
             <Route
                 path="/payment/pending"
                 element={isAuthenticated ? <Payment /> : <Navigate to="/" replace />}

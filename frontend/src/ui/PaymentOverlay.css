@@ -235,11 +235,14 @@
 .payment-widget {
     position: fixed;
     z-index: 1200;
+    /* Правый верхний угол, ниже шапки сайта. */
+    top: 94px;
     right: 24px;
-    bottom: 124px;
+    bottom: auto;
     width: min(330px, calc(100vw - 32px));
     padding: 14px 16px;
-    border: 1px solid rgba(255, 209, 90, .28);
+    /* Без обводки. */
+    border: 0;
     border-radius: 16px;
     /* Непрозрачный фон: сквозь уведомление ничего не просвечивает. */
     background: linear-gradient(160deg, #232427, #0d0e10);
@@ -261,7 +264,8 @@
 }
 
 .payment-widget__eyebrow {
-    color: var(--kp-text-muted, #85878d);
+    /* Надпись «Активный платёж» — зелёным. */
+    color: #6ee7a0;
     font-size: 11px;
     font-weight: 600;
     letter-spacing: .08em;
@@ -305,9 +309,10 @@
 
 @media (max-width: 560px) {
     .payment-widget {
+        top: 88px;
         right: 12px;
         left: 12px;
-        bottom: 116px;
+        bottom: auto;
         width: auto;
     }
 }

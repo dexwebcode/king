@@ -321,6 +321,9 @@
 .kp-side-menu-links {
     display: grid;
     gap: 7px;
+    /* Тонкая линия над пунктами; от краёв панели её отделяет её же padding. */
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, .14);
 }
 
 .kp-side-menu-links a,
@@ -389,24 +392,47 @@
    страницах. Стоит вне .kp-page, поэтому оформление конкретной страницы
    (например центрирование на странице оплаты) её не двигает. */
 .kp-section-bar {
-    position: relative;
+    /* Липнет к верху окна — как шапка сайта: при прокрутке остаётся на месте. */
+    position: sticky;
+    top: 0;
     /* Выше содержимого страницы, чтобы выпадающее меню не перекрывалось. */
     z-index: 1100;
     box-sizing: border-box;
     display: flex;
     align-items: center;
     gap: 12px;
-    width: min(var(--kp-page-width), calc(100% - 32px));
-    margin: 0 auto;
-    padding-top: 32px;
+    width: 100%;
+    margin: 0;
+    /* Боковые отступы равны отступу контейнера страницы: заголовок стоит там же,
+       где содержимое. */
+    padding: 32px calc((100% - min(var(--kp-page-width), 100% - 32px)) / 2) 14px;
+    /* Как фон секции авторизации на главной: почти прозрачный фон + размытие. */
+    background: rgba(48, 48, 48, .063);
+    /* Порядок как у секции авторизации: сначала -webkit-, затем стандартное —
+       так минификатор сохраняет оба свойства. */
+    -webkit-backdrop-filter: blur(25px);
+    backdrop-filter: blur(25px);
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
 }
 
 /* У гостей сверху висит шапка сайта — оставляем под неё место. */
 .kp-app-shell:not(.is-authenticated) .kp-section-bar {
+    position: relative;
     padding-top: 94px;
+    padding-bottom: 0;
     /* У гостя поверх страницы находится основная фиксированная шапка.
        Панель заголовка раздела не должна перекрывать её кликабельную область. */
     z-index: 1;
+    /* Гостю размытие не нужно: сверху уже есть размытая шапка сайта. */
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-bottom: 0;
+}
+
+/* Выпадающее меню стоит по левому краю содержимого, а не окна. */
+.kp-section-bar .kp-side-menu {
+    left: calc((100% - min(var(--kp-page-width), 100% - 32px)) / 2);
 }
 
 .kp-section-title {

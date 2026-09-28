@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import Header from "../pages/Landing/components/Header/Header";
+import Footer from "../pages/Landing/components/Footer/Footer";
 import { logoutUser } from "../pages/Landing/components/Hero/auth/authApi";
 import { getAccount, getCachedAccount, refreshAccount, subscribeAccount } from "./dataCache";
 import { formatMoney } from "./catalogMeta";
@@ -20,8 +21,7 @@ const MENU_ITEMS = [
     { key: "catalog", label: "Каталог услуг", to: "/catalog" },
     { key: "orders", label: "Заказы", section: "orders" },
     { key: "support", label: "Поддержка", to: "/support" },
-    { key: "reviews", label: "Отзывы", to: "/reviews" },
-    { key: "faq", label: "FAQ", to: "/faq" },
+    { key: "reviews", label: "Оставить отзыв", to: "/reviews" },
 ];
 
 export function AppShell({
@@ -103,6 +103,7 @@ export function AppShell({
                 />
             </header>
             <main className={`kp-page ${contentClassName}`}>{children}</main>
+            <Footer />
         </div>
     );
 }

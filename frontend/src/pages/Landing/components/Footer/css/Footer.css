@@ -1,8 +1,27 @@
 .footer {
     min-width: 0;
     padding-block: 34px 50px;
+    border-top: 1px solid rgba(255, 255, 255, .07);
 
     color: #8f9197;
+
+    /* Футер — как шапка сайта: полупрозрачный фон и размытие того, что под ним. */
+    background: rgba(20, 21, 23, .58);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+}
+
+/* Каталог строит каркас сам, без .kp-page: отделяем футер от содержимого. */
+.catalog-page > .footer {
+    margin-top: clamp(32px, 4vw, 64px);
+}
+
+/* Появление футера не должно навешивать filter: он гасит собственный
+   backdrop-filter, и размытие фона под футером не работает. */
+.page-shell > .footer.landing-section-reveal,
+.page-shell > .footer.landing-section-reveal--visible {
+    filter: none;
+    will-change: auto;
 }
 
 .footer h4 {
@@ -34,7 +53,7 @@
 }
 
 .footer-sections {
-    width: 100%;
+    width: 85%;
     margin-inline: auto;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -58,6 +58,9 @@ export default function Main() {
     const [services, setServices] = useState(() => getCachedPrices() || []);
     const [loading, setLoading] = useState(() => !getCachedAccount());
     const [ordersLoading, setOrdersLoading] = useState(true);
+    /* Ошибка истории заказов живёт отдельно от общей: она касается только
+       раздела «История» и не должна всплывать на странице оформления. */
+    const [ordersError, setOrdersError] = useState("");
     const [error, setError] = useState("");
 
     useEffect(() => {
@@ -90,7 +93,7 @@ export default function Main() {
                 return response.json();
             })
             .then((data) => { if (active) setOrders(Array.isArray(data.items) ? data.items : []); })
-            .catch((loadError) => { if (active) setError(loadError.message || t("Не удалось загрузить заказы")); })
+            .catch((loadError) => { if (active) setOrdersError(loadError.message || t("Не удалось загрузить заказы")); })
             .finally(() => { if (active) setOrdersLoading(false); });
 
         return () => { active = false; unsubscribe(); };
@@ -177,7 +180,7 @@ export default function Main() {
 
                     {section === "orders" && ordersView === "history" && (
                         <Panel className="orders-panel">
-                            {ordersLoading ? <p>{t("Загружаем заказы…")}</p> : orders.length === 0 ? <EmptyState>{t("У вас пока нет заказов.")}</EmptyState> : (
+                            {ordersLoading ? <p>{t("Загружаем заказы…")}</p> : ordersError ? <p className="orders-note">{t(ordersError)}</p> : orders.length === 0 ? <EmptyState>{t("У вас пока нет заказов.")}</EmptyState> : (
                                 <div className="orders-list">
                                     {orders.map((order) => {
                                         const service = servicesById.get(String(order.service_id));
