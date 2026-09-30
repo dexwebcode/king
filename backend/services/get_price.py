@@ -6,6 +6,34 @@ from backend.core.config import (
 from backend.services.supplier import get_supplier_services
 
 
+# Глобальная наценка хранится ОДНИМ значением в таблице app_settings и
+# меняется из админ-панели. Значение из backend/.env используется только
+# как начальное/fallback (например, в тестах без БД).
+_markup_settings = None
+
+
+def _load_markup_settings():
+    global _markup_settings
+    if _markup_settings is None:
+        try:
+            from backend.admin import settings as admin_settings
+            _markup_settings = admin_settings
+        except Exception:
+            _markup_settings = False
+    return _markup_settings
+
+
+def current_markup_percent() -> Decimal:
+    """Текущая глобальная наценка: БД, при недоступности — env."""
+    module = _load_markup_settings()
+    if module:
+        try:
+            return module.get_markup_percent()
+        except Exception:
+            pass
+    return Decimal(str(KINGPROMOTION_MARKUP_PERCENT))
+
+
 COMPARE_MARKUP_PERCENT = Decimal("75")
 PROVIDER_PLATFORM_TYPES = {
     "dzen": "dzen",
@@ -129,9 +157,8 @@ def normalize_service(service: dict) -> dict | None:
 
 def add_markup_to_service(service: dict) -> dict:
     base_rate = Decimal(str(service["rate"]))
-    multiplier = Decimal("1") + (
-        Decimal(str(KINGPROMOTION_MARKUP_PERCENT)) / Decimal("100")
-    )
+    markup_percent = current_markup_percent()
+    multiplier = Decimal("1") + (markup_percent / Decimal("100"))
     compare_multiplier = Decimal("1") + (
         COMPARE_MARKUP_PERCENT / Decimal("100")
     )
@@ -147,7 +174,7 @@ def add_markup_to_service(service: dict) -> dict:
         "compare_rate": _money(compare_rate),
         "compare_price_per_1000": _money(compare_rate),
         "compare_markup_percent": float(COMPARE_MARKUP_PERCENT),
-        "markup_percent": KINGPROMOTION_MARKUP_PERCENT,
+        "markup_percent": float(markup_percent),
     }
 
 

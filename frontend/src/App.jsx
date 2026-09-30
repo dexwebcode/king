@@ -1,21 +1,31 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 
 import Landing from "./pages/Landing/Landing";
 import Catalog from "./pages/Catalog/Catalog";
 import Main from "./pages/Main/Main";
 import Payment from "./pages/Payment/Payment";
-import Admin from "./pages/Admin/Admin";
+import AdminApp from "./pages/Admin/AdminApp";
 import Reviews from "./pages/Reviews/Reviews";
 import SupportPage from "./pages/Support/SupportPage";
 import TicketPage from "./pages/Support/TicketPage";
-import AdminSupport from "./pages/Admin/AdminSupport";
 import AccountPage from "./pages/Account/AccountPage";
 
 import { AUTH_CHANGED_EVENT, isAuth } from "./pages/Landing/components/Hero/auth/authApi";
 import { getAccount, getAccountDetails, getPrices } from "./ui/dataCache";
+import { trackPageView } from "./ui/traffic";
 
 const RETRY_DELAY_MS = 3000;
+
+/* Отправляет событие pageview при каждой смене маршрута.
+   Минимальная аналитика: только открытие страницы, без лишних запросов. */
+function PageViewTracker() {
+    const location = useLocation();
+    useEffect(() => {
+        trackPageView(location.pathname);
+    }, [location.pathname]);
+    return null;
+}
 
 export default function App() {
     const [authChecked, setAuthChecked] = useState(false);
@@ -102,6 +112,7 @@ export default function App() {
 
     return (
         <>
+            <PageViewTracker />
             {offline && (
                 <div
                     role="alert"
@@ -145,12 +156,8 @@ export default function App() {
                 element={isAuthenticated ? <AccountPage /> : <Navigate to="/" replace />}
             />
             <Route
-                path="/admin"
-                element={isAuthenticated ? <Admin /> : <Navigate to="/" replace />}
-            />
-            <Route
-                path="/admin/support"
-                element={isAuthenticated ? <AdminSupport /> : <Navigate to="/" replace />}
+                path="/admin/*"
+                element={isAuthenticated ? <AdminApp /> : <Navigate to="/" replace />}
             />
             <Route
                 path="/support"

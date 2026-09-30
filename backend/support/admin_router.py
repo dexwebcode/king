@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
+from backend.admin.audit import record_audit
 from backend.admin.dependencies import get_current_admin
 
 from . import notifications
@@ -70,6 +71,12 @@ def admin_send_message_endpoint(
         public_id=public_id,
         message=result["message"]["message"],
     )
+    record_audit(
+        admin_id=current_user["id"],
+        action="ticket_replied",
+        entity_type="support_ticket",
+        entity_id=public_id,
+    )
     return result
 
 
@@ -80,10 +87,18 @@ def admin_change_status_endpoint(
     current_user: dict = Depends(get_current_admin),
 ):
     try:
-        return SupportService.admin_change_status(
+        result = SupportService.admin_change_status(
             public_id=public_id,
             admin_user_id=current_user["id"],
             status=data.status,
         )
     except TicketNotFoundError:
         raise HTTPException(status_code=404, detail="Обращение не найдено")
+    record_audit(
+        admin_id=current_user["id"],
+        action="ticket_status_changed",
+        entity_type="support_ticket",
+        entity_id=public_id,
+        new_value=data.status,
+    )
+    return result

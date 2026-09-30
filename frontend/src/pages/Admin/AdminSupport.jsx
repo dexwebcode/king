@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 
-import { AppShell, EmptyState, PageHeader, Panel } from "../../ui/AppShell";
 import { useLanguage } from "../../ui/i18n";
 import { supportApi } from "../Support/supportApi";
 import { formatDate, STATUS_ORDER, statusMeta } from "../Support/statusMeta";
 import TicketMessages from "../Support/TicketMessages";
 import TicketReplyForm from "../Support/TicketReplyForm";
 import "./AdminSupport.css";
+import "./AdminPanel.css";
 
 const FILTERS = [
   { value: "", label: "Все" },
@@ -114,29 +113,23 @@ export default function AdminSupport() {
 
   if (forbidden) {
     return (
-      <AppShell title={t("Админ-панель")}>
-        <Panel className="admin-denied">
+      <div className="admin-boot">
+        <div className="admin-denied">
           <p className="kp-eyebrow">{t("403 · доступ запрещён")}</p>
           <h1>{t("Админ-панель недоступна")}</h1>
           <p>{t("У текущего аккаунта нет административных прав.")}</p>
-          <Link className="kp-button" to="/main">{t("Вернуться в кабинет")}</Link>
-        </Panel>
-      </AppShell>
+        </div>
+      </div>
     );
   }
 
   return (
-    <AppShell active="admin" contentClassName="admin-page" title={t("Поддержка")}>
-      <PageHeader
-        eyebrow={t("Операционный центр")}
-        description={t("Все обращения пользователей и переписка с ними.")}
-        actions={<Link className="kp-button kp-button--secondary" to="/admin">{t("Контроль заказов")}</Link>}
-      />
+    <div className="admin-support">
 
       {error && <p className="admin-alert" role="alert">{error}</p>}
 
       <section className="asup-layout">
-        <Panel className="asup-list">
+        <section className="kp-panel asup-list">
           <div className="asup-filters">
             <div className="asup-filter-tabs" role="tablist" aria-label={t("Фильтр по статусу")}>
               {FILTERS.map((filter) => (
@@ -162,7 +155,7 @@ export default function AdminSupport() {
           {loading ? (
             <p className="asup-empty">{t("Загрузка обращений…")}</p>
           ) : tickets.length === 0 ? (
-            <EmptyState>{t("Обращения не найдены.")}</EmptyState>
+            <div className="admin-empty">{t("Обращения не найдены.")}</div>
           ) : (
             <div className="asup-rows">
               {tickets.map((ticket) => {
@@ -192,9 +185,9 @@ export default function AdminSupport() {
             </div>
           )}
           <div className="asup-count">{t("Всего обращений: {total}", { total })}</div>
-        </Panel>
+        </section>
 
-        <Panel className="asup-detail">
+        <section className="kp-panel asup-detail">
           {detailLoading ? (
             <p className="asup-empty">{t("Загрузка обращения…")}</p>
           ) : selected === null ? (
@@ -242,8 +235,8 @@ export default function AdminSupport() {
               </button>
             </>
           )}
-        </Panel>
+        </section>
       </section>
-    </AppShell>
+    </div>
   );
 }

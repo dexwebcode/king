@@ -13,7 +13,7 @@ def get_user_by_login_or_email(
 ):
     result = session.execute(
         text("""
-            SELECT id, login, mail, password, token_version
+            SELECT id, login, mail, password, token_version, banned
             FROM migration_temp.users
             WHERE LOWER(login) = LOWER(:value)
                OR LOWER(mail) = LOWER(:value)
@@ -60,7 +60,7 @@ def get_user_by_id(
 ):
     result = session.execute(
         text("""
-            SELECT id, login, mail, token_version
+            SELECT id, login, mail, token_version, banned
             FROM migration_temp.users
             WHERE id = :user_id
             LIMIT 1
@@ -126,6 +126,31 @@ def increment_user_token_version(session: Session, user_id: int) -> None:
             WHERE id = :user_id
         """),
         {"user_id": user_id},
+    )
+
+
+def touch_user_last_seen(session: Session, user_id: int) -> None:
+    """Обновляет last_seen_at не чаще заданного интервала (одна строка в БД).
+
+    UPDATE сам по себе не пишет данные, если интервал ещё не прошёл,
+    поэтому никакого предварительного SELECT не требуется.
+    """
+    from backend.core.config import LAST_SEEN_UPDATE_INTERVAL_SECONDS
+
+    session.execute(
+        text("""
+            UPDATE migration_temp.users
+            SET last_seen_at = NOW()
+            WHERE id = :user_id
+              AND (
+                  last_seen_at IS NULL
+                  OR last_seen_at < NOW() - (:interval_seconds * INTERVAL '1 second')
+              )
+        """),
+        {
+            "user_id": user_id,
+            "interval_seconds": LAST_SEEN_UPDATE_INTERVAL_SECONDS,
+        },
     )
 
 

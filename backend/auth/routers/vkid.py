@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from backend.auth.dependencies import get_current_user
+from backend.auth.repository import touch_user_last_seen
 from backend.auth.schemas import VkLoginRequest
 from backend.auth.security import create_access_token
 from backend.auth.social_accounts import get_user_social_accounts
@@ -49,6 +50,12 @@ def vk_login(data: VkLoginRequest, session: Session = Depends(get_db)):
         )
     except SocialAccountBrokenError as error:
         raise HTTPException(status_code=409, detail="Связь VK повреждена") from error
+
+    if int(user.get("banned") or 0):
+        raise HTTPException(status_code=403, detail="Аккаунт заблокирован")
+
+    touch_user_last_seen(session, user["id"])
+    session.commit()
 
     return {
         "success": True,

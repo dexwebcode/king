@@ -329,3 +329,15 @@ if CRYSTALPAY_ORDER_REDIRECT_URL:
         CRYSTALPAY_ORDER_REDIRECT_URL,
         allow_local_http=True,
     )
+
+
+# Внутренняя аналитика посещений: лимит beacon-запросов с одного IP в минуту.
+RATE_LIMIT_TRAFFIC_PER_IP = int(os.getenv("RATE_LIMIT_TRAFFIC_PER_IP", "120"))
+
+# Интервал обновления users.last_seen_at (секунды): запись в БД не чаще
+# этого периода при нормальной активности пользователя.
+LAST_SEEN_UPDATE_INTERVAL_SECONDS = int(
+    os.getenv("LAST_SEEN_UPDATE_INTERVAL_SECONDS", "300")
+)
+if LAST_SEEN_UPDATE_INTERVAL_SECONDS < 60:
+    raise RuntimeError("LAST_SEEN_UPDATE_INTERVAL_SECONDS должен быть не меньше 60")

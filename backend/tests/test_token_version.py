@@ -13,11 +13,23 @@ from backend.core.config import JWT_ALGORITHM, SECRET_KEY
 
 
 class _FakeSession:
-    pass
+    """Минимальная сессия: зависимость пишет активность (last_seen)."""
+
+    def execute(self, *args, **kwargs):
+        return None
+
+    def commit(self):
+        return None
 
 
 def _user(version):
-    return {"id": 7, "login": "ava", "mail": None, "token_version": version}
+    return {
+        "id": 7,
+        "login": "ava",
+        "mail": None,
+        "token_version": version,
+        "banned": 0,
+    }
 
 
 class TokenVersionTests(unittest.TestCase):

@@ -35,6 +35,7 @@ from backend.payments.service import (
     sync_due_orders,
 )
 from backend.services.get_price import get_price
+from backend.analytics.router import router as analytics_router
 from backend.reviews.router import router as reviews_router
 from backend.support.router import router as support_router
 from backend.support.admin_router import router as support_admin_router
@@ -184,6 +185,7 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # Подключение маршрутов для аутентификации
 app.include_router(auth_router)
+app.include_router(analytics_router)
 app.include_router(payments_router)
 app.include_router(admin_router)
 app.include_router(reviews_router)

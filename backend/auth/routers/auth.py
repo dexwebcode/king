@@ -14,6 +14,7 @@ from backend.auth.dependencies import get_current_user
 from backend.auth.schemas import LoginRequest, RegisterRequest
 from backend.auth.service import (
     UserAlreadyExistsError,
+    UserBannedError,
     login_user,
     logout_user,
     register_user,
@@ -37,10 +38,16 @@ def login(data: LoginRequest, request: Request):
             ),
         ]
     )
-    result = login_user(
-        login_or_email=data.identifier,
-        password=data.password,
-    )
+    try:
+        result = login_user(
+            login_or_email=data.identifier,
+            password=data.password,
+        )
+    except UserBannedError as error:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Аккаунт заблокирован",
+        ) from error
 
     if result is None:
         raise HTTPException(

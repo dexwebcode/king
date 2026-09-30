@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.auth.dependencies import get_current_user
-from backend.auth.repository import get_user_by_id
+from backend.auth.repository import get_user_by_id, touch_user_last_seen
 from backend.auth.schemas import TelegramStartRequest
 from backend.auth.security import create_access_token
 from backend.auth.social_accounts import (
@@ -160,11 +160,21 @@ def telegram_guest_status(
         release_telegram_guest_session_redemption(session, auth_session["id"])
         raise
 
+    if int(user.get("banned") or 0):
+        release_telegram_guest_session_redemption(session, auth_session["id"])
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Аккаунт заблокирован",
+        )
+
     if not finish_telegram_guest_session_redemption(session, auth_session["id"]):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Telegram-сессия уже использована",
         )
+
+    touch_user_last_seen(session, user["id"])
+    session.commit()
 
     if created:
         background_tasks.add_task(send_registration_welcome, telegram_id)

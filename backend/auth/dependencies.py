@@ -4,15 +4,15 @@
 # КОМЕНТАРИЙ:
 #       Файл определяет функцию get_current_user, которая извлекает текущего
 #       пользователя из заголовка Authorization, проверяет токен и возвращает
-#       информацию о пользователе. Если токен недействителен или пользователь не найден,
-#       выбрасывается исключение HTTPException с соответствующим кодом состояния.
+#       информацию о пользователе. Заблокированные аккаунты отклоняются (403).
+#       При успешной проверке с разумным интервалом обновляется last_seen_at.
 
 # PYTHON ИМПОРТЫ
 from fastapi import Header, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 # ЛОКАЛЬНЫЕ ИМПОРТЫ
 
-from .repository import get_user_by_id
+from .repository import get_user_by_id, touch_user_last_seen
 from .security import decode_access_token
 from backend.core.database import get_db
 
@@ -66,5 +66,16 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Сессия устарела. Войдите снова.",
         )
+
+    # Заблокированный аккаунт не получает доступ к защищённым функциям.
+    if int(user.get("banned") or 0):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Аккаунт заблокирован",
+        )
+
+    # Активность: запись не чаще установленного интервала (см. репозиторий).
+    touch_user_last_seen(session, user_id)
+    session.commit()
 
     return dict(user)

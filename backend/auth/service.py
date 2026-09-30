@@ -13,6 +13,7 @@ from .repository import (
     get_user_by_login,
     get_user_by_login_or_email,
     increment_user_token_version,
+    touch_user_last_seen,
     update_user_password,
 )
 from .security import (
@@ -24,6 +25,10 @@ from .security import (
 
 # Исключение: пользователь уже существует
 class UserAlreadyExistsError(Exception):
+    pass
+
+# Исключение: вход заблокированного аккаунта
+class UserBannedError(Exception):
     pass
 
 # функция для аутентификации пользователя
@@ -47,9 +52,13 @@ def login_user(
         if not verify_password(password, user["password"]):
             return None
 
+        if int(user.get("banned") or 0):
+            raise UserBannedError()
+
+        touch_user_last_seen(session, user["id"])
         if password_needs_rehash(user["password"]):
             update_user_password(session, user["id"], hash_password(password))
-            session.commit()
+        session.commit()
 
         token = create_access_token(user["id"], user.get("token_version", 0))
 

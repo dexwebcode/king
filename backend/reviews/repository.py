@@ -14,6 +14,9 @@ REVIEW_SELECT = """
         WHERE user_id = u.id ORDER BY id LIMIT 1
     ) s ON TRUE
 """
+# Отзывы, удалённые администратором, не участвуют в публичных выборках.
+REVIEW_VISIBLE = "r.deleted_at IS NULL"
+
 SORT_ORDERS = {
     "newest": "r.created_at DESC, r.id DESC",
     "oldest": "r.created_at ASC, r.id ASC",
@@ -35,7 +38,8 @@ def serialize_review(row):
 def list_reviews(session, *, sort, limit, offset):
     # Only a fixed allowlist can become an SQL fragment.
     rows = session.execute(text(
-        REVIEW_SELECT + f" ORDER BY {SORT_ORDERS[sort]} LIMIT :limit OFFSET :offset"
+        REVIEW_SELECT + f" WHERE {REVIEW_VISIBLE} "
+        f"ORDER BY {SORT_ORDERS[sort]} LIMIT :limit OFFSET :offset"
     ), {"limit": limit + 1, "offset": offset}).mappings().all()
     return {
         "items": [serialize_review(row) for row in rows[:limit]],
@@ -44,14 +48,19 @@ def list_reviews(session, *, sort, limit, offset):
 
 
 def get_my_review(session, user_id):
-    row = session.execute(text(REVIEW_SELECT + " WHERE r.user_id = :user_id"),
-                          {"user_id": user_id}).mappings().first()
+    row = session.execute(
+        text(REVIEW_SELECT + f" WHERE {REVIEW_VISIBLE} AND r.user_id = :user_id"),
+        {"user_id": user_id},
+    ).mappings().first()
     return serialize_review(row)
 
 
 def review_stats(session):
     rows = session.execute(text("""
-        SELECT rating, COUNT(*) AS count FROM migration_temp.reviews GROUP BY rating
+        SELECT rating, COUNT(*) AS count
+        FROM migration_temp.reviews
+        WHERE deleted_at IS NULL
+        GROUP BY rating
     """)).mappings().all()
     distribution = {rating: 0 for rating in range(1, 6)}
     distribution.update({row["rating"]: row["count"] for row in rows})
@@ -74,6 +83,9 @@ def insert_review(session, user_id, data):
 
 def update_review(session, user_id, data):
     return session.execute(text("""
-        UPDATE migration_temp.reviews SET rating = :rating, text = :text, updated_at = NOW()
-        WHERE user_id = :user_id RETURNING id
+        UPDATE migration_temp.reviews
+        SET rating = :rating, text = :text, updated_at = NOW()
+        WHERE user_id = :user_id
+          AND deleted_at IS NULL
+        RETURNING id
     """), {"user_id": user_id, **data.model_dump()}).scalar_one_or_none()
