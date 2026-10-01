@@ -13,8 +13,12 @@ from backend.admin.repository import (
     active_users_count,
     dashboard_snapshot,
     finance_summary,
+    new_landing_visitors_count,
+    new_visitors_count,
     revenue_series,
+    top_paths,
     traffic_series,
+    traffic_totals,
     users_baseline,
     users_series,
 )
@@ -136,8 +140,9 @@ def get_users_stats(period: str, date_from: date | None, date_to: date | None) -
     try:
         series = users_series(session, start_ts=start, end_ts=end, bucket=bucket)
         baseline = users_baseline(session, start)
+        active_window_minutes = get_active_users_window_minutes()
         active = active_users_count(
-            session, window_minutes=get_active_users_window_minutes()
+            session, window_minutes=active_window_minutes
         )
         total_users = int(
             session.execute(
@@ -161,12 +166,38 @@ def get_users_stats(period: str, date_from: date | None, date_to: date | None) -
         "series": series,
         "baseline_before_period": baseline,
         "active_users": active,
+        "active_users_window_minutes": active_window_minutes,
         "total_users": total_users,
     }
 
 
 def get_traffic_stats(period: str, date_from: date | None, date_to: date | None) -> dict:
-    return _compose_series(period, date_from, date_to, traffic_series)
+    """Посещения, главная страница, входы и регистрации за период."""
+    start, end, bucket = resolve_period(period, date_from, date_to)
+    session = SessionLocal()
+    try:
+        series = traffic_series(session, start_ts=start, end_ts=end, bucket=bucket)
+        totals = traffic_totals(session, start_ts=start, end_ts=end)
+        new_visitors = new_visitors_count(session, start_ts=start, end_ts=end)
+        new_landing = new_landing_visitors_count(
+            session, start_ts=start, end_ts=end
+        )
+        paths = top_paths(session, start_ts=start, end_ts=end)
+    finally:
+        session.close()
+    return {
+        "period": period,
+        "bucket": bucket,
+        "start": start.isoformat(),
+        "end": end.isoformat(),
+        "series": series,
+        "totals": {
+            **totals,
+            "new_visitors": new_visitors,
+            "new_landing_visitors": new_landing,
+        },
+        "paths": paths,
+    }
 
 
 def get_finance_summary(period: str, date_from: date | None, date_to: date | None) -> dict:

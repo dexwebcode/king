@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { adminApi } from "./adminApi";
 import LineChart from "./components/Chart";
@@ -19,12 +20,13 @@ const CHART_PERIODS = [
     { value: "30d", label: "Месяц" },
 ];
 
-function ChartCard({ title, period, setPeriod, loading, data, series }) {
+function ChartCard({ title, to, period, setPeriod, loading, data, series }) {
     return (
         <section className="admin-panel">
             <div className="admin-section-head">
                 <div>
                     <h2>{title}</h2>
+                    {to ? <Link className="admin-section-link" to={to}>Подробнее →</Link> : null}
                 </div>
                 <div className="admin-period-tabs">
                     {CHART_PERIODS.map((item) => (
@@ -239,7 +241,7 @@ export default function Dashboard() {
             {notice && <p className="admin-notice" role="status">{notice}</p>}
 
             <section className="admin-cards">
-                <div className="admin-card">
+                <Link className="admin-card admin-card--link" to="/admin/users">
                     <p className="admin-card-label">Пользователи</p>
                     <p className="admin-card-value">{formatNumber(d.users.total)}</p>
                     <p className="admin-card-sub">
@@ -247,15 +249,17 @@ export default function Dashboard() {
                         <br />
                         активных ({d.active_users_window_minutes} мин): {formatNumber(d.users.active)}
                     </p>
-                </div>
-                <div className="admin-card">
+                    <span className="admin-card-more">Открыть раздел →</span>
+                </Link>
+                <Link className="admin-card admin-card--link" to="/admin/orders">
                     <p className="admin-card-label">Заказы</p>
                     <p className="admin-card-value">{formatNumber(d.orders.total)}</p>
                     <p className="admin-card-sub">
                         сегодня: {formatNumber(d.orders.today)} · в работе: {formatNumber(d.orders.active)}
                     </p>
-                </div>
-                <div className="admin-card">
+                    <span className="admin-card-more">Открыть раздел →</span>
+                </Link>
+                <Link className="admin-card admin-card--link" to="/admin/finance">
                     <p className="admin-card-label">Оборот заказов</p>
                     <p className="admin-card-value">{formatMoney(d.revenue.total)}</p>
                     <p className="admin-card-sub">
@@ -263,34 +267,63 @@ export default function Dashboard() {
                         <br />
                         месяц: {formatMoney(d.revenue.month)}
                     </p>
-                </div>
-                <div className="admin-card">
+                    <span className="admin-card-more">Открыть финансы →</span>
+                </Link>
+                <Link className="admin-card admin-card--link" to="/admin/support">
                     <p className="admin-card-label">Поддержка</p>
                     <p className="admin-card-value">{formatNumber(d.support.open)}</p>
                     <p className="admin-card-sub">
                         новых: {formatNumber(d.support.new)} · всего: {formatNumber(d.support.total)}
                     </p>
-                </div>
-                <div className="admin-card">
+                    <span className="admin-card-more">Открыть раздел →</span>
+                </Link>
+                <Link className="admin-card admin-card--link" to="/admin/reviews">
                     <p className="admin-card-label">Отзывы</p>
                     <p className="admin-card-value">{formatNumber(d.reviews_total)}</p>
                     <p className="admin-card-sub">активных (не удалённых)</p>
-                </div>
-                <div className="admin-card">
-                    <p className="admin-card-label">Посещения сегодня</p>
+                    <span className="admin-card-more">Открыть раздел →</span>
+                </Link>
+                <Link className="admin-card admin-card--link" to="/admin/analytics">
+                    <p className="admin-card-label">Перешли на главную</p>
+                    <p className="admin-card-value">{formatNumber(d.visits?.landing_today)}</p>
+                    <p className="admin-card-sub">
+                        уникальных сегодня: {formatNumber(d.visits?.landing_uniques_today)}
+                        <br />
+                        неделя: {formatNumber(d.visits?.landing_week)} · месяц: {formatNumber(d.visits?.landing_month)}
+                    </p>
+                    <span className="admin-card-more">Открыть аналитику →</span>
+                </Link>
+                <Link className="admin-card admin-card--link" to="/admin/analytics">
+                    <p className="admin-card-label">Входы и регистрации</p>
+                    <p className="admin-card-value">
+                        {formatNumber(d.visits?.logins_today)}<small> входов</small>
+                    </p>
+                    <p className="admin-card-sub">
+                        уникальных: {formatNumber(d.visits?.unique_logins_today)} · неделя: {formatNumber(d.visits?.logins_week)} · месяц: {formatNumber(d.visits?.logins_month)}
+                        <br />
+                        регистраций сегодня: {formatNumber(d.visits?.registrations_today)} · неделя: {formatNumber(d.visits?.registrations_week)} · месяц: {formatNumber(d.visits?.registrations_month)}
+                    </p>
+                    <span className="admin-card-more">Открыть аналитику →</span>
+                </Link>
+                <Link className="admin-card admin-card--link" to="/admin/analytics">
+                    <p className="admin-card-label">Посещения сайта сегодня</p>
                     <p className="admin-card-value">{formatNumber(d.traffic.pageviews_today)}</p>
                     <p className="admin-card-sub">
                         уникальных: {formatNumber(d.traffic.uniques_today)} · авторизованных: {formatNumber(d.traffic.logged_in_today)}
                         <br />
                         неделя: {formatNumber(d.traffic.pageviews_week)} · месяц: {formatNumber(d.traffic.pageviews_month)}
+                        <br />
+                        просмотры сайта без страниц админ-панели
                     </p>
-                </div>
-                <div className="admin-card">
+                    <span className="admin-card-more">Открыть аналитику →</span>
+                </Link>
+                <Link className="admin-card admin-card--link" to="/admin/markup">
                     <p className="admin-card-label">Глобальная наценка</p>
                     <p className="admin-card-value">{d.markup_percent || "—"}<small>%</small></p>
                     <p className="admin-card-sub">применяется к новым ценам каталога</p>
-                </div>
-                <div className="admin-card">
+                    <span className="admin-card-more">Изменить →</span>
+                </Link>
+                <Link className="admin-card admin-card--link" to="/admin/finance">
                     <p className="admin-card-label">Баланс поставщика</p>
                     <p className="admin-card-value">
                         {balanceError ? <span style={{ fontSize: 20, color: "var(--kp-text-muted)" }}>недоступен</span> : balance ? formatMoney(balance.balance) : "…"}
@@ -301,12 +334,14 @@ export default function Dashboard() {
                             ? `проверено ${new Date(balance.checked_at).toLocaleTimeString("ru-RU")}`
                             : "API поставщика недоступен или не настроен"}
                     </p>
-                </div>
+                    <span className="admin-card-more">Открыть финансы →</span>
+                </Link>
             </section>
 
             <div className="admin-charts-grid">
                 <ChartCard
                     title="Доход и себестоимость"
+                    to="/admin/finance"
                     period={revenuePeriod}
                     setPeriod={setRevenuePeriod}
                     loading={chartsLoading}
@@ -315,6 +350,7 @@ export default function Dashboard() {
                 />
                 <ChartCard
                     title="Регистрации пользователей"
+                    to="/admin/users"
                     period={usersPeriod}
                     setPeriod={setUsersPeriod}
                     loading={chartsLoading}
@@ -323,6 +359,7 @@ export default function Dashboard() {
                 />
                 <ChartCard
                     title="Посещения сайта"
+                    to="/admin/analytics"
                     period={trafficPeriod}
                     setPeriod={setTrafficPeriod}
                     loading={chartsLoading}
@@ -340,7 +377,10 @@ export default function Dashboard() {
                             Ручная проверка: {attentionCounts.review}
                         </p>
                     </div>
-                    <span className="admin-badge admin-badge--neutral">{attention.length}</span>
+                    <div className="admin-head-actions">
+                        <span className="admin-badge admin-badge--neutral">{attention.length}</span>
+                        <Link className="admin-section-link" to="/admin/orders">Все заказы →</Link>
+                    </div>
                 </div>
                 {attentionLoading ? (
                     <div className="admin-loading">Загружаем очередь…</div>

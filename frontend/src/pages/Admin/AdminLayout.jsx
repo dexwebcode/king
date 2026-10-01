@@ -45,8 +45,28 @@ function sectionForPath(pathname) {
 export default function AdminLayout({ children }) {
     const location = useLocation();
     const [status, setStatus] = useState("loading");
-    const [collapsed, setCollapsed] = useState(false);
+    // Меню по умолчанию свёрнуто до иконок и выдвигается при наведении.
+    // Кнопка «закрепить» оставляет его развёрнутым (состояние запоминается).
+    const [pinned, setPinned] = useState(() => {
+        try {
+            return localStorage.getItem("kp_admin_menu_pinned") === "1";
+        } catch (error) {
+            return false;
+        }
+    });
     const section = sectionForPath(location.pathname);
+
+    function togglePinned() {
+        setPinned((value) => {
+            const next = !value;
+            try {
+                localStorage.setItem("kp_admin_menu_pinned", next ? "1" : "0");
+            } catch (error) {
+                /* приватный режим — не критично */
+            }
+            return next;
+        });
+    }
 
     useEffect(() => {
         let active = true;
@@ -92,7 +112,9 @@ export default function AdminLayout({ children }) {
     }
 
     return (
-        <div className={`admin-shell ${collapsed ? "is-collapsed" : ""}`}>
+        <div className={`admin-shell ${pinned ? "is-pinned" : ""}`}>
+            {/* Выдвижение меню при наведении — на CSS (см. AdminPanel.css),
+                поэтому лишних обработчиков здесь нет. */}
             <aside className="admin-sidebar">
                 <Link className="admin-brand" to="/admin" title="KingPromotion · админ-панель">
                     <img src={logo} alt="" />
@@ -119,11 +141,12 @@ export default function AdminLayout({ children }) {
                     <button
                         className="admin-collapse"
                         type="button"
-                        onClick={() => setCollapsed((value) => !value)}
-                        aria-label={collapsed ? "Развернуть меню" : "Свернуть меню"}
-                        title={collapsed ? "Развернуть меню" : "Свернуть меню"}
+                        onClick={togglePinned}
+                        aria-pressed={pinned}
+                        aria-label={pinned ? "Свернуть меню до иконок" : "Закрепить меню развёрнутым"}
+                        title={pinned ? "Свернуть до иконок" : "Закрепить меню"}
                     >
-                        {collapsed ? "»" : "«"}
+                        {pinned ? "«" : "»"}
                     </button>
                     <Link className="admin-site-link" to="/main" title="На сайт">
                         <Icon name="dashboard" />

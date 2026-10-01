@@ -827,23 +827,95 @@ def dashboard_snapshot(session: Session, *, active_window_minutes: int) -> dict:
         """),
     ).scalar_one()
 
+    visits = session.execute(
+        text("""
+            SELECT
+                (SELECT COUNT(*) FROM migration_temp.traffic_events
+                 WHERE event_type = 'pageview' AND path = '/'
+                   AND created_at >= date_trunc('day', NOW()))
+                    AS landing_today,
+                (SELECT COUNT(DISTINCT visitor_hash)
+                 FROM migration_temp.traffic_events
+                 WHERE event_type = 'pageview' AND path = '/'
+                   AND created_at >= date_trunc('day', NOW()))
+                    AS landing_uniques_today,
+                (SELECT COUNT(*) FROM migration_temp.traffic_events
+                 WHERE event_type = 'pageview' AND path = '/'
+                   AND created_at >= date_trunc('day', NOW()) - INTERVAL '7 days')
+                    AS landing_week,
+                (SELECT COUNT(DISTINCT visitor_hash)
+                 FROM migration_temp.traffic_events
+                 WHERE event_type = 'pageview' AND path = '/'
+                   AND created_at >= date_trunc('day', NOW()) - INTERVAL '7 days')
+                    AS landing_uniques_week,
+                (SELECT COUNT(*) FROM migration_temp.traffic_events
+                 WHERE event_type = 'pageview' AND path = '/'
+                   AND created_at >= date_trunc('day', NOW()) - INTERVAL '30 days')
+                    AS landing_month,
+                (SELECT COUNT(DISTINCT visitor_hash)
+                 FROM migration_temp.traffic_events
+                 WHERE event_type = 'pageview' AND path = '/'
+                   AND created_at >= date_trunc('day', NOW()) - INTERVAL '30 days')
+                    AS landing_uniques_month,
+                (SELECT COUNT(*) FROM migration_temp.traffic_events
+                 WHERE event_type = 'login'
+                   AND created_at >= date_trunc('day', NOW()))
+                    AS logins_today,
+                (SELECT COUNT(DISTINCT user_id)
+                 FROM migration_temp.traffic_events
+                 WHERE event_type = 'login'
+                   AND created_at >= date_trunc('day', NOW()))
+                    AS unique_logins_today,
+                (SELECT COUNT(*) FROM migration_temp.traffic_events
+                 WHERE event_type = 'login'
+                   AND created_at >= date_trunc('day', NOW()) - INTERVAL '7 days')
+                    AS logins_week,
+                (SELECT COUNT(*) FROM migration_temp.traffic_events
+                 WHERE event_type = 'login'
+                   AND created_at >= date_trunc('day', NOW()) - INTERVAL '30 days')
+                    AS logins_month,
+                (SELECT COUNT(*) FROM migration_temp.traffic_events
+                 WHERE event_type = 'register'
+                   AND created_at >= date_trunc('day', NOW()))
+                    AS registrations_today,
+                (SELECT COUNT(*) FROM migration_temp.traffic_events
+                 WHERE event_type = 'register'
+                   AND created_at >= date_trunc('day', NOW()) - INTERVAL '7 days')
+                    AS registrations_week,
+                (SELECT COUNT(*) FROM migration_temp.traffic_events
+                 WHERE event_type = 'register'
+                   AND created_at >= date_trunc('day', NOW()) - INTERVAL '30 days')
+                    AS registrations_month
+        """),
+    ).mappings().one()
+
     traffic = session.execute(
         text("""
             SELECT
                 (SELECT COUNT(*) FROM migration_temp.traffic_events
-                 WHERE created_at >= date_trunc('day', NOW()))
+                 WHERE event_type = 'pageview'
+                   AND COALESCE(path, '') NOT LIKE '/admin%'
+                   AND created_at >= date_trunc('day', NOW()))
                     AS pageviews_today,
                 (SELECT COUNT(DISTINCT visitor_hash) FROM migration_temp.traffic_events
-                 WHERE created_at >= date_trunc('day', NOW()))
+                 WHERE event_type = 'pageview'
+                   AND COALESCE(path, '') NOT LIKE '/admin%'
+                   AND created_at >= date_trunc('day', NOW()))
                     AS uniques_today,
                 (SELECT COUNT(DISTINCT user_id) FROM migration_temp.traffic_events
-                 WHERE created_at >= date_trunc('day', NOW())
+                 WHERE event_type = 'pageview'
+                   AND COALESCE(path, '') NOT LIKE '/admin%'
+                   AND created_at >= date_trunc('day', NOW())
                    AND user_id IS NOT NULL) AS logged_in_today,
                 (SELECT COUNT(*) FROM migration_temp.traffic_events
-                 WHERE created_at >= date_trunc('day', NOW()) - INTERVAL '7 days')
+                 WHERE event_type = 'pageview'
+                   AND COALESCE(path, '') NOT LIKE '/admin%'
+                   AND created_at >= date_trunc('day', NOW()) - INTERVAL '7 days')
                     AS pageviews_week,
                 (SELECT COUNT(*) FROM migration_temp.traffic_events
-                 WHERE created_at >= date_trunc('day', NOW()) - INTERVAL '30 days')
+                 WHERE event_type = 'pageview'
+                   AND COALESCE(path, '') NOT LIKE '/admin%'
+                   AND created_at >= date_trunc('day', NOW()) - INTERVAL '30 days')
                     AS pageviews_month
         """),
     ).mappings().one()
@@ -873,6 +945,21 @@ def dashboard_snapshot(session: Session, *, active_window_minutes: int) -> dict:
             "new": int(support["tickets_new"]),
         },
         "reviews_total": int(reviews_total),
+        "visits": {
+            "landing_today": int(visits["landing_today"]),
+            "landing_uniques_today": int(visits["landing_uniques_today"]),
+            "landing_week": int(visits["landing_week"]),
+            "landing_uniques_week": int(visits["landing_uniques_week"]),
+            "landing_month": int(visits["landing_month"]),
+            "landing_uniques_month": int(visits["landing_uniques_month"]),
+            "logins_today": int(visits["logins_today"]),
+            "unique_logins_today": int(visits["unique_logins_today"]),
+            "logins_week": int(visits["logins_week"]),
+            "logins_month": int(visits["logins_month"]),
+            "registrations_today": int(visits["registrations_today"]),
+            "registrations_week": int(visits["registrations_week"]),
+            "registrations_month": int(visits["registrations_month"]),
+        },
         "traffic": {
             "pageviews_today": int(traffic["pageviews_today"]),
             "uniques_today": int(traffic["uniques_today"]),
@@ -981,12 +1068,33 @@ def traffic_series(
     end_ts: datetime,
     bucket: str,
 ):
+    """Серия по событиям: просмотры, главная страница, входы, регистрации."""
     rows = session.execute(
         text("""
             SELECT date_trunc(:bucket, created_at) AS ts,
-                   COUNT(*) AS pageviews,
-                   COUNT(DISTINCT visitor_hash) AS unique_visitors,
-                   COUNT(DISTINCT user_id) AS logged_in_users
+                   COUNT(*) FILTER (
+                       WHERE event_type = 'pageview'
+                         AND COALESCE(path, '') NOT LIKE '/admin%'
+                   ) AS pageviews,
+                   COUNT(DISTINCT visitor_hash) FILTER (
+                       WHERE event_type = 'pageview'
+                         AND COALESCE(path, '') NOT LIKE '/admin%'
+                   ) AS unique_visitors,
+                   COUNT(DISTINCT user_id) FILTER (
+                       WHERE event_type = 'pageview'
+                         AND user_id IS NOT NULL
+                         AND COALESCE(path, '') NOT LIKE '/admin%'
+                   ) AS logged_in_users,
+                   COUNT(*) FILTER (
+                       WHERE event_type = 'pageview' AND path = '/'
+                   ) AS landing_pageviews,
+                   COUNT(DISTINCT visitor_hash) FILTER (
+                       WHERE event_type = 'pageview' AND path = '/'
+                   ) AS landing_uniques,
+                   COUNT(*) FILTER (WHERE event_type = 'login') AS logins,
+                   COUNT(DISTINCT user_id)
+                       FILTER (WHERE event_type = 'login') AS unique_logins,
+                   COUNT(*) FILTER (WHERE event_type = 'register') AS registrations
             FROM migration_temp.traffic_events
             WHERE created_at >= :start_ts
               AND created_at < :end_ts
@@ -1001,6 +1109,150 @@ def traffic_series(
             "pageviews": int(row["pageviews"]),
             "unique_visitors": int(row["unique_visitors"]),
             "logged_in_users": int(row["logged_in_users"]),
+            "landing_pageviews": int(row["landing_pageviews"]),
+            "landing_uniques": int(row["landing_uniques"]),
+            "logins": int(row["logins"]),
+            "unique_logins": int(row["unique_logins"]),
+            "registrations": int(row["registrations"]),
+        }
+        for row in rows
+    ]
+
+
+def traffic_totals(
+    session: Session,
+    *,
+    start_ts: datetime,
+    end_ts: datetime,
+) -> dict:
+    """Итоги за период (уникальные нельзя суммировать по корзинам)."""
+    row = session.execute(
+        text("""
+            SELECT
+                COUNT(*) FILTER (
+                    WHERE event_type = 'pageview'
+                      AND COALESCE(path, '') NOT LIKE '/admin%'
+                ) AS pageviews,
+                COUNT(DISTINCT visitor_hash) FILTER (
+                    WHERE event_type = 'pageview'
+                      AND COALESCE(path, '') NOT LIKE '/admin%'
+                ) AS unique_visitors,
+                COUNT(DISTINCT user_id) FILTER (
+                    WHERE event_type = 'pageview'
+                      AND user_id IS NOT NULL
+                      AND COALESCE(path, '') NOT LIKE '/admin%'
+                ) AS logged_in_users,
+                COUNT(*) FILTER (
+                    WHERE event_type = 'pageview' AND path = '/'
+                ) AS landing_pageviews,
+                COUNT(DISTINCT visitor_hash) FILTER (
+                    WHERE event_type = 'pageview' AND path = '/'
+                ) AS landing_uniques,
+                COUNT(*) FILTER (WHERE event_type = 'login') AS logins,
+                COUNT(DISTINCT user_id)
+                    FILTER (WHERE event_type = 'login') AS unique_logins,
+                COUNT(*) FILTER (WHERE event_type = 'register') AS registrations
+            FROM migration_temp.traffic_events
+            WHERE created_at >= :start_ts
+              AND created_at < :end_ts
+        """),
+        {"start_ts": start_ts, "end_ts": end_ts},
+    ).mappings().one()
+    return {
+        "pageviews": int(row["pageviews"]),
+        "unique_visitors": int(row["unique_visitors"]),
+        "logged_in_users": int(row["logged_in_users"]),
+        "landing_pageviews": int(row["landing_pageviews"]),
+        "landing_uniques": int(row["landing_uniques"]),
+        "logins": int(row["logins"]),
+        "unique_logins": int(row["unique_logins"]),
+        "registrations": int(row["registrations"]),
+    }
+
+
+def new_visitors_count(
+    session: Session,
+    *,
+    start_ts: datetime,
+    end_ts: datetime,
+) -> int:
+    """Посетители, чей ПЕРВЫЙ визит пришёлся на выбранный период."""
+    return int(
+        session.execute(
+            text("""
+                SELECT COUNT(*)
+                FROM (
+                    SELECT visitor_hash
+                    FROM migration_temp.traffic_events
+                    WHERE visitor_hash IS NOT NULL
+                    GROUP BY visitor_hash
+                    HAVING MIN(created_at) >= :start_ts
+                       AND MIN(created_at) < :end_ts
+                ) AS first_time_visitors
+            """),
+            {"start_ts": start_ts, "end_ts": end_ts},
+        ).scalar_one()
+    )
+
+
+def new_landing_visitors_count(
+    session: Session,
+    *,
+    start_ts: datetime,
+    end_ts: datetime,
+) -> int:
+    """Посетители, чей первый визит был именно на главную и попал в период."""
+    return int(
+        session.execute(
+            text("""
+                SELECT COUNT(*)
+                FROM (
+                    SELECT visitor_hash
+                    FROM migration_temp.traffic_events
+                    WHERE visitor_hash IS NOT NULL
+                      AND event_type = 'pageview'
+                    GROUP BY visitor_hash
+                    HAVING MIN(created_at) >= :start_ts
+                       AND MIN(created_at) < :end_ts
+                       AND (
+                           ARRAY_AGG(path ORDER BY created_at ASC, id ASC)
+                       )[1] = '/'
+                ) AS first_time_landing_visitors
+            """),
+            {"start_ts": start_ts, "end_ts": end_ts},
+        ).scalar_one()
+    )
+
+
+def top_paths(
+    session: Session,
+    *,
+    start_ts: datetime,
+    end_ts: datetime,
+    limit: int = 10,
+):
+    """Страницы за период: просмотры и уникальные посетители."""
+    rows = session.execute(
+        text("""
+            SELECT COALESCE(NULLIF(path, ''), '/') AS path,
+                   COUNT(*) AS pageviews,
+                   COUNT(DISTINCT visitor_hash) AS unique_visitors
+            FROM migration_temp.traffic_events
+            WHERE event_type = 'pageview'
+              AND COALESCE(path, '') NOT LIKE '/admin%'
+              AND created_at >= :start_ts
+              AND created_at < :end_ts
+            GROUP BY path
+            ORDER BY pageviews DESC
+            LIMIT :limit
+        """),
+        {"start_ts": start_ts, "end_ts": end_ts, "limit": limit},
+    ).mappings().all()
+    return [
+        {
+            "path": row["path"],
+            "pageviews": int(row["pageviews"]),
+            "unique_visitors": int(row["unique_visitors"]),
         }
         for row in rows
     ]

@@ -30,7 +30,14 @@ from backend.admin.service import (
     _order_is_paid,
 )
 from backend.analytics.schemas import TrackEventRequest
-from backend.analytics.service import hash_visitor
+from backend.analytics.service import (
+    LOGIN_PASSWORD,
+    LOGIN_TELEGRAM,
+    LOGIN_VK,
+    REGISTER_PASSWORD,
+    hash_visitor,
+    record_auth_event,
+)
 
 
 class PeriodResolutionTests(unittest.TestCase):
@@ -188,6 +195,35 @@ class OrderStatusGuardTests(unittest.TestCase):
     def test_legacy_paid_status_is_paid(self):
         order = {"payment_attempt_id": None, "status": "Готово"}
         self.assertTrue(_order_is_paid(order))
+
+
+class _CapturingSession:
+    """Сессия-заглушка: сохраняет параметры последнего INSERT."""
+
+    def __init__(self):
+        self.params = None
+
+    def execute(self, _statement, params):
+        self.params = params
+
+
+class AuthEventTests(unittest.TestCase):
+    """События входа/регистрации пишет backend, без visitor-хеша."""
+
+    def test_login_event_has_no_visitor_hash(self):
+        session = _CapturingSession()
+        record_auth_event(
+            session, user_id=42, event_type="login", source=LOGIN_PASSWORD
+        )
+        self.assertIsNone(session.params["visitor_hash"])
+        self.assertEqual(session.params["user_id"], 42)
+        self.assertEqual(session.params["event_type"], "login")
+        self.assertEqual(session.params["path"], "/login/password")
+
+    def test_sources_are_distinct(self):
+        self.assertEqual(
+            len({LOGIN_PASSWORD, LOGIN_TELEGRAM, LOGIN_VK, REGISTER_PASSWORD}), 4
+        )
 
 
 class MarkupFallbackTests(unittest.TestCase):

@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
+from backend.analytics.service import LOGIN_VK, REGISTER_VK, record_auth_event
 from backend.auth.dependencies import get_current_user
 from backend.auth.repository import touch_user_last_seen
 from backend.auth.schemas import VkLoginRequest
@@ -55,6 +56,19 @@ def vk_login(data: VkLoginRequest, session: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Аккаунт заблокирован")
 
     touch_user_last_seen(session, user["id"])
+    record_auth_event(
+        session,
+        user_id=user["id"],
+        event_type="login",
+        source=LOGIN_VK,
+    )
+    if created:
+        record_auth_event(
+            session,
+            user_id=user["id"],
+            event_type="register",
+            source=REGISTER_VK,
+        )
     session.commit()
 
     return {

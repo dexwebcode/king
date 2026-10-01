@@ -5,6 +5,11 @@
 from sqlalchemy.exc import IntegrityError
 
 # ЛОКАЛЬНЫЕ ИПОРТЫ
+from backend.analytics.service import (
+    LOGIN_PASSWORD,
+    REGISTER_PASSWORD,
+    record_auth_event,
+)
 from backend.core.database import SessionLocal
 from .repository import (
     create_user,
@@ -58,6 +63,12 @@ def login_user(
         touch_user_last_seen(session, user["id"])
         if password_needs_rehash(user["password"]):
             update_user_password(session, user["id"], hash_password(password))
+        record_auth_event(
+            session,
+            user_id=user["id"],
+            event_type="login",
+            source=LOGIN_PASSWORD,
+        )
         session.commit()
 
         token = create_access_token(user["id"], user.get("token_version", 0))
@@ -101,6 +112,13 @@ def register_user(
                 email=email,
                 password=password_hash,
             )
+            if user is not None:
+                record_auth_event(
+                    session,
+                    user_id=user["id"],
+                    event_type="register",
+                    source=REGISTER_PASSWORD,
+                )
             session.commit()
 
         except IntegrityError as error:

@@ -8,6 +8,11 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from backend.analytics.service import (
+    LOGIN_TELEGRAM,
+    REGISTER_TELEGRAM,
+    record_auth_event,
+)
 from backend.auth.dependencies import get_current_user
 from backend.auth.repository import get_user_by_id, touch_user_last_seen
 from backend.auth.schemas import TelegramStartRequest
@@ -174,6 +179,19 @@ def telegram_guest_status(
         )
 
     touch_user_last_seen(session, user["id"])
+    record_auth_event(
+        session,
+        user_id=user["id"],
+        event_type="login",
+        source=LOGIN_TELEGRAM,
+    )
+    if created:
+        record_auth_event(
+            session,
+            user_id=user["id"],
+            event_type="register",
+            source=REGISTER_TELEGRAM,
+        )
     session.commit()
 
     if created:
