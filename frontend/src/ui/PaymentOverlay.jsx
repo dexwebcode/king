@@ -235,6 +235,11 @@ function PaymentWidget({ attemptId, purpose = "order", onClose, notify }) {
 
     /* Клик ведёт на страницу оплаты (уже открытую вкладку переиспользуем). */
     function openPayment() {
+        /* Уведомление тащили мышью — это не клик, оплату не открываем. */
+        if (dragged.current) {
+            dragged.current = false;
+            return;
+        }
         const url = payment?.confirmation_url || storedCheckoutUrl();
         if (url) {
             const win = window.open(url, CHECKOUT_WINDOW_NAME);
@@ -248,8 +253,87 @@ function PaymentWidget({ attemptId, purpose = "order", onClose, notify }) {
 
     const confirming = phase === "dispatching";
 
+    /* Уведомление можно утащить в любое место страницы: зажали кнопку мыши —
+       оно едет за курсором. Пока движение меньше порога, это обычный клик. */
+    const widgetRef = useRef(null);
+    const dragState = useRef(null);
+    const dragged = useRef(false);
+    const [position, setPosition] = useState(null);
+    const [isDragging, setIsDragging] = useState(false);
+
+    const DRAG_THRESHOLD = 4;
+    const VIEWPORT_MARGIN = 8;
+
+    function clampToViewport(left, top, rect) {
+        const maxLeft = Math.max(VIEWPORT_MARGIN, window.innerWidth - rect.width - VIEWPORT_MARGIN);
+        const maxTop = Math.max(VIEWPORT_MARGIN, window.innerHeight - rect.height - VIEWPORT_MARGIN);
+        return {
+            left: Math.min(Math.max(left, VIEWPORT_MARGIN), maxLeft),
+            top: Math.min(Math.max(top, VIEWPORT_MARGIN), maxTop),
+            width: rect.width,
+        };
+    }
+
+    /* Движение и отпускание слушаем на окне. Захват указателя (setPointerCapture)
+       не используем: он переадресует click на контейнер, и обычный клик по
+       уведомлению перестаёт открывать оплату. */
+    useEffect(() => {
+        function handleDragMove(event) {
+            const state = dragState.current;
+            if (!state || state.pointerId !== event.pointerId) return;
+
+            const dx = event.clientX - state.startX;
+            const dy = event.clientY - state.startY;
+            if (!dragged.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+
+            dragged.current = true;
+            setPosition(clampToViewport(state.originLeft + dx, state.originTop + dy, state.rect));
+        }
+
+        function handleDragEnd(event) {
+            const state = dragState.current;
+            if (!state || state.pointerId !== event.pointerId) return;
+
+            dragState.current = null;
+            setIsDragging(false);
+        }
+
+        window.addEventListener("pointermove", handleDragMove);
+        window.addEventListener("pointerup", handleDragEnd);
+        window.addEventListener("pointercancel", handleDragEnd);
+        return () => {
+            window.removeEventListener("pointermove", handleDragMove);
+            window.removeEventListener("pointerup", handleDragEnd);
+            window.removeEventListener("pointercancel", handleDragEnd);
+        };
+    }, []);
+
+    function handleDragStart(event) {
+        /* Тянем только левой кнопкой. */
+        if (event.button !== 0) return;
+        const rect = widgetRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        dragged.current = false;
+        dragState.current = {
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            originLeft: rect.left,
+            originTop: rect.top,
+            rect,
+        };
+        setIsDragging(true);
+    }
+
     return (
-        <div className="payment-widget" role="status">
+        <div
+            ref={widgetRef}
+            className={"payment-widget" + (isDragging ? " is-dragging" : "")}
+            role="status"
+            style={position ? { left: `${position.left}px`, top: `${position.top}px`, right: "auto", width: `${position.width}px` } : undefined}
+            onPointerDown={handleDragStart}
+        >
             <button className="payment-widget__main" type="button" onClick={openPayment}>
                 <span className="payment-widget__eyebrow">
                     {confirming ? t("Оплата подтверждена") : t("Активный платёж")}

@@ -103,7 +103,6 @@ export default function App() {
     if (!authChecked) {
         return (
             <div className="boot-loader" role="status" aria-busy="true">
-                <div className="boot-loader__bar"></div>
                 <div className="boot-loader__spinner"></div>
                 <p className="boot-loader__text">Загрузка…</p>
             </div>

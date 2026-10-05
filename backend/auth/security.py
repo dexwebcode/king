@@ -9,7 +9,7 @@ import hashlib
 import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
-from jose import JWTError, jwt
+import jwt
 
 # ЛОКАЛЬНЫЕ ИМПОРТЫ
 from backend.core.config import (
@@ -125,5 +125,5 @@ def decode_access_token(token: str) -> tuple[int, int] | None:
         except (TypeError, ValueError):
             return None
 
-    except (JWTError, ValueError):
+    except (jwt.PyJWTError, ValueError):
         return None

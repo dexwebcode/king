@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useLayoutEffect, useState } from "react";
+import { useDeferredValue, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../../ui/i18n";
 
@@ -107,6 +107,10 @@ const serviceTypeNames = {
     podcasts: "Подкасты",
 };
 
+/* Сколько видов услуг показывать в левой панели на одной странице.
+   Остальные доступны переключателем страниц под панелью. */
+const SERVICE_TYPES_PER_PAGE = 10;
+
 /* Иконки видов услуг — для плиток-прямоугольников в фильтре слева. */
 const serviceTypeIcons = {
     followers: subscribeIcon,
@@ -206,12 +210,41 @@ export default function Catalog() {
         return requestedPlatform && requestedPlatform !== "all" ? requestedPlatform : null;
     });
     const [serviceType, setServiceType] = useState("all");
+    /* Страница списка видов услуг в левой панели. */
+    const [serviceTypePage, setServiceTypePage] = useState(1);
     const [account, setAccount] = useState(getCachedAccount);
     const [isAdmin, setIsAdmin] = useState(false);
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
     const [isPlatformMenuOpen, setIsPlatformMenuOpen] = useState(false);
     const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
     const deferredSearch = useDeferredValue(search.trim().toLowerCase());
+    const controlsRef = useRef(null);
+
+    /* Высота шапки каталога зависит от ширины окна (соцсети то в строку, то
+       в выпадающий список), а левая колонка должна стоять ровно под ней.
+       Меряем её и отдаём в CSS переменной: с жёстким числом панель при
+       прокрутке поднималась вверх на разницу высот. */
+    useEffect(() => {
+        const node = controlsRef.current;
+        if (!node) return undefined;
+
+        const apply = () => {
+            const pinned = document.querySelector(".site-header") || node;
+            document.documentElement.style.setProperty(
+                "--catalog-topbar-h",
+                `${Math.round(pinned.getBoundingClientRect().height)}px`,
+            );
+        };
+
+        apply();
+        const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(apply);
+        observer?.observe(node);
+        window.addEventListener("resize", apply);
+        return () => {
+            observer?.disconnect();
+            window.removeEventListener("resize", apply);
+        };
+    }, []);
 
     useLayoutEffect(() => {
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -280,6 +313,18 @@ export default function Catalog() {
         "all",
         ...new Set(platformItems.map(serviceCategory).filter(Boolean)),
     ];
+    /* В панели — не больше SERVICE_TYPES_PER_PAGE пунктов, остальное на
+       следующих страницах (переключатель под панелью). */
+    const serviceTypePageCount = Math.max(1, Math.ceil(serviceTypes.length / SERVICE_TYPES_PER_PAGE));
+    const visibleServiceTypes = serviceTypes.slice(
+        (serviceTypePage - 1) * SERVICE_TYPES_PER_PAGE,
+        serviceTypePage * SERVICE_TYPES_PER_PAGE,
+    );
+
+    /* Пунктов стало меньше (сменили соцсеть) — страница не должна «висеть» пустой. */
+    useEffect(() => {
+        setServiceTypePage((page) => Math.min(page, serviceTypePageCount));
+    }, [serviceTypePageCount]);
     const filteredItems = items
         .filter((item) => {
             const itemPlatform = String(item.platform || item.soc || "").toLowerCase();
@@ -304,6 +349,7 @@ export default function Catalog() {
     function selectPlatform(nextPlatform) {
         setPlatform((currentPlatform) => currentPlatform === nextPlatform ? null : nextPlatform);
         setServiceType("all");
+        setServiceTypePage(1);
         setIsPlatformMenuOpen(false);
     }
 
@@ -343,7 +389,7 @@ export default function Catalog() {
     }
 
     return (
-        <main className="catalog-page">
+        <main className={`catalog-page ${isAccountMenuOpen ? "is-menu-open" : ""}`.trim()}>
             {hasSession ? (
                 null
             ) : (
@@ -352,7 +398,7 @@ export default function Catalog() {
                     onLogin={openAuthPrompt}
                 />
             )}
-            <section className={`catalog-controls container ${hasSession ? "is-authenticated" : ""}`} aria-label={t("Поиск и выбор социальной сети")}>
+            <section ref={controlsRef} className={`catalog-controls container ${hasSession ? "is-authenticated" : ""}`} aria-label={t("Поиск и выбор социальной сети")}>
                 <div className="catalog-title-row">
                     {hasSession && (
                         <MenuToggle
@@ -445,26 +491,49 @@ export default function Catalog() {
             )}
 
             <section className="catalog-layout container" aria-label={t("Услуги")}>
-                <aside className="catalog-service-filters" aria-label={t("Виды услуг")}>
-                    {serviceTypes.map((itemType) => {
-                        const icon = serviceTypeIcons[itemType];
-                        const label = itemType === "all" ? "Все услуги" : displayServiceType(itemType);
+                <div className="catalog-side">
+                    <aside className="catalog-service-filters" aria-label={t("Виды услуг")}>
+                        {visibleServiceTypes.map((itemType) => {
+                            const icon = serviceTypeIcons[itemType];
+                            const label = itemType === "all" ? "Все услуги" : displayServiceType(itemType);
 
-                        return (
+                            return (
+                                <button
+                                    key={itemType}
+                                    type="button"
+                                    className={serviceType === itemType ? "active" : ""}
+                                    onClick={() => selectServiceType(itemType)}
+                                >
+                                    <span className="catalog-service-icon">
+                                        {icon ? <img src={icon} alt="" /> : <i>{t(label.slice(0, 1))}</i>}
+                                    </span>
+                                    <span className="catalog-service-label">{t(label)}</span>
+                                </button>
+                            );
+                        })}
+                    </aside>
+                    {serviceTypePageCount > 1 && (
+                        <div className="catalog-service-pager" role="group" aria-label={t("Страницы списка услуг")}>
                             <button
-                                key={itemType}
                                 type="button"
-                                className={serviceType === itemType ? "active" : ""}
-                                onClick={() => selectServiceType(itemType)}
+                                aria-label={t("Предыдущая страница")}
+                                disabled={serviceTypePage === 1}
+                                onClick={() => setServiceTypePage((page) => Math.max(1, page - 1))}
                             >
-                                <span className="catalog-service-icon">
-                                    {icon ? <img src={icon} alt="" /> : <i>{t(label.slice(0, 1))}</i>}
-                                </span>
-                                <span className="catalog-service-label">{t(label)}</span>
+                                ‹
                             </button>
-                        );
-                    })}
-                </aside>
+                            <span>{serviceTypePage} / {serviceTypePageCount}</span>
+                            <button
+                                type="button"
+                                aria-label={t("Следующая страница")}
+                                disabled={serviceTypePage === serviceTypePageCount}
+                                onClick={() => setServiceTypePage((page) => Math.min(serviceTypePageCount, page + 1))}
+                            >
+                                ›
+                            </button>
+                        </div>
+                    )}
+                </div>
                 <div className="catalog-content">
                     {status === "loading" && <p className="catalog-state">{t("Загружаем актуальные цены...")}</p>}
                     {status === "error" && <p className="catalog-state catalog-state--error">{t("Не удалось загрузить каталог. Попробуйте обновить страницу.")}</p>}

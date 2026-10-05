@@ -64,13 +64,9 @@
     justify-content: safe center;
     gap: 10px;
     overflow-x: auto;
-    padding: 8px;
     scrollbar-width: none;
-    /* Тёмный фон панели: сам фон размывает родительская панель каталога,
-       поэтому вложенный backdrop-filter не нужен (он давал двойное размытие). */
-    border-radius: 18px;
-    background: rgba(10, 11, 13, .5);
-    border: 1px solid rgba(255, 255, 255, .08);
+    /* Внешняя панель убрана: ни фона, ни рамки, ни отступов — остаются
+       только сами иконки соцсетей. */
 }
 
 .catalog-socials::-webkit-scrollbar {
@@ -86,21 +82,20 @@
     height: 52px;
     flex: 0 0 52px;
     place-items: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Обводка у каждой иконки убрана — остаётся только общая рамка панели. */
+    border: 0;
     border-radius: 15px;
     background: rgba(255, 255, 255, 0.035);
     color: #d6d7d9;
     cursor: pointer;
-    transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    transition: transform 180ms ease, background 180ms ease;
 }
 
 .catalog-socials button:hover {
     transform: translateY(-2px);
-    border-color: rgba(255, 209, 90, 0.56);
 }
 
 .catalog-socials button.active {
-    border-color: var(--gold);
     background: rgba(255, 209, 90, 0.14);
     color: #fff1bd;
 }
@@ -165,9 +160,13 @@
     width: 100%;
     margin-top: 0;
     margin-inline: 0;
-    /* Боковые отступы равны отступу контейнера страницы. */
-    padding-inline: calc((100% - min(var(--kp-page-width), 100% - 32px)) / 2);
-    padding-bottom: 16px;
+    /* Логотип и название раздела стоят там же, где начинается левая секция
+       со списком услуг: тот же отступ, что у .catalog-layout, плюс его
+       собственный внутренний отступ. */
+    padding-inline: calc((100% - min(94%, 100% - 32px)) / 2 + clamp(16px, 2vw, 26px));
+    /* Полоса компактная: по 15px сверху и снизу от строки. */
+    padding-top: 15px;
+    padding-bottom: 15px;
     /* Как фон секции авторизации на главной: почти прозрачный фон + размытие. */
     background: rgba(48, 48, 48, .063);
     -webkit-backdrop-filter: blur(25px);
@@ -217,7 +216,12 @@
     /* Заголовок — в той же строке, но в своей колонке слева. */
     grid-column: 1;
     grid-row: 1;
-    align-self: center;
+    /* Строка с логотипом и названием стоит сверху и всегда одной высоты —
+       той же, что строка шапки в остальных разделах. Тогда при переходе
+       между разделами логотип и название не смещаются, даже если полоса
+       каталога стала выше из-за соцсетей и поиска. */
+    align-self: start;
+    height: 52px;
     position: relative;
     display: flex;
     align-items: center;
@@ -229,10 +233,16 @@
     /* Название раздела остаётся над затемнением и не размывается. */
     position: relative;
     z-index: 1102;
+    margin: 0;
     color: #f5f5f2;
     font-size: var(--catalog-title-size);
     font-weight: 800;
     letter-spacing: -.045em;
+    /* Как у названия в остальных разделах — иначе строка встаёт на 4px выше. */
+    line-height: 1.2;
+    /* Название всегда в одну строку: иначе на узком окне оно переносится
+       и уезжает вверх относительно логотипа. */
+    white-space: nowrap;
 }
 
 /* Кнопка каталога берёт размер из общей переменной и по селектору
@@ -843,17 +853,78 @@
     min-width: 0;
 }
 
-.catalog-service-filters {
+/* Левая колонка каталога: панель видов услуг и переключатель страниц под ней. */
+.catalog-side {
     position: sticky;
-    top: 22px;
+    /* Колонка стоит на месте при прокрутке — листается только правая часть
+       с услугами. Отступ = высота липкой шапки каталога (её меряет JS и
+       кладёт в --catalog-topbar-h) плюс верхний padding .catalog-layout.
+       Так панель не сдвигается вверх при прокрутке. */
+    top: calc(var(--catalog-topbar-h, 97px) + clamp(20px, 2.5vw, 30px));
+    align-self: start;
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+}
+
+.catalog-service-filters {
     display: grid;
     /* Пункты стоят плотнее друг к другу. */
     gap: 2px;
+    /* Пункты всегда одной высоты: свободное место от min-height остаётся
+       снизу, а не растягивает кнопки на последней странице. */
+    align-content: start;
     padding: 14px 12px;
     /* Тот же задний прямоугольник, что у карточек входа в личном кабинете. */
     border: 1px solid transparent;
     border-radius: var(--kp-radius-md);
     background: rgba(255, 255, 255, .018);
+    /* Панель всегда держит высоту полной страницы (10 пунктов по 52px + зазоры
+       + отступы + рамка), поэтому переключатель под ней не подпрыгивает,
+       когда на последней странице пунктов меньше. */
+    min-height: calc(10 * 52px + 9 * 2px + 28px + 2px);
+}
+
+/* Переключение страниц списка видов услуг — отдельно, под панелью. */
+.catalog-service-pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 4px;
+}
+
+.catalog-service-pager button {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .035);
+    color: #d6d7d9;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.catalog-service-pager button:hover:not(:disabled) {
+    border-color: rgba(255, 209, 90, .56);
+    background: rgba(255, 209, 90, .12);
+    color: #fff1bd;
+}
+
+.catalog-service-pager button:disabled {
+    opacity: .38;
+    cursor: default;
+}
+
+.catalog-service-pager span {
+    color: #96989e;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
 }
 
 .catalog-service-filters p {
@@ -907,6 +978,17 @@
 .catalog-service-label {
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+/* В один столбец (как на десктопе) все пункты одинаковой высоты: длинное
+   название обрезается многоточием, а не переносится на вторую строку.
+   На узких экранах пункты идут в несколько колонок и там перенос уместен. */
+@media (min-width: 701px) {
+    .catalog-service-label {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 }
 
 .catalog-service-filters button:hover {
@@ -1269,8 +1351,13 @@
         padding-top: 18px;
     }
 
-    .catalog-service-filters {
+    .catalog-side {
         position: static;
+    }
+
+    .catalog-service-filters {
+        /* На узких экранах пункты идут в несколько колонок — высота по содержимому. */
+        min-height: 0;
         grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
     }
 }

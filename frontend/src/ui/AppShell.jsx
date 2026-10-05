@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 
 import Header from "../pages/Landing/components/Header/Header";
@@ -78,10 +79,12 @@ export function AppShell({
     }
 
     return (
-        <div className={`kp-app-shell ${token ? "is-authenticated" : ""}`}>
+        <div className={`kp-app-shell ${token ? "is-authenticated" : ""} ${isMenuOpen ? "is-menu-open" : ""}`.trim()}>
             {!token && (
                 <InternalHeader menuOpen={isMenuOpen} onLogin={onLogin} />
             )}
+            {/* Полоса раздела — та же, что строка каталога: логотип, название,
+                те же размеры и отступы. */}
             <header className="kp-section-bar">
                 {token && (
                     <MenuToggle
@@ -103,7 +106,8 @@ export function AppShell({
                 />
             </header>
             <main className={`kp-page ${contentClassName}`}>{children}</main>
-            <Footer />
+            {/* У вошедшего подвала нет нигде, кроме главной: там он свой. */}
+            {!token && <Footer />}
         </div>
     );
 }
@@ -208,7 +212,13 @@ export function AccountMenu({ open, onClose, active, account, isAdmin = false, o
 
     return (
         <>
-            <button className={`kp-menu-backdrop ${open ? "is-open" : ""}`} type="button" aria-label={t("Закрыть меню аккаунта")} onClick={onClose} />
+            {/* Затемнение вынесено в портал: шапка раздела из-за backdrop-filter
+                становится containing block для position: fixed, и оверлей
+                внутри неё накрывал только саму шапку вместо всей страницы. */}
+            {createPortal(
+                <button className={`kp-menu-backdrop ${open ? "is-open" : ""}`} type="button" aria-label={t("Закрыть меню аккаунта")} onClick={onClose} />,
+                document.body,
+            )}
             <aside
                 className={`kp-side-menu${phase === "open" ? " is-open" : ""}${phase === "starting" ? " is-starting" : ""}`}
                 aria-label={t("Меню аккаунта")}
