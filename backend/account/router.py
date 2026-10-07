@@ -12,6 +12,7 @@ from .service import (
     AccountService,
     CurrentPasswordError,
     EmailAlreadyUsedError,
+    EmailNotSetError,
     InvalidProviderError,
     LastLoginMethodError,
     LoginAlreadyUsedError,
@@ -37,6 +38,19 @@ def get_account_endpoint(current_user: dict = Depends(get_current_user)):
         ) from error
 
 
+@router.get("/referrals")
+def referrals_endpoint(current_user: dict = Depends(get_current_user)):
+    """Число приглашённых пользователей и накопленное вознаграждение."""
+    try:
+        return AccountService.get_referrals(current_user["id"])
+    except SQLAlchemyError as error:
+        logger.exception("Referrals read failed user_id=%s", current_user["id"])
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=_UNAVAILABLE_DETAIL,
+        ) from error
+
+
 @router.post("/email", status_code=status.HTTP_201_CREATED)
 def add_email_endpoint(
     data: AddEmailRequest,
@@ -48,6 +62,24 @@ def add_email_endpoint(
         raise HTTPException(status_code=409, detail=str(error))
     except SQLAlchemyError as error:
         logger.exception("Account email update failed user_id=%s", current_user["id"])
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=_UNAVAILABLE_DETAIL,
+        ) from error
+    return {"success": True, **result}
+
+
+@router.delete("/email")
+def remove_email_endpoint(current_user: dict = Depends(get_current_user)):
+    """Отключение Email от аккаунта."""
+    try:
+        result = AccountService.remove_email(current_user["id"])
+    except EmailNotSetError as error:
+        raise HTTPException(status_code=404, detail=str(error))
+    except LastLoginMethodError as error:
+        raise HTTPException(status_code=409, detail=str(error))
+    except SQLAlchemyError as error:
+        logger.exception("Account email removal failed user_id=%s", current_user["id"])
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=_UNAVAILABLE_DETAIL,

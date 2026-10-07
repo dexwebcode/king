@@ -23,6 +23,10 @@ class EmailAlreadyUsedError(Exception):
     pass
 
 
+class EmailNotSetError(Exception):
+    pass
+
+
 class LoginAlreadyUsedError(Exception):
     pass
 
@@ -92,6 +96,19 @@ class AccountService:
                 },
             },
         }
+
+    @staticmethod
+    def get_referrals(user_id: int) -> dict:
+        """Число приглашённых пользователей и накопленное вознаграждение."""
+        session = SessionLocal()
+        try:
+            row = repository.get_user_referrals(session, user_id)
+        finally:
+            session.close()
+
+        count = int(row["count"] or 0) if row else 0
+        amount = row["amount"] if row else 0
+        return {"count": count, "amount": format(amount or 0, ".2f")}
 
     @staticmethod
     def add_email(user_id: int, email: str) -> dict:
@@ -200,6 +217,33 @@ class AccountService:
             session.close()
 
         return {"verified": True}
+
+    @staticmethod
+    def remove_email(user_id: int) -> dict:
+        """Отключение Email: почта перестаёт быть способом входа и связи с аккаунтом."""
+        session = SessionLocal()
+        try:
+            account = repository.get_user_account(session, user_id)
+            if account is None:
+                raise RuntimeError("User not found")
+
+            if not account["mail"]:
+                raise EmailNotSetError("Email не подключён")
+
+            socials = get_user_social_accounts(session, user_id)
+            if _count_login_methods(account, socials) == 0:
+                raise LastLoginMethodError(
+                    "Нельзя отключить единственный доступный способ входа. "
+                    "Сначала подключите другой способ авторизации."
+                )
+
+            repository.set_user_email(session, user_id, None)
+            session.commit()
+        finally:
+            session.close()
+
+        logger.info("Account email removed user_id=%s", user_id)
+        return {"email": None, "email_verified": False}
 
     @staticmethod
     def disconnect_provider(user_id: int, provider: str) -> dict:

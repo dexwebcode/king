@@ -46,6 +46,20 @@ def set_user_email(session: Session, user_id: int, email: str):
     ).mappings().first()
 
 
+def get_user_referrals(session: Session, user_id: int):
+    """Приглашённые пользователи и накопленное по ним вознаграждение."""
+    return session.execute(
+        text("""
+            SELECT
+                COUNT(*) AS count,
+                COALESCE(SUM(amount), 0) AS amount
+            FROM migration_temp.referals
+            WHERE refer_id = :user_id
+        """),
+        {"user_id": user_id},
+    ).mappings().first()
+
+
 def get_user_for_credentials(session: Session, user_id: int):
     """Только для проверки пароля: хеш никогда не покидает backend."""
     return session.execute(

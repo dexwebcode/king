@@ -3,6 +3,9 @@ import { sendRequest } from "../Landing/components/Hero/auth/authApi";
 /* Чтение аккаунта идёт через общий кэш (ui/dataCache.js), здесь — только изменения. */
 export const accountApi = {
     addEmail: (email) => sendRequest("/api/account/email", "POST", { email }, true),
+    removeEmail: () => sendRequest("/api/account/email", "DELETE", null, true),
+    referrals: () => sendRequest("/api/account/referrals", "GET", null, true),
+    myOrders: () => sendRequest("/api/my-orders", "GET", null, true),
     setCredentials: (payload) =>
         sendRequest("/api/account/credentials", "POST", payload, true),
     verifyPassword: (currentPassword) =>
