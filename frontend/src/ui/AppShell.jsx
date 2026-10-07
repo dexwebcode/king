@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Header from "../pages/Landing/components/Header/Header";
 import Footer from "../pages/Landing/components/Footer/Footer";
 import { logoutUser } from "../pages/Landing/components/Hero/auth/authApi";
+import { useIsAdmin } from "./adminStatus";
 import { getAccount, getCachedAccount, refreshAccount, subscribeAccount } from "./dataCache";
 import { formatMoney } from "./catalogMeta";
 import { useLanguage } from "./i18n";
@@ -12,19 +13,17 @@ import { formatUsd, useUsdRate } from "./usdRate";
 import logo from "../assets/logo.png";
 
 
-const API_URL = import.meta.env.VITE_API_URL || "";
-
-/* Разделы меню аккаунта. Выводятся отсортированными по длине названия —
-   от самого длинного к самому короткому (см. AccountMenu).
-   Исключение для админа: «Админ-панель» идёт первой строкой, а «Личный
-   кабинет» ему не показывается — это раздел обычного пользователя. */
+/* Разделы меню аккаунта. Обычному пользователю они выводятся по длине
+   названия — от самого длинного к самому короткому (см. AccountMenu).
+   У админа меню другое: остаётся только «Админ-панель», то есть Dashboard
+   админ-панели, — витрина и клиентские разделы ему не показываются. */
 const MENU_ITEMS = [
     { key: "admin", label: "Админ-панель", to: "/admin", adminOnly: true },
     { key: "account", label: "Личный кабинет", to: "/account", hideForAdmin: true },
-    { key: "catalog", label: "Каталог услуг", to: "/catalog" },
-    { key: "orders", label: "Заказы", section: "orders" },
-    { key: "support", label: "Поддержка", to: "/support" },
-    { key: "reviews", label: "Оставить отзыв", to: "/reviews" },
+    { key: "catalog", label: "Каталог услуг", to: "/catalog", hideForAdmin: true },
+    { key: "orders", label: "Заказы", section: "orders", hideForAdmin: true },
+    { key: "support", label: "Поддержка", to: "/support", hideForAdmin: true },
+    { key: "reviews", label: "Оставить отзыв", to: "/reviews", hideForAdmin: true },
 ];
 
 export function AppShell({
@@ -41,7 +40,9 @@ export function AppShell({
     const navigate = useNavigate();
     const token = localStorage.getItem("token");
     const [account, setAccount] = useState(() => accountProp || getCachedAccount());
-    const [isAdmin, setIsAdmin] = useState(false);
+    /* Права админа берём из общего кэша: /api/admin/me отправляется один раз
+       на токен, а не из каждого компонента. */
+    const isAdmin = useIsAdmin() === true;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     useEffect(() => {
@@ -59,20 +60,6 @@ export function AppShell({
         getAccount().catch(() => { });
         return unsubscribe;
     }, [accountProp, token]);
-
-    useEffect(() => {
-        if (!token) {
-            return undefined;
-        }
-        const controller = new AbortController();
-        const headers = { Authorization: `Bearer ${token}` };
-
-        fetch(`${API_URL}/api/admin/me`, { headers, signal: controller.signal })
-            .then((response) => setIsAdmin(response.ok))
-            .catch(() => setIsAdmin(false));
-
-        return () => controller.abort();
-    }, [token]);
 
     function handleLogout() {
         setIsMenuOpen(false);
@@ -193,20 +180,12 @@ export function AccountMenu({ open, onClose, active, account, isAdmin = false, o
        переход в другой раздел обрывает анимацию. */
     const MENU_CLOSE_MS = 220;
 
-    /* Разделы — от самого длинного названия к самому короткому.
-       У админа «Админ-панель» всегда первая, остальные — по длине. */
+    /* Разделы — от самого длинного названия к самому короткому. У админа
+       после фильтров остаётся только «Админ-панель», порядок ему не важен. */
     const menuItems = MENU_ITEMS
         .filter((item) => !item.adminOnly || isAdmin)
         .filter((item) => !item.hideForAdmin || !isAdmin)
-        .sort((first, second) => {
-            if (isAdmin) {
-                const adminRank = (item) => (item.adminOnly ? 0 : 1);
-                if (adminRank(first) !== adminRank(second)) {
-                    return adminRank(first) - adminRank(second);
-                }
-            }
-            return second.label.length - first.label.length;
-        });
+        .sort((first, second) => second.label.length - first.label.length);
 
     function goToSection(section) {
         onClose();

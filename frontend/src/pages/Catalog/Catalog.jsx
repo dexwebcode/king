@@ -31,13 +31,12 @@ import podcastsIcon from "../../assets/icons/podcasts.svg";
 import HeroRegisterForm from "../Landing/components/Hero/HeroRegisterForm";
 import { AUTH_CHANGED_EVENT, logoutUser } from "../Landing/components/Hero/auth/authApi";
 import { AccountMenu, InternalHeader, MenuToggle } from "../../ui/AppShell";
+import { useIsAdmin } from "../../ui/adminStatus";
 import Footer from "../Landing/components/Footer/Footer";
 import { getAccount, getCachedAccount, getCachedPrices, getPrices, subscribeAccount } from "../../ui/dataCache";
 import CatalogSearch from "./CatalogSearch";
 import "../Landing/Landing.css";
 import "./Catalog.css";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
 
 const platformNames = {
     instagram: "Instagram",
@@ -213,7 +212,8 @@ export default function Catalog() {
     /* Страница списка видов услуг в левой панели. */
     const [serviceTypePage, setServiceTypePage] = useState(1);
     const [account, setAccount] = useState(getCachedAccount);
-    const [isAdmin, setIsAdmin] = useState(false);
+    /* Права админа — из общего кэша: /api/admin/me отправляется один раз на токен. */
+    const isAdmin = useIsAdmin() === true;
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
     const [isPlatformMenuOpen, setIsPlatformMenuOpen] = useState(false);
     const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
@@ -275,8 +275,6 @@ export default function Catalog() {
         }
 
         let active = true;
-        const controller = new AbortController();
-        const headers = { Authorization: `Bearer ${localStorage.getItem("token")}` };
         const unsubscribe = subscribeAccount((nextAccount) => {
             if (active) setAccount(nextAccount);
         });
@@ -284,10 +282,7 @@ export default function Catalog() {
         getAccount()
             .then((data) => { if (active) setAccount(data); })
             .catch(() => { if (active) setAccount(null); });
-        fetch(`${API_URL}/api/admin/me`, { headers, signal: controller.signal })
-            .then((response) => { if (active) setIsAdmin(response.ok); })
-            .catch(() => { if (active) setIsAdmin(false); });
-        return () => { active = false; controller.abort(); unsubscribe(); };
+        return () => { active = false; unsubscribe(); };
     }, [hasSession]);
 
     useEffect(() => {

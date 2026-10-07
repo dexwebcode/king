@@ -12,10 +12,31 @@ import TicketPage from "./pages/Support/TicketPage";
 import AccountPage from "./pages/Account/AccountPage";
 
 import { AUTH_CHANGED_EVENT, isAuth } from "./pages/Landing/components/Hero/auth/authApi";
+import { useIsAdmin } from "./ui/adminStatus";
 import { getAccount, getAccountDetails, getPrices } from "./ui/dataCache";
 import { trackPageView } from "./ui/traffic";
 
 const RETRY_DELAY_MS = 3000;
+
+function BootLoader() {
+    return (
+        <div className="boot-loader" role="status" aria-busy="true">
+            <div className="boot-loader__spinner"></div>
+            <p className="boot-loader__text">Загрузка…</p>
+        </div>
+    );
+}
+
+/* Витрина — не рабочее место админа: его начальный экран — Dashboard
+   админ-панели. Пока права не проверены, ничего не показываем, иначе
+   каталог успеет мелькнуть перед редиректом. */
+function AdminLanding({ children }) {
+    const isAdmin = useIsAdmin();
+
+    if (isAdmin === null) return <BootLoader />;
+    if (isAdmin) return <Navigate to="/admin" replace />;
+    return children;
+}
 
 /* Отправляет событие pageview при каждой смене маршрута.
    Минимальная аналитика: только открытие страницы, без лишних запросов. */
@@ -101,12 +122,7 @@ export default function App() {
     }, [authChecked]);
 
     if (!authChecked) {
-        return (
-            <div className="boot-loader" role="status" aria-busy="true">
-                <div className="boot-loader__spinner"></div>
-                <p className="boot-loader__text">Загрузка…</p>
-            </div>
-        );
+        return <BootLoader />;
     }
 
     return (
@@ -134,9 +150,9 @@ export default function App() {
             <Routes>
             <Route
                 path="/"
-                element={isAuthenticated ? <Navigate to="/catalog" replace /> : <Landing />}
+                element={isAuthenticated ? <AdminLanding><Navigate to="/catalog" replace /></AdminLanding> : <Landing />}
             />
-            <Route path="/catalog" element={<Catalog />} />
+            <Route path="/catalog" element={<AdminLanding><Catalog /></AdminLanding>} />
             <Route path="/reviews" element={<Reviews isAuthenticated={isAuthenticated} />} />
             <Route
                 path="/payment/pending"
