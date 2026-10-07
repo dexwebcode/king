@@ -15,10 +15,12 @@ import logo from "../assets/logo.png";
 const API_URL = import.meta.env.VITE_API_URL || "";
 
 /* Разделы меню аккаунта. Выводятся отсортированными по длине названия —
-   от самого длинного к самому короткому (см. AccountMenu). */
+   от самого длинного к самому короткому (см. AccountMenu).
+   Исключение для админа: «Админ-панель» идёт первой строкой, а «Личный
+   кабинет» ему не показывается — это раздел обычного пользователя. */
 const MENU_ITEMS = [
     { key: "admin", label: "Админ-панель", to: "/admin", adminOnly: true },
-    { key: "account", label: "Личный кабинет", to: "/account" },
+    { key: "account", label: "Личный кабинет", to: "/account", hideForAdmin: true },
     { key: "catalog", label: "Каталог услуг", to: "/catalog" },
     { key: "orders", label: "Заказы", section: "orders" },
     { key: "support", label: "Поддержка", to: "/support" },
@@ -191,10 +193,20 @@ export function AccountMenu({ open, onClose, active, account, isAdmin = false, o
        переход в другой раздел обрывает анимацию. */
     const MENU_CLOSE_MS = 220;
 
-    /* Разделы — от самого длинного названия к самому короткому. */
+    /* Разделы — от самого длинного названия к самому короткому.
+       У админа «Админ-панель» всегда первая, остальные — по длине. */
     const menuItems = MENU_ITEMS
         .filter((item) => !item.adminOnly || isAdmin)
-        .sort((first, second) => second.label.length - first.label.length);
+        .filter((item) => !item.hideForAdmin || !isAdmin)
+        .sort((first, second) => {
+            if (isAdmin) {
+                const adminRank = (item) => (item.adminOnly ? 0 : 1);
+                if (adminRank(first) !== adminRank(second)) {
+                    return adminRank(first) - adminRank(second);
+                }
+            }
+            return second.label.length - first.label.length;
+        });
 
     function goToSection(section) {
         onClose();
