@@ -27,6 +27,8 @@ frontend/node_modules/
 # Local files
 *.local
 
+ToDo.md
+
 # Editors
 .vscode/*
 !.vscode/extensions.json
