@@ -13,8 +13,6 @@ __pycache__/
 .venv/
 venv/
 .node_modules/
-.codex/
-.agents/
 # Environment variables
 .env
 .env.*
@@ -29,4 +27,4 @@ frontend/node_modules/
 # Editors
 .vscode/*
 !.vscode/extensions.json
-.gigacode/
+ToDo.md
