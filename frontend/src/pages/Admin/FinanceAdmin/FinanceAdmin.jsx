@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { adminApi } from "./adminApi";
-import LineChart from "./components/Chart";
-import PeriodPicker, { periodParams } from "./components/PeriodPicker";
-import { formatMoney, formatNumber } from "./format";
-import "./AdminPanel.css";
+import { adminApi } from "../adminApi";
+import LineChart from "../components/Chart/Chart";
+import PeriodPicker, { periodParams } from "../components/PeriodPicker/PeriodPicker";
+import { formatMoney, formatNumber } from "../format";
+import "../AdminApp/AdminApp.css";
 
 export default function FinanceAdmin() {
     const [period, setPeriod] = useState({ period: "30d" });

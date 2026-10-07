@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { adminApi } from "./adminApi";
-import ConfirmModal from "./components/ConfirmModal";
-import { formatDate, formatDateShort, formatMoney, orderStatusTone } from "./format";
-import "./AdminPanel.css";
+import { adminApi } from "../adminApi";
+import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+import { formatDate, formatDateShort, formatMoney, orderStatusTone } from "../format";
+import "../AdminApp/AdminApp.css";
 
 const MANUAL_STATUSES = ["Ожидает отправки", "Отменен", "Требует проверки", "Отклонен поставщиком"];
 

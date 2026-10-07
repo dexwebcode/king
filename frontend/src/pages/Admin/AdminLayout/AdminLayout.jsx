@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 
-import { adminApi } from "./adminApi";
-import logo from "../../assets/logo.png";
+import "./AdminLayout.css";
+
+import { adminApi } from "../adminApi";
+import logo from "../../../assets/logo.png";
 
 const SECTIONS = [
     { key: "dashboard", to: "/admin", label: "Dashboard", end: true },
@@ -113,7 +115,7 @@ export default function AdminLayout({ children }) {
 
     return (
         <div className={`admin-shell ${pinned ? "is-pinned" : ""}`}>
-            {/* Выдвижение меню при наведении — на CSS (см. AdminPanel.css),
+            {/* Выдвижение меню при наведении — на CSS (см. AdminLayout.css),
                 поэтому лишних обработчиков здесь нет. */}
             <aside className="admin-sidebar">
                 <Link className="admin-brand" to="/admin" title="KingPromotion · админ-панель">

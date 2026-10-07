@@ -1,0 +1,65 @@
+/* Модальное окно подтверждения (components/ConfirmModal). */
+
+.admin-modal {
+    position: fixed;
+    z-index: 3000;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+}
+
+.admin-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: rgba(4, 5, 7, 0.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    cursor: default;
+}
+
+.admin-modal-card {
+    position: relative;
+    z-index: 1;
+    width: min(500px, 100%);
+    padding: 26px;
+    border: 1px solid var(--kp-border-strong);
+    border-radius: var(--kp-radius-md);
+    background: linear-gradient(160deg, #232427, #0d0e10);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
+}
+
+.admin-modal-card h2 {
+    margin: 0 0 12px;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+}
+
+.admin-modal-body {
+    margin-bottom: 18px;
+    color: var(--kp-text-secondary);
+    font-size: 13.5px;
+    line-height: 1.6;
+}
+
+.admin-modal-body .kp-field {
+    margin-top: 12px;
+}
+
+.admin-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.kp-button--danger {
+    border-color: #ff7a5c;
+    background: linear-gradient(135deg, #ff7a5c, #e5484d);
+    color: #1c0d0a;
+}
+
+.kp-button--danger:hover {
+    box-shadow: 0 14px 34px rgba(229, 72, 77, 0.22);
+}

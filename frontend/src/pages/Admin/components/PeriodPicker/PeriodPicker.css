@@ -1,0 +1,27 @@
+/* Выбор периода статистики (components/PeriodPicker).
+
+   Вкладки-пилюли .admin-period-tabs — общий примитив, он живёт
+   в AdminApp/AdminApp.css, потому что используется ещё и страницами
+   UsersAdmin / ReviewsAdmin / Dashboard. */
+
+.admin-period {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+}
+
+.admin-period-custom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--kp-text-muted);
+}
+
+.admin-period-custom .kp-field {
+    width: auto;
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 12.5px;
+    color-scheme: dark;
+}

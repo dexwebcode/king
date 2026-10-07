@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { adminApi } from "./adminApi";
-import LineChart from "./components/Chart";
-import PeriodPicker, { periodParams } from "./components/PeriodPicker";
-import { formatNumber } from "./format";
-import "./AdminPanel.css";
+import { adminApi } from "../adminApi";
+import LineChart from "../components/Chart/Chart";
+import PeriodPicker, { periodParams } from "../components/PeriodPicker/PeriodPicker";
+import { formatNumber } from "../format";
+import "../AdminApp/AdminApp.css";
 
 /* Человеческие названия страниц для таблицы «Страницы за период». */
 const PATH_LABELS = {

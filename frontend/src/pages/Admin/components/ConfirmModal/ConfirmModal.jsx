@@ -1,3 +1,5 @@
+import "./ConfirmModal.css";
+
 /* Модальное окно подтверждения опасного действия. */
 
 export default function ConfirmModal({

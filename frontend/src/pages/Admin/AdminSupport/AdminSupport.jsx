@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useLanguage } from "../../ui/i18n";
-import { supportApi } from "../Support/supportApi";
-import { formatDate, STATUS_ORDER, statusMeta } from "../Support/statusMeta";
-import TicketMessages from "../Support/TicketMessages";
-import TicketReplyForm from "../Support/TicketReplyForm";
+import { useLanguage } from "../../../ui/i18n";
+import { supportApi } from "../../Support/supportApi";
+import { formatDate, STATUS_ORDER, statusMeta } from "../../Support/statusMeta";
+import TicketMessages from "../../Support/TicketMessages";
+import TicketReplyForm from "../../Support/TicketReplyForm";
 import "./AdminSupport.css";
-import "./AdminPanel.css";
+import "../AdminApp/AdminApp.css";
 
 const FILTERS = [
   { value: "", label: "Все" },

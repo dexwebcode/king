@@ -1,0 +1,50 @@
+/* Стили SVG-графика линиями (components/Chart). */
+
+.admin-chart {
+    margin: 0;
+}
+
+.admin-chart svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.admin-chart-grid {
+    stroke: rgba(255, 255, 255, 0.07);
+    stroke-width: 1;
+}
+
+.admin-chart-axis {
+    fill: #85878d;
+    font-size: 10px;
+    font-family: inherit;
+}
+
+.admin-chart-empty {
+    padding: 60px 20px;
+    color: var(--kp-text-muted);
+    text-align: center;
+    font-size: 13px;
+}
+
+.admin-chart-legend {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.admin-chart-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--kp-text-muted);
+    font-size: 12px;
+}
+
+.admin-chart-legend-item i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}

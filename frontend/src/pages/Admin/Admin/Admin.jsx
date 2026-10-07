@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { AppShell, EmptyState, PageHeader, Panel, StatusBadge } from "../../ui/AppShell";
-import { useLanguage } from "../../ui/i18n";
-import { formatMoney } from "../../ui/catalogMeta";
+import { AppShell, EmptyState, PageHeader, Panel, StatusBadge } from "../../../ui/AppShell";
+import { useLanguage } from "../../../ui/i18n";
+import { formatMoney } from "../../../ui/catalogMeta";
 import "./Admin.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "";

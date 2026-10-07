@@ -5,7 +5,7 @@ import Landing from "./pages/Landing/Landing";
 import Catalog from "./pages/Catalog/Catalog";
 import Main from "./pages/Main/Main";
 import Payment from "./pages/Payment/Payment";
-import AdminApp from "./pages/Admin/AdminApp";
+import AdminApp from "./pages/Admin/AdminApp/AdminApp";
 import Reviews from "./pages/Reviews/Reviews";
 import SupportPage from "./pages/Support/SupportPage";
 import TicketPage from "./pages/Support/TicketPage";

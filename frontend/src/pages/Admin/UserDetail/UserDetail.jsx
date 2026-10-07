@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { adminApi } from "./adminApi";
-import ConfirmModal from "./components/ConfirmModal";
-import { formatDate, formatMoney } from "./format";
-import "./AdminPanel.css";
+import { adminApi } from "../adminApi";
+import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+import { formatDate, formatMoney } from "../format";
+import "../AdminApp/AdminApp.css";
 
 const PROVIDER_LABELS = { telegram: "Telegram", vk: "VK ID" };
 

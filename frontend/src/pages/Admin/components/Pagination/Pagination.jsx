@@ -1,3 +1,5 @@
+import "./Pagination.css";
+
 /* Серверная пагинация: фронт не загружает десятки тысяч записей. */
 
 export default function Pagination({ page, limit, total, onPage }) {

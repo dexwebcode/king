@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { adminApi } from "./adminApi";
-import ConfirmModal from "./components/ConfirmModal";
-import Pagination from "./components/Pagination";
-import { formatDate } from "./format";
-import "./AdminPanel.css";
+import { adminApi } from "../adminApi";
+import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+import Pagination from "../components/Pagination/Pagination";
+import { formatDate } from "../format";
+import "../AdminApp/AdminApp.css";
 
 const DELETED_FILTERS = [
     { value: "active", label: "Активные" },

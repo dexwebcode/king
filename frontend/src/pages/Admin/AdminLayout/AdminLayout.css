@@ -1,0 +1,493 @@
+/* =====================================================================
+   Каркас админ-панели: оболочка, боковое меню, шапка и контент.
+   Тёмная тема, золотые акценты, выдвижение меню — тот же дизайн-язык,
+   что и в пользовательской части сайта (ui/design-system.css).
+   ===================================================================== */
+
+.admin-shell,
+.admin-boot {
+    min-height: 100dvh;
+    color: var(--kp-text);
+    background:
+        radial-gradient(circle at 15% -10%, rgba(255, 209, 90, 0.09), transparent 32%),
+        var(--kp-bg);
+    font-family: 'Montserrat', sans-serif;
+}
+
+.admin-boot {
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    text-align: center;
+}
+
+.admin-boot p {
+    color: var(--kp-text-muted);
+}
+
+.admin-denied {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: clamp(28px, 5vw, 52px);
+    border: 1px solid var(--kp-border);
+    border-radius: var(--kp-radius-lg);
+    background: var(--kp-panel);
+}
+
+.admin-denied h1 {
+    margin: 0 0 14px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.03em;
+}
+
+.admin-denied p:not(.kp-eyebrow) {
+    margin: 0 0 24px;
+    color: var(--kp-text-muted);
+    line-height: 1.6;
+}
+
+.admin-shell {
+    --admin-rail: 76px;
+    --admin-open: 248px;
+    --admin-slot: 44px;
+    /* Та же кривая, что у выпадающего меню аккаунта на сайте. */
+    --admin-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    display: grid;
+    /* Узкая «рельса» с иконками. При наведении меню выдвигается ПОВЕРХ
+       контента (колонка не меняется), при закреплении — колонка
+       расширяется и контент сдвигается. */
+    grid-template-columns: var(--admin-rail) minmax(0, 1fr);
+    transition: grid-template-columns 0.32s var(--admin-ease);
+}
+
+.admin-shell.is-pinned {
+    grid-template-columns: var(--admin-open) minmax(0, 1fr);
+}
+
+/* --- Боковое меню --- */
+
+.admin-sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    height: 100dvh;
+    width: var(--admin-rail);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    /* Симметричные отступы: иконки всегда стоят ровно по центру рельсы. */
+    padding: 22px 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    background: #0e0f11;
+    overflow-x: hidden;
+    overflow-y: auto;
+    /* Скрытая полоса прокрутки не отнимает ширину и не сдвигает иконки. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    will-change: width;
+    transition:
+        width 0.32s var(--admin-ease),
+        box-shadow 0.32s ease;
+}
+
+.admin-sidebar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+/* Градиентная подложка проявляется вместе с выдвижением — как фон меню
+   аккаунта на сайте. */
+.admin-sidebar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(160deg, #232427, #0d0e10);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.32s ease;
+}
+
+.admin-sidebar > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Меню выдвигается при наведении и остаётся развёрнутым, если закреплено. */
+.admin-shell.is-pinned .admin-sidebar,
+.admin-sidebar:hover {
+    width: var(--admin-open);
+    box-shadow: 26px 0 70px rgba(0, 0, 0, 0.5);
+}
+
+.admin-shell.is-pinned .admin-sidebar::before,
+.admin-sidebar:hover::before {
+    opacity: 1;
+}
+
+/* --- Шапка меню --- */
+
+.admin-brand {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 11px;
+    /* 19px = (76 - 38) / 2 — логотип ровно по центру рельсы. */
+    padding: 6px 0 18px 19px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    color: inherit;
+    text-decoration: none;
+    transition: padding 0.32s var(--admin-ease);
+}
+
+.admin-brand img {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    flex: 0 0 auto;
+}
+
+/* Подписи вынесены из потока: в свёрнутом меню они не занимают место
+   (иконки стоят ровно по центру), а при выдвижении плавно проявляются —
+   и так же плавно гаснут при закрытии. */
+.admin-brand-text {
+    position: absolute;
+    left: 68px;
+    top: 50%;
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+    opacity: 0;
+    transform: translate(-8px, -50%);
+    transition: opacity 0.2s ease, transform 0.26s var(--admin-ease);
+}
+
+.admin-brand-text strong {
+    font-size: 15px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.admin-brand-text small {
+    color: var(--kp-gold);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* --- Пункты меню --- */
+
+.admin-nav {
+    display: grid;
+    gap: 6px;
+}
+
+.admin-nav-link,
+.admin-collapse,
+.admin-site-link {
+    position: relative;
+    overflow: hidden;
+    width: var(--admin-slot);
+    margin-inline: auto;
+    flex: 0 0 auto;
+    transition:
+        background 0.18s ease,
+        color 0.18s ease,
+        width 0.32s var(--admin-ease),
+        padding 0.32s var(--admin-ease);
+}
+
+.admin-nav-link {
+    height: var(--admin-slot);
+    min-height: var(--admin-slot);
+    padding-left: calc((var(--admin-slot) - 19px) / 2);
+    padding-right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    border: 1px solid transparent;
+    border-radius: 13px;
+    color: var(--kp-text-secondary);
+    font-size: 13.5px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.admin-nav-link:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--kp-text);
+}
+
+.admin-nav-link.is-active {
+    background: rgba(255, 209, 90, 0.09);
+    border-color: rgba(255, 209, 90, 0.16);
+    color: var(--kp-gold);
+}
+
+.admin-nav-icon {
+    width: 19px;
+    height: 19px;
+    flex: 0 0 auto;
+}
+
+/* Подпись пункта: абсолютная, поэтому не влияет на положение иконок. */
+.admin-nav-link span,
+.admin-site-link span {
+    position: absolute;
+    top: 50%;
+    left: 59px;
+    opacity: 0;
+    transform: translate(-8px, -50%);
+    transition: opacity 0.2s ease, transform 0.26s var(--admin-ease);
+    white-space: nowrap;
+}
+
+.admin-sidebar-foot {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: grid;
+    gap: 8px;
+}
+
+.admin-collapse,
+.admin-site-link {
+    height: var(--admin-slot);
+    min-height: var(--admin-slot);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    border: 1px solid var(--kp-border);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--kp-text-muted);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Иконка кнопки «На сайт» — 16px, поэтому отступ и подпись свои. */
+.admin-site-link {
+    padding-left: calc((var(--admin-slot) - 16px) / 2);
+}
+
+.admin-site-link span {
+    left: 58px;
+}
+
+.admin-collapse {
+    padding-left: calc((var(--admin-slot) - 10px) / 2);
+}
+
+.admin-collapse:hover,
+.admin-site-link:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--kp-text);
+}
+
+.admin-site-link .admin-nav-icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* --- Развёрнутое меню: наведение мышью или закрепление кнопкой --- */
+
+.admin-shell.is-pinned .admin-brand,
+.admin-sidebar:hover .admin-brand {
+    padding-inline: 20px;
+}
+
+.admin-shell.is-pinned .admin-nav-link,
+.admin-sidebar:hover .admin-nav-link {
+    width: auto;
+    margin-inline: 0;
+    /* 28px ≈ положение иконки в рельсе — она не «прыгает» при выдвижении. */
+    padding-left: 28px;
+    padding-right: 20px;
+}
+
+.admin-shell.is-pinned .admin-site-link,
+.admin-sidebar:hover .admin-site-link {
+    width: auto;
+    margin-inline: 0;
+    padding-left: 30px;
+    padding-right: 20px;
+}
+
+.admin-shell.is-pinned .admin-collapse,
+.admin-sidebar:hover .admin-collapse {
+    width: auto;
+    margin-inline: 0;
+    padding-inline: 20px;
+}
+
+.admin-shell.is-pinned .admin-brand-text,
+.admin-sidebar:hover .admin-brand-text {
+    opacity: 1;
+    transform: translate(0, -50%);
+    transition-delay: 0.06s;
+}
+
+.admin-shell.is-pinned .admin-nav-link span,
+.admin-shell.is-pinned .admin-site-link span,
+.admin-sidebar:hover .admin-nav-link span,
+.admin-sidebar:hover .admin-site-link span {
+    opacity: 1;
+    transform: translate(0, -50%);
+}
+
+/* Каскад: подписи проявляются одна за другой — как пункты меню аккаунта. */
+.admin-shell.is-pinned .admin-nav .admin-nav-link:nth-child(1) span,
+.admin-sidebar:hover .admin-nav .admin-nav-link:nth-child(1) span { transition-delay: 0.05s; }
+.admin-shell.is-pinned .admin-nav .admin-nav-link:nth-child(2) span,
+.admin-sidebar:hover .admin-nav .admin-nav-link:nth-child(2) span { transition-delay: 0.09s; }
+.admin-shell.is-pinned .admin-nav .admin-nav-link:nth-child(3) span,
+.admin-sidebar:hover .admin-nav .admin-nav-link:nth-child(3) span { transition-delay: 0.13s; }
+.admin-shell.is-pinned .admin-nav .admin-nav-link:nth-child(4) span,
+.admin-sidebar:hover .admin-nav .admin-nav-link:nth-child(4) span { transition-delay: 0.17s; }
+.admin-shell.is-pinned .admin-nav .admin-nav-link:nth-child(5) span,
+.admin-sidebar:hover .admin-nav .admin-nav-link:nth-child(5) span { transition-delay: 0.21s; }
+.admin-shell.is-pinned .admin-nav .admin-nav-link:nth-child(6) span,
+.admin-sidebar:hover .admin-nav .admin-nav-link:nth-child(6) span { transition-delay: 0.25s; }
+.admin-shell.is-pinned .admin-nav .admin-nav-link:nth-child(7) span,
+.admin-sidebar:hover .admin-nav .admin-nav-link:nth-child(7) span { transition-delay: 0.29s; }
+.admin-shell.is-pinned .admin-nav .admin-nav-link:nth-child(8) span,
+.admin-sidebar:hover .admin-nav .admin-nav-link:nth-child(8) span { transition-delay: 0.33s; }
+.admin-shell.is-pinned .admin-nav .admin-nav-link:nth-child(9) span,
+.admin-sidebar:hover .admin-nav .admin-nav-link:nth-child(9) span { transition-delay: 0.37s; }
+
+.admin-shell.is-pinned .admin-site-link span,
+.admin-sidebar:hover .admin-site-link span { transition-delay: 0.3s; }
+
+/* Уважаем системную настройку «меньше движения». */
+@media (prefers-reduced-motion: reduce) {
+    .admin-shell,
+    .admin-sidebar,
+    .admin-sidebar::before,
+    .admin-brand,
+    .admin-brand-text,
+    .admin-nav-link,
+    .admin-nav-link span,
+    .admin-collapse,
+    .admin-site-link,
+    .admin-site-link span {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* --- Контент --- */
+
+.admin-main {
+    min-width: 0;
+}
+
+.admin-content {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 30px clamp(18px, 3vw, 44px) 90px;
+}
+
+.admin-topbar {
+    margin-bottom: 26px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.admin-topbar h1 {
+    margin: 0;
+    font-size: clamp(28px, 4vw, 44px);
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+}
+
+/* --- Адаптивность --- */
+
+@media (max-width: 720px) {
+    .admin-shell,
+    .admin-shell.is-pinned {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-sidebar,
+    .admin-shell.is-pinned .admin-sidebar,
+    .admin-sidebar:hover {
+        position: static;
+        width: auto;
+        height: auto;
+        flex-direction: row;
+        align-items: center;
+        overflow-x: auto;
+        padding: 12px 14px;
+        border-right: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        box-shadow: none;
+    }
+
+    .admin-brand,
+    .admin-shell.is-pinned .admin-brand {
+        width: auto;
+        margin-inline: 0;
+        justify-content: flex-start;
+        padding: 0 10px 0 0;
+        border-bottom: 0;
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .admin-brand-text,
+    .admin-shell.is-pinned .admin-brand-text {
+        display: none;
+    }
+
+    .admin-nav {
+        display: flex;
+        gap: 3px;
+    }
+
+    .admin-nav-link,
+    .admin-shell.is-pinned .admin-nav-link,
+    .admin-sidebar:hover .admin-nav-link {
+        width: auto;
+        margin-inline: 0;
+        justify-content: center;
+        padding: 0 11px;
+        gap: 8px;
+    }
+
+    .admin-nav-link span,
+    .admin-site-link span,
+    .admin-shell.is-pinned .admin-nav-link span,
+    .admin-sidebar:hover .admin-nav-link span {
+        display: none;
+    }
+
+    .admin-nav-link,
+    .admin-shell.is-pinned .admin-nav-link,
+    .admin-sidebar:hover .admin-nav-link {
+        overflow: visible;
+    }
+
+    .admin-sidebar-foot {
+        display: none;
+    }
+
+    .admin-content {
+        padding-top: 22px;
+    }
+
+    .admin-topbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

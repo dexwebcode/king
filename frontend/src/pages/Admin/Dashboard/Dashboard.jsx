@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { adminApi } from "./adminApi";
-import LineChart from "./components/Chart";
-import ConfirmModal from "./components/ConfirmModal";
-import { formatMoney, formatNumber } from "./format";
-import "./AdminPanel.css";
+import { adminApi } from "../adminApi";
+import LineChart from "../components/Chart/Chart";
+import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+import { formatMoney, formatNumber } from "../format";
+import "./Dashboard.css";
+import "../AdminApp/AdminApp.css";
 
 const ATTENTION_LABELS = {
     awaiting_dispatch: "Ожидает отправки",

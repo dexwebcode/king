@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { adminApi } from "./adminApi";
-import Pagination from "./components/Pagination";
-import { formatDate } from "./format";
-import "./AdminPanel.css";
+import { adminApi } from "../adminApi";
+import Pagination from "../components/Pagination/Pagination";
+import { formatDate } from "../format";
+import "../AdminApp/AdminApp.css";
 
 const ACTION_LABELS = {
     user_banned: "Пользователь заблокирован",

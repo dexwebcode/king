@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { adminApi } from "./adminApi";
-import "./AdminPanel.css";
+import { adminApi } from "../adminApi";
+import "../AdminApp/AdminApp.css";
 
 export default function MarkupAdmin() {
     const [settings, setSettings] = useState(null);

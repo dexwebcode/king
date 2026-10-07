@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { adminApi } from "./adminApi";
-import Pagination from "./components/Pagination";
-import { ORDER_STATUSES, formatDateShort, formatMoney, orderStatusTone } from "./format";
-import "./AdminPanel.css";
+import { adminApi } from "../adminApi";
+import Pagination from "../components/Pagination/Pagination";
+import { ORDER_STATUSES, formatDateShort, formatMoney, orderStatusTone } from "../format";
+import "../AdminApp/AdminApp.css";
 
 const SORTS = [
     { value: "newest", label: "Сначала новые" },
