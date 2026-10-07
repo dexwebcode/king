@@ -6,6 +6,7 @@ import Header from "../pages/Landing/components/Header/Header";
 import Footer from "../pages/Landing/components/Footer/Footer";
 import { logoutUser } from "../pages/Landing/components/Hero/auth/authApi";
 import { useIsAdmin } from "./adminStatus";
+import { setUserView, useUserView } from "./viewMode";
 import { getAccount, getCachedAccount, refreshAccount, subscribeAccount } from "./dataCache";
 import { formatMoney } from "./catalogMeta";
 import { useLanguage } from "./i18n";
@@ -13,17 +14,21 @@ import { formatUsd, useUsdRate } from "./usdRate";
 import logo from "../assets/logo.png";
 
 
-/* Разделы меню аккаунта. Обычному пользователю они выводятся по длине
-   названия — от самого длинного к самому короткому (см. AccountMenu).
-   У админа меню другое: остаётся только «Админ-панель», то есть Dashboard
-   админ-панели, — витрина и клиентские разделы ему не показываются. */
+/* Разделы меню аккаунта — обычные, как у всех пользователей: выводятся
+   по длине названия, от самого длинного к самому короткому (см. AccountMenu).
+   У админа в режиме «Обычная страница» к ним добавляется «Админ-панель»,
+   а без этого режима меню состоит из двух «страниц»: панель и сайт. */
 const MENU_ITEMS = [
-    { key: "admin", label: "Админ-панель", to: "/admin", adminOnly: true },
-    { key: "account", label: "Личный кабинет", to: "/account", hideForAdmin: true },
-    { key: "catalog", label: "Каталог услуг", to: "/catalog", hideForAdmin: true },
-    { key: "orders", label: "Заказы", section: "orders", hideForAdmin: true },
-    { key: "support", label: "Поддержка", to: "/support", hideForAdmin: true },
-    { key: "reviews", label: "Оставить отзыв", to: "/reviews", hideForAdmin: true },
+    { key: "account", label: "Личный кабинет", to: "/account" },
+    { key: "catalog", label: "Каталог услуг", to: "/catalog" },
+    { key: "orders", label: "Заказы", section: "orders" },
+    { key: "support", label: "Поддержка", to: "/support" },
+    { key: "reviews", label: "Оставить отзыв", to: "/reviews" },
+];
+
+const ADMIN_MENU_ITEMS = [
+    { key: "admin", label: "Админ-панель", to: "/admin" },
+    { key: "site", label: "Обычная страница", to: "/catalog", userView: true },
 ];
 
 export function AppShell({
@@ -63,6 +68,9 @@ export function AppShell({
 
     function handleLogout() {
         setIsMenuOpen(false);
+        /* Выход сбрасывает режим «Обычная страница»: администратор в любом
+           случае возвращается в Dashboard админ-панели, а не на витрину. */
+        setUserView(false);
         logoutUser();
         navigate("/", { replace: true });
     }
@@ -128,6 +136,8 @@ export function AccountMenu({ open, onClose, active, account, isAdmin = false, o
     const token = localStorage.getItem("token");
     const { lang, setLang, t } = useLanguage();
     const usdRate = useUsdRate();
+    /* Админ в режиме «Обычная страница» видит обычное меню пользователя. */
+    const userView = useUserView();
     /* Разворот панели идёт в два шага: сначала выставляем свёрнутое состояние,
        на следующем кадре — раскрытое. Так анимация гарантированно проигрывается
        при каждом открытии, а не только при первом. */
@@ -180,12 +190,15 @@ export function AccountMenu({ open, onClose, active, account, isAdmin = false, o
        переход в другой раздел обрывает анимацию. */
     const MENU_CLOSE_MS = 220;
 
-    /* Разделы — от самого длинного названия к самому короткому. У админа
-       после фильтров остаётся только «Админ-панель», порядок ему не важен. */
-    const menuItems = MENU_ITEMS
-        .filter((item) => !item.adminOnly || isAdmin)
-        .filter((item) => !item.hideForAdmin || !isAdmin)
-        .sort((first, second) => second.label.length - first.label.length);
+    /* Обычное меню пользователя плюс «Админ-панель» — у админа в режиме
+       просмотра сайта как пользователя. В самой панели меню короткое:
+       «Админ-панель» и «Обычная страница». */
+    const menuItems = isAdmin && !userView
+        ? ADMIN_MENU_ITEMS
+        : (isAdmin
+            ? [{ key: "admin", label: "Админ-панель", to: "/admin" }, ...MENU_ITEMS]
+            : MENU_ITEMS
+        ).sort((first, second) => second.label.length - first.label.length);
 
     function goToSection(section) {
         onClose();
@@ -196,9 +209,16 @@ export function AccountMenu({ open, onClose, active, account, isAdmin = false, o
         window.setTimeout(() => navigate("/main", { state: { section } }), MENU_CLOSE_MS);
     }
 
-    function goToPage(path) {
+    function goToPage(item) {
         onClose();
-        window.setTimeout(() => navigate(path), MENU_CLOSE_MS);
+        /* Переключение «страниц» админа: сайт как пользователь или админ-панель. */
+        if (item.userView) setUserView(true);
+        window.setTimeout(() => navigate(item.to), MENU_CLOSE_MS);
+    }
+
+    /* Пункт «Админ-панель» выключает режим просмотра сайта как пользователя. */
+    function handleAdminPageClick() {
+        setUserView(false);
     }
 
     return (
@@ -233,7 +253,11 @@ export function AccountMenu({ open, onClose, active, account, isAdmin = false, o
                                 key={item.key}
                                 className={active === item.key ? "active" : ""}
                                 to={item.to}
-                                onClick={(event) => { event.preventDefault(); goToPage(item.to); }}
+                                onClick={(event) => {
+                                    event.preventDefault();
+                                    if (item.key === "admin") handleAdminPageClick();
+                                    goToPage(item);
+                                }}
                             >
                                 {t(item.label)}
                             </Link>

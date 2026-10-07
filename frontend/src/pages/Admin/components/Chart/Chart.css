@@ -1,24 +1,100 @@
-/* Стили SVG-графика линиями (components/Chart). */
+/* Стили плавного SVG-графика (components/Chart).
+   Линии рисуются с анимацией, под ними — градиентная заливка,
+   при наведении появляется направляющая и подсказка. */
 
 .admin-chart {
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .admin-chart svg {
     width: 100%;
     height: auto;
     display: block;
+    overflow: visible;
 }
 
+/* Сетка и ось: тихие, чтобы данные оставались главными. */
 .admin-chart-grid {
-    stroke: rgba(255, 255, 255, 0.07);
+    stroke: rgba(255, 255, 255, 0.06);
+    stroke-width: 1;
+    stroke-dasharray: 3 7;
+}
+
+.admin-chart-baseline {
+    stroke: rgba(255, 255, 255, 0.12);
     stroke-width: 1;
 }
 
 .admin-chart-axis {
-    fill: #85878d;
-    font-size: 10px;
+    fill: #9a9ca3;
+    font-size: 13px;
     font-family: inherit;
+    letter-spacing: 0.01em;
+}
+
+/* Серия: показ линии «прорисовкой», мягкое свечение и заливка. */
+.admin-chart-series {
+    transition: opacity 0.22s ease;
+}
+
+.admin-chart-series.is-dim {
+    opacity: 0.2;
+}
+
+.admin-chart-line {
+    fill: none;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: admin-chart-draw 1.15s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.admin-chart-glow {
+    fill: none;
+    stroke-width: 7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.16;
+    filter: blur(6px);
+}
+
+.admin-chart-area {
+    opacity: 0;
+    animation: admin-chart-fade 0.9s ease forwards;
+}
+
+.admin-chart-guide {
+    stroke: rgba(255, 255, 255, 0.22);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+}
+
+.admin-chart-dot {
+    stroke: #0e0f11;
+    stroke-width: 2;
+    animation: admin-chart-pop 0.18s ease forwards;
+}
+
+.admin-chart-tip rect {
+    fill: rgba(16, 17, 20, 0.94);
+    stroke: rgba(255, 255, 255, 0.12);
+    stroke-width: 1;
+}
+
+.admin-chart-tip-date {
+    fill: #f5f5f2;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.admin-chart-tip-value {
+    fill: #d4d5d8;
+    font-size: 15px;
 }
 
 .admin-chart-empty {
@@ -29,10 +105,10 @@
 }
 
 .admin-chart-legend {
-    margin-top: 12px;
+    margin: 0;
     display: flex;
     flex-wrap: wrap;
-    gap: 14px;
+    gap: 8px 16px;
 }
 
 .admin-chart-legend-item {
@@ -41,10 +117,50 @@
     gap: 7px;
     color: var(--kp-text-muted);
     font-size: 12px;
+    cursor: default;
+    transition: color 0.18s ease;
+}
+
+.admin-chart-legend-item:hover {
+    color: var(--kp-text);
 }
 
 .admin-chart-legend-item i {
     width: 9px;
     height: 9px;
     border-radius: 50%;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.18);
+}
+
+@keyframes admin-chart-draw {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes admin-chart-fade {
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes admin-chart-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.6);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-chart-line,
+    .admin-chart-area,
+    .admin-chart-dot {
+        animation: none;
+        stroke-dashoffset: 0;
+        opacity: 1;
+    }
 }

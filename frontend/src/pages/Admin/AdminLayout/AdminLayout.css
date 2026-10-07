@@ -50,6 +50,10 @@
     --admin-rail: 76px;
     --admin-open: 248px;
     --admin-slot: 44px;
+    /* На сколько контент выступает за правую границу сетки: шапка с кнопкой,
+       панель статистики и нижние панели должны стоять на одной правой линии.
+       На узких экранах выступ плавно сходит на нет. */
+    --admin-right-bleed: clamp(0px, (100vw - 1596px) / 2 + 44px, 100px);
     /* Та же кривая, что у выпадающего меню аккаунта на сайте. */
     --admin-ease: cubic-bezier(0.4, 0, 0.2, 1);
     display: grid;
@@ -61,6 +65,12 @@
 }
 
 .admin-shell.is-pinned {
+    grid-template-columns: var(--admin-open) minmax(0, 1fr);
+}
+
+/* Развёрнутое меню раздвигает сетку: основной контент сдвигается вправо,
+   а не остаётся под выехавшей панелью. */
+.admin-shell:has(.admin-sidebar:hover) {
     grid-template-columns: var(--admin-open) minmax(0, 1fr);
 }
 
@@ -186,9 +196,7 @@
     gap: 6px;
 }
 
-.admin-nav-link,
-.admin-collapse,
-.admin-site-link {
+.admin-nav-link {
     position: relative;
     overflow: hidden;
     width: var(--admin-slot);
@@ -230,6 +238,13 @@
     color: var(--kp-gold);
 }
 
+/* «Обычная страница» — вторая страница админа: отделена от разделов панели. */
+.admin-nav-link--site {
+    margin-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0 0 13px 13px;
+}
+
 .admin-nav-icon {
     width: 19px;
     height: 19px;
@@ -237,8 +252,7 @@
 }
 
 /* Подпись пункта: абсолютная, поэтому не влияет на положение иконок. */
-.admin-nav-link span,
-.admin-site-link span {
+.admin-nav-link span {
     position: absolute;
     top: 50%;
     left: 59px;
@@ -248,58 +262,7 @@
     white-space: nowrap;
 }
 
-.admin-sidebar-foot {
-    margin-top: auto;
-    padding-top: 14px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    display: grid;
-    gap: 8px;
-}
-
-.admin-collapse,
-.admin-site-link {
-    height: var(--admin-slot);
-    min-height: var(--admin-slot);
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 12px;
-    border: 1px solid var(--kp-border);
-    border-radius: 12px;
-    background: transparent;
-    color: var(--kp-text-muted);
-    font: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-/* Иконка кнопки «На сайт» — 16px, поэтому отступ и подпись свои. */
-.admin-site-link {
-    padding-left: calc((var(--admin-slot) - 16px) / 2);
-}
-
-.admin-site-link span {
-    left: 58px;
-}
-
-.admin-collapse {
-    padding-left: calc((var(--admin-slot) - 10px) / 2);
-}
-
-.admin-collapse:hover,
-.admin-site-link:hover {
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--kp-text);
-}
-
-.admin-site-link .admin-nav-icon {
-    width: 16px;
-    height: 16px;
-}
-
-/* --- Развёрнутое меню: наведение мышью или закрепление кнопкой --- */
+/* --- Развёрнутое меню: наведение мышью --- */
 
 .admin-shell.is-pinned .admin-brand,
 .admin-sidebar:hover .admin-brand {
@@ -364,6 +327,8 @@
 .admin-sidebar:hover .admin-nav .admin-nav-link:nth-child(8) span { transition-delay: 0.33s; }
 .admin-shell.is-pinned .admin-nav .admin-nav-link:nth-child(9) span,
 .admin-sidebar:hover .admin-nav .admin-nav-link:nth-child(9) span { transition-delay: 0.37s; }
+.admin-shell.is-pinned .admin-nav .admin-nav-link:nth-child(10) span,
+.admin-sidebar:hover .admin-nav .admin-nav-link:nth-child(10) span { transition-delay: 0.41s; }
 
 .admin-shell.is-pinned .admin-site-link span,
 .admin-sidebar:hover .admin-site-link span { transition-delay: 0.3s; }
@@ -392,13 +357,18 @@
 }
 
 .admin-content {
-    max-width: 1320px;
-    margin: 0 auto;
+    max-width: 1520px;
+    /* Контент центрируем по центру окна, а не по колонке справа от рельсы:
+       иначе блок (вместе с правым выступом) уезжает вправо от середины. */
+    margin-left: max(0px, calc((100% - 1520px) / 2 - (var(--admin-rail) + var(--admin-right-bleed)) / 2));
+    margin-right: auto;
     padding: 30px clamp(18px, 3vw, 44px) 90px;
 }
 
 .admin-topbar {
     margin-bottom: 26px;
+    /* Кнопка «Открыть сайт» прижата к той же правой линии, что и контент. */
+    margin-right: calc(-1 * var(--admin-right-bleed, 0px));
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
@@ -416,7 +386,8 @@
 
 @media (max-width: 720px) {
     .admin-shell,
-    .admin-shell.is-pinned {
+    .admin-shell.is-pinned,
+    .admin-shell:has(.admin-sidebar:hover) {
         grid-template-columns: 1fr;
     }
 

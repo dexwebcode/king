@@ -32,6 +32,7 @@ import HeroRegisterForm from "../Landing/components/Hero/HeroRegisterForm";
 import { AUTH_CHANGED_EVENT, logoutUser } from "../Landing/components/Hero/auth/authApi";
 import { AccountMenu, InternalHeader, MenuToggle } from "../../ui/AppShell";
 import { useIsAdmin } from "../../ui/adminStatus";
+import { setUserView } from "../../ui/viewMode";
 import Footer from "../Landing/components/Footer/Footer";
 import { getAccount, getCachedAccount, getCachedPrices, getPrices, subscribeAccount } from "../../ui/dataCache";
 import CatalogSearch from "./CatalogSearch";
@@ -410,6 +411,9 @@ export default function Catalog() {
                         account={account}
                         isAdmin={isAdmin}
                         onLogout={() => {
+                            /* Выход с витрины: снимаем режим «Обычная страница»,
+                               чтобы админ снова попадал в Dashboard панели. */
+                            setUserView(false);
                             logoutUser();
                             navigate("/", { replace: true });
                         }}

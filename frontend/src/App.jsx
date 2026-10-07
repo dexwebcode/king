@@ -13,6 +13,7 @@ import AccountPage from "./pages/Account/AccountPage";
 
 import { AUTH_CHANGED_EVENT, isAuth } from "./pages/Landing/components/Hero/auth/authApi";
 import { useIsAdmin } from "./ui/adminStatus";
+import { useUserView } from "./ui/viewMode";
 import { getAccount, getAccountDetails, getPrices } from "./ui/dataCache";
 import { trackPageView } from "./ui/traffic";
 
@@ -29,12 +30,15 @@ function BootLoader() {
 
 /* Витрина — не рабочее место админа: его начальный экран — Dashboard
    админ-панели. Пока права не проверены, ничего не показываем, иначе
-   каталог успеет мелькнуть перед редиректом. */
+   каталог успеет мелькнуть перед редиректом. Если админ сам выбрал
+   режим «как обычный пользователь» (пункт меню «Обычная страница»),
+   редиректа нет — он ходит по сайту как тестовый пользователь. */
 function AdminLanding({ children }) {
     const isAdmin = useIsAdmin();
+    const userView = useUserView();
 
     if (isAdmin === null) return <BootLoader />;
-    if (isAdmin) return <Navigate to="/admin" replace />;
+    if (isAdmin && !userView) return <Navigate to="/admin" replace />;
     return children;
 }
 

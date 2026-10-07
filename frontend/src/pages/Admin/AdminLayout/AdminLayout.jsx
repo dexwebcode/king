@@ -4,6 +4,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import "./AdminLayout.css";
 
 import { adminApi } from "../adminApi";
+import { setUserView } from "../../../ui/viewMode";
 import logo from "../../../assets/logo.png";
 
 const SECTIONS = [
@@ -29,6 +30,7 @@ function Icon({ name }) {
         analytics: <><path d="M4 19V9M10 19V5M16 19v-7M21 19H3" /></>,
         markup: <><path d="M19 5 5 19" /><circle cx="7" cy="7" r="2.6" /><circle cx="17" cy="17" r="2.6" /></>,
         logs: <><path d="M4 6h16M4 12h16M4 18h10" /></>,
+        site: <><circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.3 3.6 8.5S14.4 19.1 12 20.5c-2.4-1.4-3.6-5.3-3.6-8.5S9.6 5.9 12 3.5Z" /></>,
     };
     return (
         <svg className="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -47,30 +49,20 @@ function sectionForPath(pathname) {
 export default function AdminLayout({ children }) {
     const location = useLocation();
     const [status, setStatus] = useState("loading");
-    // Меню по умолчанию свёрнуто до иконок и выдвигается при наведении.
-    // Кнопка «закрепить» оставляет его развёрнутым (состояние запоминается).
-    const [pinned, setPinned] = useState(() => {
-        try {
-            return localStorage.getItem("kp_admin_menu_pinned") === "1";
-        } catch (error) {
-            return false;
-        }
-    });
+    /* Меню свёрнуто до иконок и выезжает при наведении: развёрнутая панель
+       при этом раздвигает сетку, поэтому основной контент уходит вправо. */
     const section = sectionForPath(location.pathname);
 
-    function togglePinned() {
-        setPinned((value) => {
-            const next = !value;
-            try {
-                localStorage.setItem("kp_admin_menu_pinned", next ? "1" : "0");
-            } catch (error) {
-                /* приватный режим — не критично */
-            }
-            return next;
-        });
+    /* Открыть сайт как обычный (тестовый) пользователь: включаем режим
+       просмотра, чтобы витрина и клиентские разделы не возвращали в панель. */
+    function openSiteAsUser() {
+        setUserView(true);
     }
 
     useEffect(() => {
+        /* Внутри панели админ работает как админ: режим «как пользователь»
+           сбрасываем при входе в панель. */
+        setUserView(false);
         let active = true;
         adminApi
             .me()
@@ -114,7 +106,7 @@ export default function AdminLayout({ children }) {
     }
 
     return (
-        <div className={`admin-shell ${pinned ? "is-pinned" : ""}`}>
+        <div className="admin-shell">
             {/* Выдвижение меню при наведении — на CSS (см. AdminLayout.css),
                 поэтому лишних обработчиков здесь нет. */}
             <aside className="admin-sidebar">
@@ -138,23 +130,18 @@ export default function AdminLayout({ children }) {
                             <span>{item.label}</span>
                         </NavLink>
                     ))}
-                </nav>
-                <div className="admin-sidebar-foot">
-                    <button
-                        className="admin-collapse"
-                        type="button"
-                        onClick={togglePinned}
-                        aria-pressed={pinned}
-                        aria-label={pinned ? "Свернуть меню до иконок" : "Закрепить меню развёрнутым"}
-                        title={pinned ? "Свернуть до иконок" : "Закрепить меню"}
+                    {/* Вторая «страница» админа: сайт глазами обычного
+                        тестового пользователя (без редиректа в панель). */}
+                    <Link
+                        className="admin-nav-link admin-nav-link--site"
+                        to="/catalog"
+                        title="Обычная страница (как пользователь)"
+                        onClick={openSiteAsUser}
                     >
-                        {pinned ? "«" : "»"}
-                    </button>
-                    <Link className="admin-site-link" to="/main" title="На сайт">
-                        <Icon name="dashboard" />
-                        <span>На сайт</span>
+                        <Icon name="site" />
+                        <span>Обычная страница</span>
                     </Link>
-                </div>
+                </nav>
             </aside>
             <div className="admin-main">
                 <main className="admin-content">
@@ -163,7 +150,11 @@ export default function AdminLayout({ children }) {
                             <p className="kp-eyebrow">KingPromotion · операционный центр</p>
                             <h1>{section.label}</h1>
                         </div>
-                        <Link className="kp-button kp-button--secondary kp-button--small" to="/main">
+                        <Link
+                            className="kp-button kp-button--secondary kp-button--small"
+                            to="/catalog"
+                            onClick={openSiteAsUser}
+                        >
                             Открыть сайт
                         </Link>
                     </header>
